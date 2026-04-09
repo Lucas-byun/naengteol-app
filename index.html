@@ -37,7 +37,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .hdr-btn:active{background:rgba(255,255,255,.35)}
 .my-ing-count-hdr{background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;flex-shrink:0;transition:background .15s}
 .my-ing-count-hdr:active{background:rgba(255,255,255,.4)}
-.search-bar{display:block;padding:8px 16px;background:linear-gradient(180deg,rgba(232,101,42,.06) 0%,var(--bg) 100%);border-bottom:1px solid var(--border)}
+.search-bar{display:none;padding:8px 16px;background:linear-gradient(180deg,rgba(232,101,42,.06) 0%,var(--bg) 100%);border-bottom:1px solid var(--border)}
 .search-bar.show{display:block}
 .search-bar input{width:100%;padding:10px 16px 10px 40px;border:1.5px solid var(--border);border-radius:24px;font-size:14px;font-family:inherit;outline:none;background:var(--card);transition:all .2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
 .search-bar input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
@@ -1345,6 +1345,8 @@ function render(){
   if(sel.size>0)h+='<span class="my-ing-count-hdr" onclick="openFridge()">🧊 '+sel.size+'</span>';
   
   var cartCount=0;cart.forEach(function(c){cartCount+=c.items.filter(function(i){return!i.checked}).length});
+  // 돋보기 버튼 (요리 탭에서만 표시, 검색바 토글)
+  if(tab==='cook')h+='<button class="hdr-btn" onclick="toggleSearchBar()" id="searchToggleBtn" style="background:'+(showSearch?'rgba(255,255,255,.95)':'rgba(255,255,255,.25)')+';color:'+(showSearch?'var(--primary)':'#fff')+'">🔍</button>';
   h+='<button class="hdr-btn" onclick="openCartModal()" style="position:relative;background:rgba(255,255,255,.95);color:#1565c0">🛒';
   if(cartCount>0)h+='<span style="position:absolute;top:-2px;right:-2px;background:#fff;color:#d84315;font-size:9px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700">'+cartCount+'</span>';
   h+='</button>';
@@ -1352,7 +1354,7 @@ function render(){
   h+='</div></div>';
   var searchPlaceholder=mode==='ing'?'재료 이름 검색...':'요리 이름 검색...';
   // Search bar with autocomplete — 요리 탭에서만 표시
-  if(tab==='cook'){h+='<div class="search-bar"><div style="display:flex;gap:6px;position:relative">';
+  if(tab==='cook'){h+='<div class="search-bar'+(showSearch||searchQ?' show':'')+'"><div style="display:flex;gap:6px;position:relative">';
   h+='<div style="position:relative;flex:1">';
   h+='<input type="text" id="searchInput" placeholder="'+searchPlaceholder+'" value="'+esc(searchQ)+'" autocomplete="off" style="width:100%;box-sizing:border-box" oninput="updateAC(this.value)" onfocus="updateAC(this.value)" onblur="setTimeout(function(){var ac=document.getElementById(\'acList\');if(ac)ac.style.display=\'none\'},200)">';
   h+='<div id="acList" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1.5px solid var(--primary);border-radius:12px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);margin-top:4px"></div>';
@@ -1584,7 +1586,7 @@ function render(){
     h+=renderMyPage();
   }
   h+='<div class="data-src">'+(dataSource==="sheets"?'<span class="dot"></span> Google Sheets 연동':'⚠️ 내장 데이터')+' · '+RECIPES.length+'개 레시피</div>';
-h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="tab=\'cook\';render()"><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="tab=\'fav\';render()"><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="tab=\'my\';mode=\'ing\';render()"><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="tab=\'comm\';render()"><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
+h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="tab=\'cook\';render()"><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="showSearch=false;tab=\'fav\';render()"><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="showSearch=false;tab=\'my\';mode=\'ing\';render()"><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="showSearch=false;tab=\'comm\';render()"><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
   // Restore scroll position after re-render
   window.scrollTo(0,savedScroll);
   // Search: Enter key to search (no live render = no Korean input issues)
@@ -2200,6 +2202,28 @@ function nextOnboard(){if(onboardStep<2){onboardStep++;render();}else finishOnbo
 function finishOnboard(){showOnboard=false;localStorage.setItem('nt_done','1');render();}
 
 // === HOME REFRESH (no splash) ===
+function toggleSearchBar(){
+  showSearch=!showSearch;
+  // 검색바 닫을 때 검색어 유지 (결과가 있는 경우)
+  if(!showSearch&&!searchQ){
+    // 검색어 없으면 그냥 닫기
+    var sb=document.querySelector('.search-bar');
+    if(sb)sb.classList.remove('show');
+    var btn=document.getElementById('searchToggleBtn');
+    if(btn){btn.style.background='rgba(255,255,255,.25)';btn.style.color='#fff';}
+  }else if(showSearch){
+    var sb2=document.querySelector('.search-bar');
+    if(sb2)sb2.classList.add('show');
+    var btn2=document.getElementById('searchToggleBtn');
+    if(btn2){btn2.style.background='rgba(255,255,255,.95)';btn2.style.color='var(--primary)';}
+    // 자동 포커스
+    setTimeout(function(){var inp=document.getElementById('searchInput');if(inp)inp.focus();},100);
+  }else{
+    // 검색어 있으면 지우고 닫기
+    searchQ='';
+    render();
+  }
+}
 function goHome(){
   tab='cook';mode='ing';showSearch=false;query='';
   window.scrollTo(0,0);
@@ -3478,12 +3502,25 @@ function renderMyPage(){
   h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+stats.unique+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">요리 종류</div></div>';
   h+='</div></div>';
   // Weekly challenge
-  h+='<div style="background:linear-gradient(135deg,#f5f5f5,#fff);border:1px solid #f0e6d2;border-radius:12px;padding:14px;margin-bottom:16px">';
-  h+='<div style="font-size:14px;font-weight:700;margin-bottom:6px;color:#333">🎯 이번 주 챌린지</div>';
-  h+='<div style="font-size:13px;color:#666">이번 주 '+stats.thisWeek+'/5 요리 완성</div>';
-  h+='<div style="height:8px;background:var(--border);border-radius:4px;margin-top:8px;overflow:hidden"><div style="height:100%;width:'+Math.min(stats.thisWeek/5*100,100)+'%;background:var(--primary);border-radius:4px;transition:width .3s"></div></div>';
-  if(stats.thisWeek>=5)h+='<div style="margin-top:6px;font-size:12px;color:var(--primary);font-weight:700">🎉 챌린지 달성!</div>';
+  var wkDone=stats.thisWeek>=5;
+  h+='<div style="background:linear-gradient(135deg,'+(wkDone?'#e8f5e9,#c8e6c9':'#fff8f3,#f0e6d2')+');border:2px solid '+(wkDone?'#66bb6a':'var(--primary)')+';border-radius:14px;padding:14px 16px;margin-bottom:16px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+  h+='<div style="flex:1">';
+  h+='<div style="font-size:11px;font-weight:700;color:'+(wkDone?'#388e3c':'var(--primary)')+';margin-bottom:4px">🎯 이번 주 챌린지</div>';
+  h+='<div style="font-size:14px;font-weight:600;color:#333;margin-bottom:6px">이번 주 5회 요리 완성</div>';
+  h+='<div style="font-size:12px;color:#666;margin-bottom:8px">'+stats.thisWeek+'/5 완료'+(wkDone?' ✅':'')+'</div>';
+  h+='<div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.min(stats.thisWeek/5*100,100)+'%;background:'+(wkDone?'#66bb6a':'var(--primary)')+';border-radius:4px;transition:width .3s"></div></div>';
   h+='</div>';
+  h+='<div style="text-align:center;margin-left:12px">';
+  if(wkDone){
+    h+='<div style="font-size:28px">🏆</div>';
+    h+='<div style="font-size:11px;font-weight:700;color:#388e3c">달성!</div>';
+  }else{
+    h+='<div style="font-size:28px;opacity:.5">🎯</div>';
+    h+='<div style="font-size:11px;color:var(--sub)">도전 중</div>';
+  }
+  h+='</div>';
+  h+='</div></div>';
   // My Gallery (photos + comments)
   var galleryPosts=cookHistory.filter(function(ch){return ch.photo||ch.comment});
   if(galleryPosts.length>0){
@@ -3610,8 +3647,8 @@ function renderMyPage(){
   h+='<h2 style="margin-top:16px;color:var(--text)">🎁 보상</h2>';
   h+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">';
   
-  // 보상 1: 뱃지 20개 (Lv.7 냉털 고수 달성 시점)
-  h+='<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:'+(bc>=20?'linear-gradient(135deg,#f5f5f5,#f0e6d2)':'var(--card)')+';border:1px solid '+(bc>=20?'var(--primary)':'var(--border)')+'">';
+  // 보상 1: 뇱지 20개 (Lv.7 냉털 고수 달성 시점)
+  h+='<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:'+(bc>=20?'linear-gradient(135deg,#fff8f3,#f0e6d2)':'var(--card)')+';border:1px solid '+(bc>=20?'var(--primary)':'var(--border)')+'">';
   h+='<div style="font-size:24px">'+(bc>=20?'🔓':'🔒')+'</div>';
   h+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:'+(bc>=20?'var(--primary)':'var(--sub)')+'">🏅 뱃지 20개 달성 (Lv.7)</div>';
   h+='<div style="font-size:11px;color:'+(bc>=20?'#555':'var(--sub)')+'">🎲 "나를 위한 추천" 업그레이드 <span style="font-size:10px;color:#aaa">(추후 기능 추가 예정)</span></div>';
