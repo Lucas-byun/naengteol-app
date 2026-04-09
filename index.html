@@ -1532,7 +1532,7 @@ function render(){
     h+='</div>';
     h+='</div>';
     // === 내 즐겨찾기 목록 ===
-    h+='<div class="recipe-section"><h2 style="color:var(--text)">❤️ 내 즐겨찾기</h2>';var fr=RECIPES.filter(function(r){return favs.has(r.id)});if(!fr.length)h+='<div class="empty"><div class="em">💝</div><div class="empty-title">즐겨찾기한 레시피가 없어요</div><div class="empty-sub">마음에 드는 레시피에 ❤️를 눌러보세요!<br>나만의 레시피 목록을 만들 수 있어요.</div><button class="empty-cta" onclick="tab='cook';render()">🍳 레시피 둘러보기</button></div>';fr.forEach(function(r){h+=renderCard(Object.assign({},r,{match:sel.size>0?matchRecipe(r,selArr):{pct:0}}))});h+='</div>';
+    h+='<div class="recipe-section"><h2 style="color:var(--text)">❤️ 내 즐겨찾기</h2>';var fr=RECIPES.filter(function(r){return favs.has(r.id)});if(!fr.length)h+='<div class="empty"><div class="em">💝</div><div class="empty-title">즐겨찾기한 레시피가 없어요</div><div class="empty-sub">마음에 드는 레시피에 ❤️를 눌러보세요!<br>나만의 레시피 목록을 만들 수 있어요.</div><button class="empty-cta" onclick="tab=\'cook\';render()">🍳 레시피 둘러보기</button></div>';fr.forEach(function(r){h+=renderCard(Object.assign({},r,{match:sel.size>0?matchRecipe(r,selArr):{pct:0}}))});h+='</div>';
   }else if(tab==='comm'){
     h+=renderCommunity();
     // 관리자 모드 활성화 버튼 (숫겨진 영역)
@@ -1548,7 +1548,7 @@ function render(){
     h+=renderMyPage();
   }
   h+='<div class="data-src">'+(dataSource==="sheets"?'<span class="dot"></span> Google Sheets 연동':'⚠️ 내장 데이터')+' · '+RECIPES.length+'개 레시피</div>';
-  h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+'" onclick="tab=\'cook\';render()"><span class="ico"><img src="icons/ui_005.png" style="width:22px;height:22px;object-fit:contain"></span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+'" onclick="tab=\'fav\';render()"><span class="ico"><img src="icons/ui_006.png" style="width:22px;height:22px;object-fit:contain"></span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+'" onclick="tab=\'my\';mode=\'ing\';render()"><span class="ico"><img src="icons/ui_007.png" style="width:22px;height:22px;object-fit:contain"></span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+'" onclick="tab=\'comm\';render()"><span class="ico"><img src="icons/ui_008.png" style="width:22px;height:22px;object-fit:contain"></span>커뮤니티</button></div>';
+  h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+'" onclick="tab=\\\'cook\\\';render()"><span class="ico"><img src="icons/ui_005.png" style="width:22px;height:22px;object-fit:contain"></span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+'" onclick="tab=\'fav\';render()"><span class="ico"><img src="icons/ui_006.png" style="width:22px;height:22px;object-fit:contain"></span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+'" onclick="tab=\'my\';mode=\'ing\';render()"><span class="ico"><img src="icons/ui_007.png" style="width:22px;height:22px;object-fit:contain"></span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+'" onclick="tab=\'comm\';render()"><span class="ico"><img src="icons/ui_008.png" style="width:22px;height:22px;object-fit:contain"></span>커뮤니티</button></div>';
   app.innerHTML=h;
   // Restore scroll position after re-render
   window.scrollTo(0,savedScroll);
@@ -2367,7 +2367,7 @@ function renderCommunity(){
     h+='<div style="font-size:56px;margin-bottom:16px">📸</div>';
     h+='<div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">아직 등록된 후기가 없어요</div>';
     h+='<div style="font-size:13px;line-height:1.5;margin-bottom:16px">요리를 완성하고 사진을 찍어보세요!<br>다른 사용자들과 요리 경험을 공유할 수 있어요.</div>';
-    h+='<button class="empty-cta" onclick="tab=\'cook\';render()">🍳 요리 시작하기</button>';
+    h+='<button class="empty-cta" onclick="tab=\\\'cook\\\';render()">🍳 요리 시작하기</button>';
     h+='</div>';
   }
   h+='</div>';return h;
@@ -3462,7 +3462,7 @@ function renderMyPage(){
   });
   var sorted=Object.values(countMap).sort(function(a,b){return b.lastDate>a.lastDate?1:b.lastDate<a.lastDate?-1:b.count-a.count});
   if(sorted.length===0){
-    h+='<div class="empty"><div class="em">🧑‍🍳</div><div class="empty-title">아직 요리 기록이 없어요</div><div class="empty-sub">레시피를 선택하고 요리를 완성해보세요!<br>요리 횟수에 따라 레벨이 올라가요.</div><button class="empty-cta" onclick="tab=\'cook\';render()">🥕 재료 고르러 가기</button></div>';
+    h+='<div class="empty"><div class="em">🧑‍🍳</div><div class="empty-title">아직 요리 기록이 없어요</div><div class="empty-sub">레시피를 선택하고 요리를 완성해보세요!<br>요리 횟수에 따라 레벨이 올라가요.</div><button class="empty-cta" onclick="tab=\\\'cook\\\';render()">🥕 재료 고르러 가기</button></div>';
   }else{
     // Diet suggestion
     var recentCats=cookHistory.slice(0,5).map(function(h2){return h2.cat});
