@@ -300,7 +300,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <div class="spinner"></div>
   <div class="loading-txt">레시피를 불러오는 중...</div>
   <div class="loading-sub">Google Sheets에서 데이터를 가져오고 있어요</div>
+  <button id="skipLoadingBtn" onclick="var lo=document.getElementById('loadingOverlay');if(lo)lo.classList.add('hide');if(!dataLoaded){dataLoaded=true;render();}" style="display:none;margin-top:20px;padding:10px 24px;border:none;border-radius:20px;background:rgba(255,255,255,0.3);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">건너뛰기</button>
 </div>
+<script>
+// 3초 후 건너뛰기 버튼 표시
+setTimeout(function(){
+  var btn = document.getElementById('skipLoadingBtn');
+  if(btn && !dataLoaded) btn.style.display = 'block';
+}, 3000);
+</script>
 <div id="app"></div>
 <script>
 
@@ -989,9 +997,21 @@ function resetIngs(){
 
 // === LOAD ===
 async function loadData(){
-  // 구글 시트 CSV 직접 fetch (CORS 우회: no-cors 불필요, 공개 시트는 허용)
+  // 구글 시트 CSV 직접 fetch
   var csvUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID
     + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_NAME);
+
+  // 5초 타임아웃: 5초 안에 데이터 안 오면 앱 먼저 표시
+  var _loadDone = false;
+  var timeoutId = setTimeout(function(){
+    if(!_loadDone){
+      console.warn('⏱️ 로딩 타임아웃 - 앱 먼저 표시');
+      _loadDone = true;
+      var lo=document.getElementById('loadingOverlay'); if(lo)lo.classList.add('hide');
+      dataLoaded = true;
+      render();
+    }
+  }, 5000);
 
   fetch(csvUrl)
     .then(function(res){
@@ -999,21 +1019,23 @@ async function loadData(){
       return res.text();
     })
     .then(function(text){
+      clearTimeout(timeoutId);
       var rows = parseCSV(text);
       if(rows.length === 0) throw new Error('빈 데이터');
       RECIPES = rows
         .filter(function(r){ return r['ID'] && r['이름']; })
         .map(sheetRowToRecipe);
       dataSource = 'sheets'; var lo=document.getElementById('loadingOverlay'); if(lo)lo.classList.add('hide');
-      dataLoaded = true;
+      _loadDone = true; dataLoaded = true;
       console.log('✅ Google Sheets 연동 성공: ' + RECIPES.length + '개 레시피');
       updateBestPhotos(); initTags(); render();
     })
     .catch(function(e){
+      clearTimeout(timeoutId);
       console.warn('⚠️ Sheets 연동 실패:', e.message);
       RECIPES = [];
       dataSource = 'error'; var lo=document.getElementById('loadingOverlay'); if(lo)lo.classList.add('hide');
-      dataLoaded = true;
+      _loadDone = true; dataLoaded = true;
       // 연결 실패 시에도 render() 호출하여 앱 표시 (흰 화면 방지)
       render();
     });
@@ -3593,13 +3615,8 @@ function showSplash(){
   setTimeout(function(){loadData();},1000);
 }
 document.addEventListener('DOMContentLoaded',function(){
-  if(sessionStorage.getItem('nt_loaded')){
-    // 이미 이 세션에서 로드됨 → 스플래시 스킵, 바로 데이터 로드
-    loadData();
-  }else{
-    sessionStorage.setItem('nt_loaded','1');
-    showSplash();
-  }
+  // 스플래시 스킵 - 바로 데이터 로드 (로딩 오버레이가 스플래시 역할)
+  loadData();
 });
 
 
