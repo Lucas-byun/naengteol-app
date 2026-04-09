@@ -369,6 +369,8 @@ function listenRecipeRanking(){
 }
 listenRecipeRanking();
 loadProfilePhotoFromFirebase();
+// 앱 시작 시 현재 닉네임을 Firebase에 자동 재등록 (기존 유저 동기화)
+if(userNickname && fbUid){ registerUserToFirebase(userNickname); }
 
 // 레시피 ID가 Top3인지 확인 → 메달 반환
 function getRecipeMedal(recipeId){
