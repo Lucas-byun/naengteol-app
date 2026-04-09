@@ -630,27 +630,58 @@ function triggerProfilePhotoUpload(){
   inp.onchange=function(e){
     var file=e.target.files[0];
     if(!file)return;
-    if(file.size>5*1024*1024){showCartPopup('⚠️ 파일 크기 초과','5MB 이하 이미지만 등록 가능합니다.');return;}
+    if(file.size>10*1024*1024){showCartPopup('⚠️ 파일 크기 초과','10MB 이하 이미지만 등록 가능합니다.');return;}
     var reader=new FileReader();
     reader.onload=function(ev){
       var img=new window.Image();
       img.onload=function(){
+        // 정사각형 크롭 (중앙 기준)
         var canvas=document.createElement('canvas');
-        var size=Math.min(img.width,img.height);
-        canvas.width=200;canvas.height=200;
+        var cropSize=Math.min(img.width,img.height);
+        var outputSize=300; // 300×300px 출력
+        canvas.width=outputSize;canvas.height=outputSize;
         var ctx=canvas.getContext('2d');
-        var sx=(img.width-size)/2,sy=(img.height-size)/2;
-        ctx.drawImage(img,sx,sy,size,size,0,0,200,200);
-        var compressed=canvas.toDataURL('image/jpeg',0.8);
-        saveProfilePhoto(compressed);
-        render();
-        showCartPopup('✅ 프로필 사진 저장','프로필 사진이 변경되었습니다!');
+        var sx=(img.width-cropSize)/2,sy=(img.height-cropSize)/2;
+        ctx.drawImage(img,sx,sy,cropSize,cropSize,0,0,outputSize,outputSize);
+        // 반복 압축: 최종 base64가 150KB 이하가 될 때까지 품질 낮춤
+        var quality=0.85;
+        var compressed=canvas.toDataURL('image/jpeg',quality);
+        while(compressed.length>150*1024&&quality>0.3){
+          quality=Math.round((quality-0.1)*10)/10;
+          compressed=canvas.toDataURL('image/jpeg',quality);
+        }
+        // 그래도 크면 출력 크기를 200px로 줄여서 재시도
+        if(compressed.length>150*1024){
+          canvas.width=200;canvas.height=200;
+          ctx.drawImage(img,sx,sy,cropSize,cropSize,0,0,200,200);
+          quality=0.7;
+          compressed=canvas.toDataURL('image/jpeg',quality);
+          while(compressed.length>150*1024&&quality>0.2){
+            quality=Math.round((quality-0.1)*10)/10;
+            compressed=canvas.toDataURL('image/jpeg',quality);
+          }
+        }
+        saveProfilePhotoWithFeedback(compressed);
       };
       img.src=ev.target.result;
     };
     reader.readAsDataURL(file);
   };
   inp.click();
+}
+function saveProfilePhotoWithFeedback(dataUrl){
+  userProfilePhoto=dataUrl;
+  localStorage.setItem('nt_profile_photo',dataUrl);
+  render();
+  if(fbDB&&fbUid){
+    fbDB.ref('users/'+fbUid+'/profilePhoto').set(dataUrl).then(function(){
+      showCartPopup('✅ 프로필 사진 저장','프로필 사진이 저장되었습니다!');
+    }).catch(function(err){
+      showCartPopup('⚠️ 저장 실패','로컬에는 저장됐지만 서버 저장에 실패했습니다. 다시 시도해 주세요.');
+    });
+  }else{
+    showCartPopup('✅ 프로필 사진 저장','프로필 사진이 저장되었습니다!');
+  }
 }
 function deleteProfilePhoto(){
   if(!confirm('프로필 사진을 삭제하시겠습니까?'))return;
