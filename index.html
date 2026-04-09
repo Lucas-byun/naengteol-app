@@ -33,7 +33,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .hdr h1{font-size:18px;font-weight:700;color:#fff}
 .hdr h1 span{font-size:12px;color:rgba(255,255,255,.7);font-weight:400;margin-left:6px}
 .hdr-btns{display:flex;gap:4px;align-items:center}
-.hdr-btn{background:rgba(255,255,255,.2);border:none;font-size:18px;cursor:pointer;padding:6px;border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.hdr-btn{background:rgba(255,255,255,.9);border:none;font-size:20px;cursor:pointer;padding:6px;border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:background .15s;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .hdr-btn:active{background:rgba(255,255,255,.35)}
 .my-ing-count-hdr{background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;flex-shrink:0;transition:background .15s}
 .my-ing-count-hdr:active{background:rgba(255,255,255,.4)}
@@ -1340,10 +1340,10 @@ function render(){
   if(sel.size>0)h+='<span class="my-ing-count-hdr" onclick="openFridge()">🧊 '+sel.size+'</span>';
   
   var cartCount=0;cart.forEach(function(c){cartCount+=c.items.filter(function(i){return!i.checked}).length});
-  h+='<button class="hdr-btn" onclick="openCartModal()" style="position:relative">🛒';
+  h+='<button class="hdr-btn" onclick="openCartModal()" style="position:relative;background:rgba(255,255,255,.95);color:#1565c0">🛒';
   if(cartCount>0)h+='<span style="position:absolute;top:-2px;right:-2px;background:#fff;color:#d84315;font-size:9px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700">'+cartCount+'</span>';
   h+='</button>';
-  if(sel.size>0)h+='<button class="hdr-btn" onclick="resetIngs()">🗑️</button>';
+  if(sel.size>0)h+='<button class="hdr-btn" onclick="resetIngs()" style="background:rgba(255,255,255,.95);color:#c62828">🗑️</button>';
   h+='</div></div>';
   var searchPlaceholder=mode==='ing'?'재료 이름 검색...':'요리 이름 검색...';
   // Search bar with autocomplete — 요리 탭에서만 표시
@@ -1571,7 +1571,7 @@ function render(){
     h+=renderMyPage();
   }
   h+='<div class="data-src">'+(dataSource==="sheets"?'<span class="dot"></span> Google Sheets 연동':'⚠️ 내장 데이터')+' · '+RECIPES.length+'개 레시피</div>';
-h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="tab=\\\'cook\\\';render()"><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="tab=\'fav\';render()"><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="tab=\'my\';mode=\'ing\';render()"><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="tab=\'comm\';render()"><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
+h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="tab=\'cook\';render()"><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="tab=\'fav\';render()"><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="tab=\'my\';mode=\'ing\';render()"><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="tab=\'comm\';render()"><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
   // Restore scroll position after re-render
   window.scrollTo(0,savedScroll);
   // Search: Enter key to search (no live render = no Korean input issues)
@@ -1608,7 +1608,7 @@ function renderCard(r){
   h+='</div></div>';
   // 콘텐츠 영역
   h+='<div class="rc-info" style="padding:12px 12px 10px;flex:1;min-width:0;position:relative">';
-  h+='<button class="rc-fav" style="top:8px;right:8px;font-size:18px" onclick="event.stopPropagation();favs.has(\''+r.id+'\')?favs.delete(\''+r.id+'\'):favs.add(\''+r.id+'\');save();render()">'+(favs.has(r.id)?'❤️':'🤍')+'</button>';
+ h+='<button class="rc-fav" style="top:8px;right:8px;font-size:18px" onclick="event.stopPropagation();toggleFav(\''+r.id+'\');render()">'+(favs.has(r.id)?'❤️':'🤍')+'</button>';
   h+='<div class="rc-name" style="font-size:14px;margin-bottom:4px;padding-right:28px">'+r.name+' '+(getRecipeMedal(r.id)?'<span style="font-size:12px">'+getRecipeMedal(r.id)+'</span>':'')+'</div>';
   h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
   h+='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:'+catBg+';color:'+catColor+';font-weight:700">'+catLabel+'</span>';
