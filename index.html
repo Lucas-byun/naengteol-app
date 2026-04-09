@@ -49,7 +49,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .my-ing-count{background:var(--primary);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;flex-shrink:0}
 /* Category Tabs */
 .cat-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:none}
-.cat-tab{padding:7px 16px;border-radius:20px;font-size:12px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit;transition:all .15s;font-weight:500;color:#888}
+.cat-tab{padding:7px 16px;border-radius:20px;font-size:14px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit;transition:all .15s;font-weight:500;color:#888}
 .cat-tab.on{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 2px 8px rgba(232,101,42,.2);font-weight:700}
 /* Ingredient Grid */
 .fav-label{padding:10px 16px 4px;font-size:13px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:4px}
@@ -124,7 +124,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .tip-card{background:linear-gradient(135deg,#f0f7f5,#f5f5f5);border-radius:12px;padding:12px 14px;margin-bottom:8px;font-size:13px;line-height:1.5;border-left:3px solid var(--primary)}
 /* Bottom Nav */
 .bnav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:rgba(250,248,245,.92);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-top:1px solid rgba(0,0,0,.06);display:flex;z-index:300;padding:4px 0 env(safe-area-inset-bottom,0)}
-.bnav-item{flex:1;padding:6px 0 4px;text-align:center;font-size:10px;color:#999;cursor:pointer;border:none;background:none;font-family:inherit;transition:all .2s}
+.bnav-item{flex:1;padding:6px 0 4px;text-align:center;font-size:12px;color:#999;cursor:pointer;border:none;background:none;font-family:inherit;transition:all .2s}
 .bnav-item.on{color:var(--primary);font-weight:700}
 .bnav-item.on .ico{transform:scale(1.15) translateY(-2px)}
 .bnav-item .ico{font-size:20px;display:block;margin-bottom:2px;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
@@ -620,7 +620,12 @@ function getProfilePhotoHtml(size,style){
   if(userProfilePhoto){
     return '<img src="'+userProfilePhoto+'" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;border:2px solid var(--border);'+style+'">';
   }
-  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:'+(size*0.5)+'px;border:2px solid var(--border);'+style+'">👤</div>';
+  // 이니셜 원형 아바타 (닉네임 첫 글자)
+  var initials=(userNickname||'냉').charAt(0);
+  var colors=['#E8652A','#1976d2','#388e3c','#7b1fa2','#c62828','#00838f'];
+  var colorIdx=initials.charCodeAt(0)%colors.length;
+  var bgColor=colors[colorIdx];
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+bgColor+';display:flex;align-items:center;justify-content:center;font-size:'+(Math.round(size*0.42))+'px;font-weight:700;color:#fff;border:2px solid var(--border);'+style+'">'+initials+'</div>';
 }
 function triggerProfilePhotoUpload(){
   var inp=document.createElement('input');
@@ -1360,23 +1365,28 @@ function render(){
     h+='<div class="mode-tabs"><button class="mode-tab '+(mode==='ing'?'on':'')+'" onclick="mode=\'ing\';render()">🥕 재료 모드</button><button class="mode-tab '+(mode==='cook'?'on':'')+'" onclick="mode=\'cook\';render()">🍽️ 요리 모드</button></div>';
     
     // 태그 필터는 요리 목록 영역으로 이동
-    // 오늘의 미션 카드
+    // 오늘의 미션 카드 (항상 표시)
     var mission=getTodayMission();
-    if(!localStorage.getItem('nt_mission_hide')){
     h+='<div style="padding:8px 16px 4px">';
-    h+='<div style="background:linear-gradient(135deg,'+(mission._done?'#e8f5e9,#c8e6c9':'#f5f5f5,#f0e6d2')+');border-radius:14px;padding:14px 16px;border:2px solid '+(mission._done?'#66bb6a':'var(--primary)')+'">';
-    h+='<div style="display:flex;align-items:center;justify-content:space-between;position:relative">';
-    if(!localStorage.getItem('nt_mission_hide'))h+='<button onclick="event.stopPropagation();localStorage.setItem(\'nt_mission_hide\',\'1\');render()" style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.15);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>';
-    h+='<div><div style="font-size:11px;font-weight:700;color:'+(mission._done?'#388e3c':'var(--primary)')+';margin-bottom:4px">🎯 오늘의 미션</div>';
-    h+='<div style="font-size:14px;font-weight:600;color:#333">'+(mission._done?'✅ '+mission.desc:mission.desc)+'</div></div>';    h+='<div style="text-align:center">';
-    if(mission._done)h+='<div style="font-size:12px;font-weight:700;color:#388e3c">완료! ✅</div>';
-    h+='</div></div></div></div>';
-    } // end mission hide check
-    if(!localStorage.getItem('nt_random_hide')){
-    h+='<div style="padding:8px 16px 4px;position:relative">';
-    h+='<button onclick="event.stopPropagation();localStorage.setItem(\'nt_random_hide\',\'1\');render()" style="position:absolute;top:12px;right:20px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.1);color:#999;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1">✕</button>';
-    h+='<button onclick="randomRecipe()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🎲 오늘 뭐 해먹지?</button></div>';
-    } // end random hide check
+    h+='<div style="background:linear-gradient(135deg,'+(mission._done?'#e8f5e9,#c8e6c9':'#fff8f3,#f0e6d2')+');border-radius:14px;padding:14px 16px;border:2px solid '+(mission._done?'#66bb6a':'var(--primary)')+'">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+    h+='<div style="flex:1">';
+    h+='<div style="font-size:11px;font-weight:700;color:'+(mission._done?'#388e3c':'var(--primary)')+';margin-bottom:4px">🎯 오늘의 미션</div>';
+    h+='<div style="font-size:14px;font-weight:600;color:#333;margin-bottom:6px">'+(mission._done?'✅ '+mission.desc:mission.desc)+'</div>';
+    if(!mission._done){
+      h+='<div style="font-size:11px;color:var(--sub)">요리 완료 시 자동 인정됩니다</div>';
+    }
+    h+='</div>';
+    h+='<div style="text-align:center;margin-left:12px">';
+    if(mission._done){
+      h+='<div style="font-size:28px">🏆</div>';
+      h+='<div style="font-size:11px;font-weight:700;color:#388e3c">완료!</div>';
+    }else{
+      h+='<div style="font-size:28px;opacity:.5">🎯</div>';
+      h+='<div style="font-size:11px;color:var(--sub)">도전 중</div>';
+    }
+    h+='</div>';
+    h+='</div></div></div>';
     if(mode==='ing'){
       if(sel.size>0){
         h+='<div style="padding:10px 16px 0"><span style="font-size:12px;font-weight:700;color:var(--primary);letter-spacing:-.2px">🧊 내 냉장고 <span style="background:var(--primary);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px">'+sel.size+'</span></span></div>';
@@ -1396,7 +1406,10 @@ function render(){
       if(searchQ){var sq=searchQ.toLowerCase();fl=INGS.filter(function(i){if(i.n.includes(sq))return true;var sy=SYN_MAP[sq];return sy&&i.n.includes(sy);});}
       h+='<div class="ing-grid">';fl.forEach(function(i){h+=ingBtn(i.n,sel.has(i.n))});h+='</div>';
       if(searchQ&&fl.length===0)h+='<div class="empty"><div class="em">🔍</div><div class="empty-title">"'+esc(searchQ)+'" 재료를 찾을 수 없어요</div><div class="empty-sub">다른 이름으로 검색해보세요!<br>예: 달걸, 돼지고기, 밥 등</div></div>';
-      h+='<div style="height:8px;background:linear-gradient(to bottom,var(--bg),var(--cook-bg))"></div>';
+      // 하단 구분선 + 오늘 뭐 해먹지 버튼 (재료 그리드 아래, 레시피 결과 위)
+      h+='<div style="padding:8px 16px;background:linear-gradient(to bottom,var(--bg),var(--cook-bg))">';
+      h+='<button onclick="randomRecipe()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🎲 오늘 뭐 해먹지?</button>';
+      h+='</div>';
       if(sel.size>0){var m=getMatched();
         // Apply meal type filter
         var mealMap=CAT_LABEL_MAP;
@@ -3198,8 +3211,8 @@ function getTodayMission(){
   var savedId=localStorage.getItem('nt_mission_id');
   var done=localStorage.getItem('nt_mission_done')==='true';
   
-  // 날짜 바뀌면 숨김 상태 리셋
-  if(saved!==today){localStorage.removeItem('nt_mission_hide');localStorage.removeItem('nt_random_hide');}
+  // 날짜 바뀌면 미션 완료 상태 리셋
+  if(saved!==today){localStorage.removeItem('nt_random_hide');}
   if(saved===today&&savedId){
     todayMission=MISSION_POOL.find(function(m){return m.id===savedId})||MISSION_POOL[0];
     todayMission._done=done;
@@ -3221,8 +3234,7 @@ function completeMission(){
   if(!todayMission||todayMission._done)return;
   todayMission._done=true;
   localStorage.setItem('nt_mission_done','true');
-  // 미션 배너 자동 숨김
-  localStorage.setItem('nt_mission_hide','1');
+  // 미션 완료 후에도 완료 상태로 표시 (자동 숨김 제거)
 
   // 미션 완료 팝업
   setTimeout(function(){
@@ -3423,19 +3435,43 @@ function renderMyPage(){
   h+='</div>';
   h+='</div>';
   h+='<h2 style="color:var(--text)">📊 내 요리 기록</h2>';
-  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">';
-  h+='<div class="info-card"><div class="val">'+stats.total+'</div><div class="lbl">총 요리</div></div>';
-  h+='<div class="info-card"><div class="val">'+stats.unique+'</div><div class="lbl">도전 메뉴</div></div>';
-  h+='<div class="info-card"><div class="val">'+stats.streak+'일</div><div class="lbl">연속</div></div>';
-  h+='<div class="info-card"><div class="val">'+stats.thisWeek+'</div><div class="lbl">이번주</div></div>';
+  // 문구형 스탯 카드
+  h+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px">';
+  h+='<div class="info-card" style="text-align:left;padding:14px 16px">';
+  h+='<div style="font-size:22px;margin-bottom:4px">🍳</div>';
+  h+='<div style="font-size:18px;font-weight:800;color:var(--primary)">'+stats.total+'번</div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">'+stats.total+'번 요리했어요!</div>';
+  h+='</div>';
+  h+='<div class="info-card" style="text-align:left;padding:14px 16px">';
+  h+='<div style="font-size:22px;margin-bottom:4px">📖</div>';
+  h+='<div style="font-size:18px;font-weight:800;color:var(--primary)">'+stats.unique+'가지</div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">다양한 메뉴 도전!</div>';
+  h+='</div>';
+  h+='<div class="info-card" style="text-align:left;padding:14px 16px">';
+  h+='<div style="font-size:22px;margin-bottom:4px">🔥</div>';
+  h+='<div style="font-size:18px;font-weight:800;color:var(--primary)">'+stats.streak+'일</div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">'+( stats.streak>0?stats.streak+'일 연속 요리 중!':'오늘 첫 요리 도전!')+'</div>';
+  h+='</div>';
+  h+='<div class="info-card" style="text-align:left;padding:14px 16px">';
+  h+='<div style="font-size:22px;margin-bottom:4px">📅</div>';
+  h+='<div style="font-size:18px;font-weight:800;color:var(--primary)">'+stats.thisWeek+'회</div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">이번 주 '+stats.thisWeek+'번 요리했어요!</div>';
+  h+='</div>';
   h+='</div>';
   // 레벨 카드
   var lvl=getLevel();
+  var nextLvl=LEVEL_TABLE[lvl.lv]||null; // 다음 레벨 (lvl.lv는 1부터 시작, 배열 인덱스는 0부터)
+  var nextLvlMsg='';
+  if(nextLvl){
+    nextLvlMsg='🎯 Lv.'+(lvl.lv+1)+' 승급 목표: '+nextLvl.req;
+  }else{
+    nextLvlMsg='🏆 최고 레벨 달성! 전설의 셰프!';
+  }
   h+='<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;padding:24px;margin-bottom:16px;color:#fff;text-align:center;border:1px solid rgba(255,215,0,.2)">';
   h+='<div style="font-size:56px;margin-bottom:10px">'+lvl.icon+'</div>';
   h+='<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:4px">나의 레벨</div>';
   h+='<div style="font-size:24px;font-weight:800;color:#fbc02d;margin-bottom:8px">Lv.'+lvl.lv+' '+lvl.name+'</div>';
-  h+='<div style="display:inline-block;background:rgba(255,255,255,.1);padding:4px 12px;border-radius:20px;font-size:11px;color:rgba(255,255,255,.7)">승급 조건: '+lvl.req+'</div>';
+  h+='<div style="display:inline-block;background:rgba(255,255,255,.1);padding:4px 12px;border-radius:20px;font-size:11px;color:rgba(255,255,255,.7)">'+nextLvlMsg+'</div>';
   h+='<div style="display:flex;justify-content:space-around;margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.1)">';
   h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+stats.total+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">총 요리</div></div>';
   h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+earnedBadges.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">획득 뱃지</div></div>';
