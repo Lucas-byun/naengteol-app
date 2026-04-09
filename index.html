@@ -631,15 +631,13 @@ function triggerProfilePhotoUpload(){
     var file=e.target.files[0];
     if(!file)return;
     if(file.size>10*1024*1024){showCartPopup('⚠️ 파일 크기 초과','10MB 이하 이미지만 등록 가능합니다.');return;}
-    var reader=new FileReader();
-    reader.onload=function(ev){
-      showCropModal(ev.target.result);
-    };
-    reader.readAsDataURL(file);
+    // createObjectURL을 사용하면 FileReader보다 훨씬 빠르게 크롭 모달 표시 가능
+    var objectUrl=URL.createObjectURL(file);
+    showCropModal(objectUrl,file);
   };
   inp.click();
 }
-function showCropModal(src){
+function showCropModal(src,originalFile){
   // 기존 모달 제거
   var old=document.getElementById('_cropModal');
   if(old)old.remove();
@@ -802,44 +800,61 @@ function showCropModal(src){
 
   // 적용 버튼
   confirmBtn.onclick=function(){
-    // 현재 보이는 영역을 기준으로 원본 이미지에서 크롭 좌표 계산
+    // 버튼 비활성화 + 로딩 표시
+    confirmBtn.disabled=true;
+    confirmBtn.textContent='⏳ 저장 중...';
+
+    // 크롭 좌표 계산 (현재 화면 기준)
     var cropX=(-imgPos.x/scale);
     var cropY=(-imgPos.y/scale);
     var cropW=DISPLAY/scale;
     var cropH=DISPLAY/scale;
-    // 범위 보정
     cropX=Math.max(0,Math.min(cropX,imgNat.w-cropW));
     cropY=Math.max(0,Math.min(cropY,imgNat.h-cropH));
     cropW=Math.min(cropW,imgNat.w-cropX);
     cropH=Math.min(cropH,imgNat.h-cropY);
 
-    var outputSize=300;
-    var canvas=document.createElement('canvas');
-    canvas.width=outputSize;canvas.height=outputSize;
-    var ctx=canvas.getContext('2d');
-    var tmpImg=new window.Image();
-    tmpImg.onload=function(){
-      ctx.drawImage(tmpImg,cropX,cropY,cropW,cropH,0,0,outputSize,outputSize);
-      var quality=0.85;
-      var compressed=canvas.toDataURL('image/jpeg',quality);
-      while(compressed.length>150*1024&&quality>0.3){
-        quality=Math.round((quality-0.1)*10)/10;
-        compressed=canvas.toDataURL('image/jpeg',quality);
-      }
-      if(compressed.length>150*1024){
-        canvas.width=200;canvas.height=200;
-        ctx.drawImage(tmpImg,cropX,cropY,cropW,cropH,0,0,200,200);
-        quality=0.7;
-        compressed=canvas.toDataURL('image/jpeg',quality);
-        while(compressed.length>150*1024&&quality>0.2){
+    // 원본 파일이 있으면 FileReader로 원본 화소질 base64 생성, 없으면 현재 src 사용
+    function doCrop(imgSrc){
+      var outputSize=300;
+      var canvas=document.createElement('canvas');
+      canvas.width=outputSize;canvas.height=outputSize;
+      var ctx=canvas.getContext('2d');
+      var tmpImg=new window.Image();
+      tmpImg.onload=function(){
+        ctx.drawImage(tmpImg,cropX,cropY,cropW,cropH,0,0,outputSize,outputSize);
+        var quality=0.85;
+        var compressed=canvas.toDataURL('image/jpeg',quality);
+        while(compressed.length>150*1024&&quality>0.3){
           quality=Math.round((quality-0.1)*10)/10;
           compressed=canvas.toDataURL('image/jpeg',quality);
         }
-      }
-      modal.remove();
-      saveProfilePhotoWithFeedback(compressed);
-    };
-    tmpImg.src=src;
+        if(compressed.length>150*1024){
+          canvas.width=200;canvas.height=200;
+          ctx.drawImage(tmpImg,cropX,cropY,cropW,cropH,0,0,200,200);
+          quality=0.7;
+          compressed=canvas.toDataURL('image/jpeg',quality);
+          while(compressed.length>150*1024&&quality>0.2){
+            quality=Math.round((quality-0.1)*10)/10;
+            compressed=canvas.toDataURL('image/jpeg',quality);
+          }
+        }
+        // objectURL 메모리 해제
+        if(src&&src.startsWith('blob:'))URL.revokeObjectURL(src);
+        modal.remove();
+        saveProfilePhotoWithFeedback(compressed);
+      };
+      tmpImg.src=imgSrc;
+    }
+
+    if(originalFile){
+      // 원본 파일에서 직접 크롭 (고화질)
+      var fr=new FileReader();
+      fr.onload=function(ev){doCrop(ev.target.result);};
+      fr.readAsDataURL(originalFile);
+    }else{
+      doCrop(src);
+    }
   };
 }
 function saveProfilePhotoWithFeedback(dataUrl){
