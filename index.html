@@ -225,6 +225,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .loading-overlay.hide{display:none}
 .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes tabBounce{0%{transform:scale(1)}30%{transform:scale(1.35) translateY(-4px)}60%{transform:scale(0.9) translateY(1px)}80%{transform:scale(1.1) translateY(-2px)}100%{transform:scale(1) translateY(0)}}
+@keyframes badgeSpin{0%{transform:scale(0) rotate(-180deg);opacity:0}60%{transform:scale(1.2) rotate(15deg);opacity:1}80%{transform:scale(0.9) rotate(-5deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes confettiFall{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .loading-txt{font-size:14px;color:var(--sub)}
 .loading-sub{font-size:12px;color:var(--border)}
 /* 데이터 소스 배지 개선 */
@@ -1589,7 +1592,7 @@ function render(){
     h+=renderMyPage();
   }
   h+='<div class="data-src">'+(dataSource==="sheets"?'<span class="dot"></span> Google Sheets 연동':'⚠️ 내장 데이터')+' · '+RECIPES.length+'개 레시피</div>';
-h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="tab=\'cook\';render()"><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="showSearch=false;tab=\'fav\';render()"><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="showSearch=false;tab=\'my\';mode=\'ing\';render()"><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="showSearch=false;tab=\'comm\';render()"><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
+h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="bnavTap(this,function(){tab=\'cook\';render()})"><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'fav\';render()})"><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'my\';mode=\'ing\';render()})"><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'comm\';render()})"><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
   // Restore scroll position after re-render
   window.scrollTo(0,savedScroll);
   // Search: Enter key to search (no live render = no Korean input issues)
@@ -1972,7 +1975,7 @@ function renderFS(){
   // Completion - doneSteps는 위에서 이미 계산됨
   if(doneSteps===totalSteps && totalSteps>0){
     // Auto-register to history (only once per session)
-    if(!fsChecked.has('_recorded')){fsChecked.add('_recorded');addCookHistory(r.id,false);}
+    if(!fsChecked.has('_recorded')){fsChecked.add('_recorded');addCookHistory(r.id,false);launchConfetti();}
     h+='<div data-complete-section="1" style="text-align:center;padding:24px 16px"><div style="font-size:64px;margin-bottom:12px">🎉</div><div style="font-size:20px;font-weight:700;color:var(--primary)">요리 완성!</div>';
     h+='<div style="font-size:14px;color:var(--sub);margin-top:8px">내기록에 자동 저장되었어요 ✅</div></div>';
     // Photo capture section
@@ -2045,6 +2048,8 @@ function startTimer(mins,btn){
 
 function detCookDone(id){
   addCookHistory(id);
+  // 콘페티 효과!
+  launchConfetti();
   var el=document.getElementById('det-cook-btn-'+id);
   if(!el)return;
   var h='<div style="padding:12px;text-align:center;font-size:14px;color:var(--primary);font-weight:700;margin-bottom:8px">✅ 요리 기록 완료!</div>';
@@ -2205,6 +2210,40 @@ function nextOnboard(){if(onboardStep<2){onboardStep++;render();}else finishOnbo
 function finishOnboard(){showOnboard=false;localStorage.setItem('nt_done','1');render();}
 
 // === HOME REFRESH (no splash) ===
+// === 콘페티 효과 ===
+function launchConfetti(){
+  var colors=['#E8652A','#FF8C42','#FFD700','#4CAF50','#2196F3','#E91E63','#9C27B0','#FF5722'];
+  var container=document.createElement('div');
+  container.id='confetti-container';
+  container.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:9999;overflow:hidden';
+  document.body.appendChild(container);
+  for(var i=0;i<80;i++){
+    (function(idx){
+      var piece=document.createElement('div');
+      var size=Math.random()*10+6;
+      var color=colors[Math.floor(Math.random()*colors.length)];
+      var left=Math.random()*100;
+      var delay=Math.random()*0.8;
+      var duration=Math.random()*1.5+1.5;
+      var shape=Math.random()>0.5?'50%':'2px';
+      piece.style.cssText='position:absolute;width:'+size+'px;height:'+size+'px;background:'+color+';border-radius:'+shape+';left:'+left+'%;top:-20px;animation:confettiFall '+duration+'s '+delay+'s ease-in forwards;opacity:1';
+      container.appendChild(piece);
+    })(i);
+  }
+  setTimeout(function(){var c=document.getElementById('confetti-container');if(c)c.remove();},3500);
+}
+// === 탭 아이콘 통통 튀기기 ===
+function bnavTap(btn,cb){
+  var ico=btn.querySelector('.ico');
+  if(ico){
+    ico.style.animation='none';
+    // reflow 강제 발생 (애니메이션 재시작)
+    void ico.offsetWidth;
+    ico.style.animation='tabBounce .45s cubic-bezier(.34,1.56,.64,1)';
+    setTimeout(function(){ico.style.animation='';},500);
+  }
+  cb();
+}
 function toggleSearchBar(){
   showSearch=!showSearch;
   // 검색바 닫을 때 검색어 유지 (결과가 있는 경우)
@@ -3424,14 +3463,19 @@ function showLevelUpPopup(lvl){
   document.body.insertAdjacentHTML('beforeend',h);
 }
 function showBadgePopup(b){
-  var h='<div style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center" onclick="event.stopPropagation();this.remove()">';
-  h+='<div style="background:var(--bg);border-radius:20px;padding:32px 24px;text-align:center;max-width:280px;animation:logoBounce .6s ease-out">';
-  h+='<div style="font-size:64px;margin-bottom:12px">'+b.icon+'</div>';
-  h+='<div style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:8px">🎊 뱃지 획득!</div>';
-  h+='<div style="font-size:16px;font-weight:700;margin-bottom:4px">'+b.name+'</div>';
-  h+='<div style="font-size:13px;color:var(--sub)">'+b.desc+'</div>';
-  h+='<div style="margin-top:8px;font-size:14px;font-weight:700;color:var(--primary)">승급에 한 걸음 더!</div>';
-  h+='<button onclick="this.parentElement.parentElement.remove()" style="margin-top:16px;padding:10px 24px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:14px;cursor:pointer">멋져요! 🎉</button>';
+  var h='<div id="badge-popup-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;animation:splashIn .3s ease-out" onclick="event.stopPropagation();this.remove()">';
+  h+='<div style="background:var(--bg);border-radius:24px;padding:36px 28px;text-align:center;max-width:300px;animation:logoBounce .5s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden">';
+  // 배경 반짝이는 원
+  h+='<div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(232,101,42,.15),transparent);pointer-events:none"></div>';
+  h+='<div style="position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(232,101,42,.1),transparent);pointer-events:none"></div>';
+  // 뇱지 아이콘 (빙글 돌며 등장)
+  h+='<div style="font-size:72px;margin-bottom:8px;display:inline-block;animation:badgeSpin .7s cubic-bezier(.34,1.56,.64,1)">'+b.icon+'</div>';
+  h+='<div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase">🎉 NEW BADGE!</div>';
+  h+='<div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px">'+b.name+'</div>';
+  h+='<div style="font-size:13px;color:var(--sub);margin-bottom:12px">'+b.desc+'</div>';
+  if(b.xp)h+='<div style="display:inline-block;background:linear-gradient(135deg,#fff8f3,#f0e6d2);border:1.5px solid var(--primary);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;color:var(--primary);margin-bottom:16px">+'+b.xp+' XP 획득!</div>';
+  h+='<br>';
+  h+='<button onclick="document.getElementById(\'badge-popup-overlay\').remove()" style="padding:12px 28px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">멋져요! 🎉</button>';
   h+='</div></div>';
   document.body.insertAdjacentHTML('beforeend',h);
 }
