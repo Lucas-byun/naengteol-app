@@ -1367,28 +1367,31 @@ function render(){
     h+='<div class="mode-tabs"><button class="mode-tab '+(mode==='ing'?'on':'')+'" onclick="mode=\'ing\';render()">🥕 재료 모드</button><button class="mode-tab '+(mode==='cook'?'on':'')+'" onclick="mode=\'cook\';render()">🍽️ 요리 모드</button></div>';
     
     // 태그 필터는 요리 목록 영역으로 이동
-    // 오늘의 미션 카드 (항상 표시)
+    // 오늘의 미션 카드 (완료 후 숨김 처리)
     var mission=getTodayMission();
-    h+='<div style="padding:8px 16px 4px">';
-    h+='<div style="background:linear-gradient(135deg,'+(mission._done?'#e8f5e9,#c8e6c9':'#fff8f3,#f0e6d2')+');border-radius:14px;padding:14px 16px;border:2px solid '+(mission._done?'#66bb6a':'var(--primary)')+'">';
-    h+='<div style="display:flex;align-items:center;justify-content:space-between">';
-    h+='<div style="flex:1">';
-    h+='<div style="font-size:11px;font-weight:700;color:'+(mission._done?'#388e3c':'var(--primary)')+';margin-bottom:4px">🎯 오늘의 미션</div>';
-    h+='<div style="font-size:14px;font-weight:600;color:#333;margin-bottom:6px">'+(mission._done?'✅ '+mission.desc:mission.desc)+'</div>';
-    if(!mission._done){
-      h+='<div style="font-size:11px;color:var(--sub)">요리 완료 시 자동 인정됩니다</div>';
+    var missionHidden=localStorage.getItem('nt_mission_hidden_date')===new Date().toISOString().split('T')[0];
+    if(!missionHidden){
+      h+='<div id="missionCard" style="padding:8px 16px 4px;transition:opacity .5s,max-height .5s;overflow:hidden">';
+      h+='<div style="background:linear-gradient(135deg,'+(mission._done?'#e8f5e9,#c8e6c9':'#fff8f3,#f0e6d2')+');border-radius:14px;padding:14px 16px;border:2px solid '+(mission._done?'#66bb6a':'var(--primary)')+'">';
+      h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+      h+='<div style="flex:1">';
+      h+='<div style="font-size:11px;font-weight:700;color:'+(mission._done?'#388e3c':'var(--primary)')+';margin-bottom:4px">🎯 오늘의 미션</div>';
+      h+='<div style="font-size:14px;font-weight:600;color:#333;margin-bottom:6px">'+(mission._done?'✅ '+mission.desc:mission.desc)+'</div>';
+      if(!mission._done){
+        h+='<div style="font-size:11px;color:var(--sub)">요리 완료 시 자동 인정됩니다</div>';
+      }
+      h+='</div>';
+      h+='<div style="text-align:center;margin-left:12px">';
+      if(mission._done){
+        h+='<div style="font-size:28px">🏆</div>';
+        h+='<div style="font-size:11px;font-weight:700;color:#388e3c">완료!</div>';
+      }else{
+        h+='<div style="font-size:28px;opacity:.5">🎯</div>';
+        h+='<div style="font-size:11px;color:var(--sub)">도전 중</div>';
+      }
+      h+='</div>';
+      h+='</div></div></div>';
     }
-    h+='</div>';
-    h+='<div style="text-align:center;margin-left:12px">';
-    if(mission._done){
-      h+='<div style="font-size:28px">🏆</div>';
-      h+='<div style="font-size:11px;font-weight:700;color:#388e3c">완료!</div>';
-    }else{
-      h+='<div style="font-size:28px;opacity:.5">🎯</div>';
-      h+='<div style="font-size:11px;color:var(--sub)">도전 중</div>';
-    }
-    h+='</div>';
-    h+='</div></div></div>';
     if(mode==='ing'){
       if(sel.size>0){
         h+='<div style="padding:10px 16px 0"><span style="font-size:12px;font-weight:700;color:var(--primary);letter-spacing:-.2px">🧊 내 냉장고 <span style="background:var(--primary);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px">'+sel.size+'</span></span></div>';
@@ -3236,7 +3239,7 @@ function getTodayMission(){
   var done=localStorage.getItem('nt_mission_done')==='true';
   
   // 날짜 바뀌면 미션 완료 상태 리셋
-  if(saved!==today){localStorage.removeItem('nt_random_hide');}
+  if(saved!==today){localStorage.removeItem('nt_random_hide');localStorage.removeItem('nt_mission_hidden_date');}
   if(saved===today&&savedId){
     todayMission=MISSION_POOL.find(function(m){return m.id===savedId})||MISSION_POOL[0];
     todayMission._done=done;
@@ -3258,9 +3261,7 @@ function completeMission(){
   if(!todayMission||todayMission._done)return;
   todayMission._done=true;
   localStorage.setItem('nt_mission_done','true');
-  // 미션 완료 후에도 완료 상태로 표시 (자동 숨김 제거)
-
-  // 미션 완료 팝업
+  // 미션 완료 팝업 표시
   setTimeout(function(){
     var h='<div id="mission-popup" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:900;background:linear-gradient(135deg,#E8652A,#FF8C42);color:#fff;padding:12px 20px;border-radius:14px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:slideDown .4s ease-out;display:flex;align-items:center;gap:10px;max-width:320px">';
     h+='<div style="font-size:28px">🎯</div>';
@@ -3270,11 +3271,26 @@ function completeMission(){
     document.body.insertAdjacentHTML('beforeend',h);
     setTimeout(function(){var p=document.getElementById('mission-popup');if(p)p.remove();},3000);
     checkLevelUp();
-    // 메인 화면 미션 배너 업데이트
+    // 메인 화면 미션 카드 업데이트 (완료 상태로 표시)
     setTimeout(function(){if(dataLoaded)render();},700);
-  },600);
+    // 3초 후 미션 카드 애니메이션으로 숨김
+    setTimeout(function(){
+      var card=document.getElementById('missionCard');
+      if(card){
+        card.style.transition='opacity .6s ease, max-height .6s ease, padding .6s ease';
+        card.style.opacity='0';
+        card.style.maxHeight='0';
+        card.style.padding='0';
+        // 애니메이션 완료 후 localStorage에 숨김 날짜 저장
+        setTimeout(function(){
+          var today=new Date().toISOString().split('T')[0];
+          localStorage.setItem('nt_mission_hidden_date',today);
+          if(card)card.remove();
+        },650);
+      }
+    },3500);
+   },600);
 }
-
 // === LOGIN BONUS SYSTEM ===
 var loginStreak=0;var lastLoginDate='';
 try{loginStreak=parseInt(localStorage.getItem('nt_login_streak'))||0;lastLoginDate=localStorage.getItem('nt_last_login')||'';}catch(e){}
