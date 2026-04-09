@@ -701,8 +701,11 @@ function showCropModal(src,originalFile){
   imgEl.onload=function(){
     imgNat.w=imgEl.naturalWidth;
     imgNat.h=imgEl.naturalHeight;
-    // 짧은 변이 DISPLAY에 맞도록 초기 스케일
-    var initScale=DISPLAY/Math.min(imgNat.w,imgNat.h);
+    // 긴 변이 DISPLAY*1.2에 맞도록 초기 스케일 → 상하좌우 모두 이동 가능
+    var initScale=(DISPLAY*1.2)/Math.max(imgNat.w,imgNat.h);
+    // 단, 짧은 변이 DISPLAY보다 작으면 짧은 변을 DISPLAY에 맞춰서 시작
+    var minScale=DISPLAY/Math.min(imgNat.w,imgNat.h);
+    initScale=Math.max(initScale,minScale);
     scale=initScale;
     imgDisplayW=imgNat.w*scale;
     imgDisplayH=imgNat.h*scale;
@@ -716,11 +719,13 @@ function showCropModal(src,originalFile){
   };
 
   function clampPos(){
-    // 이미지가 크롭 영역 밖으로 나가지 않도록 제한
+    // 이미지가 크롭 프레임을 완전히 다 덧는 방향으로만 제한
+    // (= 크롭 프레임이 항상 이미지 안에 있어야 함)
     if(imgDisplayW>=DISPLAY){
       if(imgPos.x>0)imgPos.x=0;
       if(imgPos.x+imgDisplayW<DISPLAY)imgPos.x=DISPLAY-imgDisplayW;
     }else{
+      // 이미지가 프레임보다 작으면 중앙 고정
       imgPos.x=(DISPLAY-imgDisplayW)/2;
     }
     if(imgDisplayH>=DISPLAY){
@@ -778,9 +783,11 @@ function showCropModal(src,originalFile){
       var delta=dist/touch.lastDist;
       touch.lastDist=dist;
       var newScale=scale*delta;
-      // 최소: 짧은 변이 DISPLAY 이상, 최대: 원본의 3배
+      // 최소: 짧은 변이 DISPLAY에 맞는 스케일 (크롭 프레임이 항상 이미지 안에 있도록)
       var minScale=DISPLAY/Math.min(imgNat.w,imgNat.h);
-      newScale=Math.max(minScale,Math.min(newScale,minScale*3));
+      // 최대: 초기 스케일의 4배
+      var maxScale=minScale*4;
+      newScale=Math.max(minScale,Math.min(newScale,maxScale));
       var ratio=newScale/scale;
       scale=newScale;
       imgDisplayW=imgNat.w*scale;
