@@ -762,6 +762,8 @@ function showCropModal(src,originalFile){
 
   // 터치 드래그
   var touch={active:false,startX:0,startY:0,origX:0,origY:0,lastDist:0};
+  // iOS Safari에서 스크롤 방지를 위해 modal 전체에도 touchmove preventDefault 적용
+  modal.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});
   container.addEventListener('touchstart',function(e){
     if(e.touches.length===1){
       touch.active=true;
