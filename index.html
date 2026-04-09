@@ -576,7 +576,7 @@ function updateBestPhotos(){
   posts.forEach(function(p){
     var id=p.recipeId;
     if(!best[id]||((p.likes||0)>(best[id].likes||0))){
-      best[id]={photo:p.photo,likes:p.likes||0,emoji:p.emoji||''};
+      best[id]={photo:p.photo,likes:p.likes||0,emoji:p.emoji||'',author:p.author||''};
     }
   });
   RECIPE_BEST_PHOTOS=best;
@@ -586,7 +586,7 @@ function updateBestPhotos(){
 
 // 레시피 카드/상세에서 대표 이미지 가져오기 (recipeId 기반)
 function getRecipeBestPhoto(recipeId){
-  return RECIPE_BEST_PHOTOS[recipeId]?RECIPE_BEST_PHOTOS[recipeId].photo:null;
+  return RECIPE_BEST_PHOTOS[recipeId] || null;
 }
 
 // 레시피 대표 이모지 가져오기 (좋아요 최다 포스트의 이모지 우선)
@@ -1603,7 +1603,7 @@ function renderCard(r){
   // 1:1 정사각형 비율 썸네일
   h+='<div class="rc-thumb-wrap" style="background:'+catBg+'">';
   h+='<div class="rc-thumb-inner">';
-  if(_bestPhoto){h+='<img src="'+_bestPhoto+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" style="width:100%;height:100%;object-fit:cover"><span style="display:none;font-size:36px;width:100%;height:100%;align-items:center;justify-content:center">'+r.emoji+'</span>';}
+  if(_bestPhoto){h+='<img src="'+(_bestPhoto.photo||_bestPhoto)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" style="width:100%;height:100%;object-fit:cover"><span style="display:none;font-size:36px;width:100%;height:100%;align-items:center;justify-content:center">'+r.emoji+'</span>';}
   else{h+='<span>'+r.emoji+'</span>';}
   h+='</div></div>';
   // 콘텐츠 영역
@@ -1630,7 +1630,7 @@ function renderDetail(){
   h+='<div class="det-hdr"><button class="det-back" onclick="closeDetail()">←</button><span style="font-weight:700">'+r.name+'</span>';
   h+='<div style="display:flex;gap:8px"><button onclick="openFS(\''+r.id+'\')" style="padding:4px 12px;border:1.5px solid var(--primary);border-radius:8px;background:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🍳 요리시작</button><button class="det-back" onclick="toggleFav(\''+r.id+'\');renderDetail()">'+(favs.has(r.id)?'❤️':'🤍')+'</button></div></div>';
   var _detBestPhoto=getRecipeBestPhoto(r.id);
-  h+='<div class="det-hero">'+(getRecipeMedal(r.id)?'<div style="text-align:center;font-size:13px;font-weight:700;color:#ff6f00;margin-bottom:4px">'+getRecipeMedal(r.id)+' 인기 TOP 요리</div>':'')+(_detBestPhoto?'<div style="position:relative;margin-bottom:8px"><img src="'+_detBestPhoto+'" style="width:100%;max-height:200px;object-fit:cover;border-radius:12px" onerror="this.parentNode.style.display=\'none\'"><div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;padding:2px 7px;border-radius:8px">❤️ 커뮤니티 인기 사진</div></div>':'')+'<div class="emoji">'+r.emoji+'</div><h2>'+r.name+'</h2>';
+  h+='<div class="det-hero">'+(getRecipeMedal(r.id)?'<div style="text-align:center;font-size:13px;font-weight:700;color:#ff6f00;margin-bottom:4px">'+getRecipeMedal(r.id)+' 인기 TOP 요리</div>':'')+(_detBestPhoto?'<div style="position:relative;margin-bottom:12px;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:12px"><img src="'+(_detBestPhoto.photo||_detBestPhoto)+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentNode.style.display=\'none\'"><div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:3px 8px;border-radius:8px">📸 '+(_detBestPhoto.author||'유저')+'님의 요리사진</div></div>':'')+'<div class="emoji">'+r.emoji+'</div><h2>'+r.name+'</h2>';
   h+='<div class="meta"><span>'+(['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움')+'</span><span>⏱'+r.time+'분</span><span>'+r.serving+'인분</span></div>';
   h+='<div class="desc">'+r.desc+'</div>';
   var dTags=RECIPE_TAGS[r.id]||[];if(dTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;justify-content:center">';var dtC=TAG_COLORS;dTags.forEach(function(t){var c=dtC[t]||['#666','#eee'];h+='<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:'+c[1]+';color:'+c[0]+';font-weight:600">'+t+'</span>';});h+='</div>';}
