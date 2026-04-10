@@ -4,9 +4,14 @@
   "description": "냉장고 재료로 뚝딱! 초보 맞춤 레시피 추천",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#FAF6F2",
   "theme_color": "#E8652A",
   "icons": [
+    {
+      "src": "icons/icon-48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
     {
       "src": "icons/app_icon_192.png",
       "sizes": "192x192",
@@ -15,7 +20,8 @@
     {
       "src": "icons/app_icon_512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
