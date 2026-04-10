@@ -3148,49 +3148,49 @@ function getCookStats(){
 // Badges
 var BADGES=[
   // === 요리 횟수 (7개) ===
-  {id:'first',xp:10,name:'첫 요리',desc:'첫 번째 요리 완성!',icon:'icons/badge_first.png',check:function(s){return s.total>=1}},
-  {id:'cook5',xp:10,name:'요리 새내기',desc:'5번째 요리 완성!',icon:'icons/badge_cook5.png',check:function(s){return s.total>=5}},
-  {id:'cook10',xp:30,name:'요리 중급자',desc:'10번째 요리!',icon:'icons/badge_cook10.png',check:function(s){return s.total>=10}},
-  {id:'cook30',xp:50,name:'요리 고수',desc:'30번째 요리!',icon:'icons/badge_cook30.png',check:function(s){return s.total>=30}},
-  {id:'cook50',xp:50,name:'요리 마스터',desc:'50번째 요리!',icon:'icons/badge_cook50.png',check:function(s){return s.total>=50}},
-  {id:'cook100',xp:100,name:'전설의 요리사',desc:'100번째 요리!',icon:'icons/badge_cook100.png',check:function(s){return s.total>=100}},
-  {id:'cook200',xp:100,name:'요리의 신',desc:'200번째 요리!',icon:'icons/badge_cook200.png',check:function(s){return s.total>=200}},
+  {id:'first',xp:10,name:'첫 요리',desc:'첫 번째 요리 완성!',icon:'🎉',check:function(s){return s.total>=1}},
+  {id:'cook5',xp:10,name:'요리 새내기',desc:'5번째 요리 완성!',icon:'👶',check:function(s){return s.total>=5}},
+  {id:'cook10',xp:30,name:'요리 중급자',desc:'10번째 요리!',icon:'👨‍🍳',check:function(s){return s.total>=10}},
+  {id:'cook30',xp:50,name:'요리 고수',desc:'30번째 요리!',icon:'🏆',check:function(s){return s.total>=30}},
+  {id:'cook50',xp:50,name:'요리 마스터',desc:'50번째 요리!',icon:'👑',check:function(s){return s.total>=50}},
+  {id:'cook100',xp:100,name:'전설의 요리사',desc:'100번째 요리!',icon:'🌟',check:function(s){return s.total>=100}},
+  {id:'cook200',xp:100,name:'요리의 신',desc:'200번째 요리!',icon:'🔱',check:function(s){return s.total>=200}},
   // === 도전 메뉴 (5개) ===
-  {id:'variety5',xp:30,name:'다양한 입맛',desc:'5가지 메뉴 도전!',icon:'icons/badge_variety5.png',check:function(s){return s.unique>=5}},
-  {id:'variety15',xp:30,name:'탐험가',desc:'15가지 메뉴 도전!',icon:'icons/badge_variety15.png',check:function(s){return s.unique>=15}},
-  {id:'variety30',xp:50,name:'미식가',desc:'30가지 메뉴 도전!',icon:'icons/badge_variety30.png',check:function(s){return s.unique>=30}},
-  {id:'variety50',xp:50,name:'요리 백과사전',desc:'50가지 메뉴 도전!',icon:'icons/badge_variety50.png',check:function(s){return s.unique>=50}},
-  {id:'variety100',xp:100,name:'레시피 정복자',desc:'100가지 메뉴 도전!',icon:'icons/badge_variety100.png',check:function(s){return s.unique>=100}},
+  {id:'variety5',xp:30,name:'다양한 입맛',desc:'5가지 메뉴 도전!',icon:'🌈',check:function(s){return s.unique>=5}},
+  {id:'variety15',xp:30,name:'탐험가',desc:'15가지 메뉴 도전!',icon:'🗺️',check:function(s){return s.unique>=15}},
+  {id:'variety30',xp:50,name:'미식가',desc:'30가지 메뉴 도전!',icon:'🍷',check:function(s){return s.unique>=30}},
+  {id:'variety50',xp:50,name:'요리 백과사전',desc:'50가지 메뉴 도전!',icon:'📚',check:function(s){return s.unique>=50}},
+  {id:'variety100',xp:100,name:'레시피 정복자',desc:'100가지 메뉴 도전!',icon:'🗡️',check:function(s){return s.unique>=100}},
   // === 카테고리 (4개) ===
-  {id:'cat3',xp:10,name:'장르 파괴',desc:'3개 카테고리 도전!',icon:'icons/badge_cat3.png',check:function(s){return s.cats>=3}},
-  {id:'cat5',xp:30,name:'다재다능',desc:'5개 카테고리 도전!',icon:'icons/badge_cat5.png',check:function(s){return s.cats>=5}},
-  {id:'cat7',xp:50,name:'올라운더',desc:'7개 카테고리 도전!',icon:'icons/badge_cat7.png',check:function(s){return s.cats>=7}},
-  {id:'allcat',xp:100,name:'만능 요리사',desc:'모든 카테고리 정복!',icon:'icons/badge_allcat.png',check:function(s){return s.cats>=9}},
+  {id:'cat3',xp:10,name:'장르 파괴',desc:'3개 카테고리 도전!',icon:'🎭',check:function(s){return s.cats>=3}},
+  {id:'cat5',xp:30,name:'다재다능',desc:'5개 카테고리 도전!',icon:'🎪',check:function(s){return s.cats>=5}},
+  {id:'cat7',xp:50,name:'올라운더',desc:'7개 카테고리 도전!',icon:'🏅',check:function(s){return s.cats>=7}},
+  {id:'allcat',xp:100,name:'만능 요리사',desc:'모든 카테고리 정복!',icon:'⭐',check:function(s){return s.cats>=9}},
   // === 연속 기록 (5개) ===
-  {id:'streak3',xp:10,name:'3일 연속',desc:'3일 연속 요리!',icon:'icons/badge_streak3.png',check:function(s){return s.streak>=3}},
-  {id:'streak7',xp:30,name:'1주일 연속',desc:'7일 연속 요리!',icon:'icons/badge_streak7.png',check:function(s){return s.streak>=7}},
-  {id:'streak14',xp:50,name:'2주 연속',desc:'14일 연속 요리!',icon:'icons/badge_streak14.png',check:function(s){return s.streak>=14}},
-  {id:'streak21',xp:50,name:'3주 연속',desc:'21일 연속! 습관 완성!',icon:'icons/badge_streak21.png',check:function(s){return s.streak>=21}},
-  {id:'streak30',xp:100,name:'한 달 연속',desc:'30일 연속 요리!',icon:'icons/badge_streak30.png',check:function(s){return s.streak>=30}},
+  {id:'streak3',xp:10,name:'3일 연속',desc:'3일 연속 요리!',icon:'🔥',check:function(s){return s.streak>=3}},
+  {id:'streak7',xp:30,name:'1주일 연속',desc:'7일 연속 요리!',icon:'💎',check:function(s){return s.streak>=7}},
+  {id:'streak14',xp:50,name:'2주 연속',desc:'14일 연속 요리!',icon:'🏅',check:function(s){return s.streak>=14}},
+  {id:'streak21',xp:50,name:'3주 연속',desc:'21일 연속! 습관 완성!',icon:'🧬',check:function(s){return s.streak>=21}},
+  {id:'streak30',xp:100,name:'한 달 연속',desc:'30일 연속 요리!',icon:'🏰',check:function(s){return s.streak>=30}},
   // === 이번 주 (3개) ===
-  {id:'week3',xp:10,name:'주간 요리사',desc:'이번 주 3번 요리!',icon:'icons/badge_week3.png',check:function(s){return s.thisWeek>=3}},
-  {id:'week5',xp:30,name:'주간 요리왕',desc:'이번 주 5번 요리!',icon:'icons/badge_week5.png',check:function(s){return s.thisWeek>=5}},
-  {id:'week7',xp:50,name:'매일 요리',desc:'이번 주 매일 요리!',icon:'icons/badge_week7.png',check:function(s){return s.thisWeek>=7}},
+  {id:'week3',xp:10,name:'주간 요리사',desc:'이번 주 3번 요리!',icon:'📅',check:function(s){return s.thisWeek>=3}},
+  {id:'week5',xp:30,name:'주간 요리왕',desc:'이번 주 5번 요리!',icon:'💪',check:function(s){return s.thisWeek>=5}},
+  {id:'week7',xp:50,name:'매일 요리',desc:'이번 주 매일 요리!',icon:'🗓️',check:function(s){return s.thisWeek>=7}},
   // === 난이도별 (8개) ===
-  {id:'veryeasy3',xp:10,name:'초간단 입문',desc:'아주 쉬운 요리 3번!',icon:'icons/badge_veryeasy3.png',check:function(s){return s.veryEasyCount>=3}},
-  {id:'veryeasy10',xp:30,name:'초간단 마스터',desc:'아주 쉬운 요리 10번!',icon:'icons/badge_veryeasy10.png',check:function(s){return s.veryEasyCount>=10}},
-  {id:'easy10',xp:30,name:'쉬움 정복자',desc:'쉬운 요리 10번!',icon:'icons/badge_easy10.png',check:function(s){return s.easyCount>=10}},
-  {id:'med5',xp:30,name:'도전 정신',desc:'보통 난이도 5번!',icon:'icons/badge_med5.png',check:function(s){return s.medCount>=5}},
-  {id:'med15',xp:50,name:'중급 마스터',desc:'보통 난이도 15번!',icon:'icons/badge_med15.png',check:function(s){return s.medCount>=15}},
-  {id:'hard1',xp:30,name:'용감한 도전',desc:'어려운 요리 첫 완성!',icon:'icons/badge_hard1.png',check:function(s){return s.hardCount>=1}},
+  {id:'veryeasy3',xp:10,name:'초간단 입문',desc:'아주 쉬운 요리 3번!',icon:'✨',check:function(s){return s.veryEasyCount>=3}},
+  {id:'veryeasy10',xp:30,name:'초간단 마스터',desc:'아주 쉬운 요리 10번!',icon:'💫',check:function(s){return s.veryEasyCount>=10}},
+  {id:'easy10',xp:30,name:'쉬움 정복자',desc:'쉬운 요리 10번!',icon:'🎯',check:function(s){return s.easyCount>=10}},
+  {id:'med5',xp:30,name:'도전 정신',desc:'보통 난이도 5번!',icon:'💥',check:function(s){return s.medCount>=5}},
+  {id:'med15',xp:50,name:'중급 마스터',desc:'보통 난이도 15번!',icon:'🎖️',check:function(s){return s.medCount>=15}},
+  {id:'hard1',xp:30,name:'용감한 도전',desc:'어려운 요리 첫 완성!',icon:'🦁',check:function(s){return s.hardCount>=1}},
   {id:'hard5',xp:50,name:'난이도 정복자',desc:'어려운 요리 5번!',icon:'🐉',check:function(s){return s.hardCount>=5}},
   {id:'hard10',xp:100,name:'전설의 셰프',desc:'어려운 요리 10번!',icon:'🧑‍🍳',check:function(s){return s.hardCount>=10}},
   // === 사진 & 커뮤니티 (5개) ===
-  {id:'photo1',xp:10,name:'첫 사진',desc:'요리 사진 첫 등록!',icon:'icons/badge_photo1.png',check:function(s){return s.photos>=1}},
-  {id:'photo5',xp:30,name:'포토그래퍼',desc:'사진 5장 등록!',icon:'icons/badge_photo5.png',check:function(s){return s.photos>=5}},
-  {id:'photo20',xp:50,name:'먹스타그램',desc:'사진 20장 등록!',icon:'icons/badge_photo20.png',check:function(s){return s.photos>=20}},
-  {id:'share1',xp:10,name:'첫 공유',desc:'커뮤니티 첫 공유!',icon:'icons/badge_share1.png',check:function(s){return s.shares>=1}},
-  {id:'share5',xp:30,name:'소통왕',desc:'커뮤니티 5회 공유!',icon:'icons/badge_share5.png',check:function(s){return s.shares>=5}},
+  {id:'photo1',xp:10,name:'첫 사진',desc:'요리 사진 첫 등록!',icon:'📸',check:function(s){return s.photos>=1}},
+  {id:'photo5',xp:30,name:'포토그래퍼',desc:'사진 5장 등록!',icon:'🤳',check:function(s){return s.photos>=5}},
+  {id:'photo20',xp:50,name:'먹스타그램',desc:'사진 20장 등록!',icon:'🎞️',check:function(s){return s.photos>=20}},
+  {id:'share1',xp:10,name:'첫 공유',desc:'커뮤니티 첫 공유!',icon:'📤',check:function(s){return s.shares>=1}},
+  {id:'share5',xp:30,name:'소통왕',desc:'커뮤니티 5회 공유!',icon:'📡',check:function(s){return s.shares>=5}},
   // === 특별 뱃지 (8개) ===
   {id:'speed3',xp:10,name:'스피드 요리사',desc:'5분 이하 요리 3번!',icon:'⚡',check:function(s){return s.speedCount>=3}},
   {id:'healthy5',xp:30,name:'건강 지킴이',desc:'다이어트 태그 요리 5번!',icon:'🥗',check:function(s){return s.dietCount>=5}},
@@ -3220,55 +3220,42 @@ var BADGES=[
   {id:'easy20',xp:50,name:'쉬움의 달인',desc:'쉬운 요리 20번!',icon:'🏹',check:function(s){return s.easyCount>=20}},
   {id:'hard3',xp:50,name:'어려움 3회',desc:'어려운 요리 3번!',icon:'🐅',check:function(s){return s.hardCount>=3}},
   // === 카테고리 세부 (6개) ===
-  {id:'catRice',xp:30,name:'밥의 달인',desc:'밥/덮밥 5번 요리!',icon:'icons/badge_catRice.png',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='밥/덮밥')c++});return c>=5}},
-  {id:'catNoodle',xp:30,name:'면 요리 달인',desc:'면류 5번 요리!',icon:'icons/badge_catNoodle.png',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='면류')c++});return c>=5}},
-  {id:'catStew',xp:30,name:'찌개 달인',desc:'찌개/국 5번 요리!',icon:'icons/badge_catStew.png',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='찌개/국')c++});return c>=5}},
-  {id:'catEgg',xp:30,name:'달걀 마스터',desc:'달걀요리 5번!',icon:'icons/badge_catEgg.png',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='달걀요리')c++});return c>=5}},
-  {id:'catFry',xp:30,name:'볶음의 왕',desc:'볶음/구이 5번!',icon:'icons/badge_catFry.png',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='볶음/구이')c++});return c>=5}},
-  {id:'catSnack',xp:30,name:'간식 마스터',desc:'간식/분식 5번!',icon:'icons/badge_catSnack.png',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='간식/분식')c++});return c>=5}},
+  {id:'catRice',xp:30,name:'밥의 달인',desc:'밥/덮밥 5번 요리!',icon:'🍚',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='밥/덮밥')c++});return c>=5}},
+  {id:'catNoodle',xp:30,name:'면 요리 달인',desc:'면류 5번 요리!',icon:'🍜',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='면류')c++});return c>=5}},
+  {id:'catStew',xp:30,name:'찌개 달인',desc:'찌개/국 5번 요리!',icon:'🍲',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='찌개/국')c++});return c>=5}},
+  {id:'catEgg',xp:30,name:'달걀 마스터',desc:'달걀요리 5번!',icon:'🥚',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='달걀요리')c++});return c>=5}},
+  {id:'catFry',xp:30,name:'볶음의 왕',desc:'볶음/구이 5번!',icon:'🔥',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='볶음/구이')c++});return c>=5}},
+  {id:'catSnack',xp:30,name:'간식 마스터',desc:'간식/분식 5번!',icon:'🍡',check:function(s){var c=0;cookHistory.forEach(function(h){if(h.cat==='간식/분식')c++});return c>=5}},
   // === 특별 추가 (7개) ===
-  {id:'speed5',xp:30,name:'스피드 달인',desc:'5분 요리 5번!',icon:'icons/badge_speed5.png',check:function(s){return s.speedCount>=5}},
-  {id:'healthy10',xp:50,name:'건강 마니아',desc:'다이어트 요리 10번!',icon:'icons/badge_healthy10.png',check:function(s){return s.dietCount>=10}},
-  {id:'night10',xp:50,name:'야식 마스터',desc:'야식 요리 10번!',icon:'icons/badge_night10.png',check:function(s){return s.nightCount>=10}},
-  {id:'banchan10',xp:50,name:'밑반찬의 신',desc:'밑반찬 10번!',icon:'icons/badge_banchan10.png',check:function(s){return s.banchanCount>=10}},
-  {id:'same10',xp:100,name:'소울푸드',desc:'같은 요리 10번!',icon:'icons/badge_same10.png',check:function(s){return s.maxRepeat>=10}},
-  {id:'weekend5',xp:30,name:'주말 셰프',desc:'주말 5번 요리!',icon:'icons/badge_weekend5.png',check:function(s){return s.weekendCount>=5}},
-  {id:'photo10',xp:50,name:'사진 달인',desc:'사진 10장!',icon:'icons/badge_photo10.png',check:function(s){return s.photos>=10}},
+  {id:'speed5',xp:30,name:'스피드 달인',desc:'5분 요리 5번!',icon:'💨',check:function(s){return s.speedCount>=5}},
+  {id:'healthy10',xp:50,name:'건강 마니아',desc:'다이어트 요리 10번!',icon:'💚',check:function(s){return s.dietCount>=10}},
+  {id:'night10',xp:50,name:'야식 마스터',desc:'야식 요리 10번!',icon:'🌃',check:function(s){return s.nightCount>=10}},
+  {id:'banchan10',xp:50,name:'밑반찬의 신',desc:'밑반찬 10번!',icon:'🥡',check:function(s){return s.banchanCount>=10}},
+  {id:'same10',xp:100,name:'소울푸드',desc:'같은 요리 10번!',icon:'💝',check:function(s){return s.maxRepeat>=10}},
+  {id:'weekend5',xp:30,name:'주말 셰프',desc:'주말 5번 요리!',icon:'🎉',check:function(s){return s.weekendCount>=5}},
+  {id:'photo10',xp:50,name:'사진 달인',desc:'사진 10장!',icon:'🖼️',check:function(s){return s.photos>=10}},
   // === 연속 기록 추가 (2개) ===
-  {id:'streak5',xp:30,name:'5일 연속',desc:'5일 연속 요리!',icon:'icons/badge_streak5.png',check:function(s){return s.streak>=5}},
-  {id:'streak10',xp:50,name:'10일 연속',desc:'10일 연속!',icon:'icons/badge_streak10.png',check:function(s){return s.streak>=10}},
+  {id:'streak5',xp:30,name:'5일 연속',desc:'5일 연속 요리!',icon:'⚡',check:function(s){return s.streak>=5}},
+  {id:'streak10',xp:50,name:'10일 연속',desc:'10일 연속!',icon:'💫',check:function(s){return s.streak>=10}},
   // === 히든 뱃지 추가 (15개) — 조건 비공개 ===
-  {id:'hidden_first3min',xp:30,name:'???',desc:'초고속 요리사',icon:'icons/badge_hidden_first3min.png',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&r.time<=3)c++});return c>=1}},
-  {id:'hidden_alleasy',xp:50,name:'???',desc:'초간단만 10번',icon:'icons/badge_hidden_alleasy.png',hidden:true,check:function(s){return s.veryEasyCount>=10&&s.hardCount===0}},
-  {id:'hidden_eggmaster',xp:50,name:'???',desc:'달걀 요리만 10번',icon:'icons/badge_hidden_eggmaster.png',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&(r.name.includes('달걀')||r.name.includes('계란')))c++});return c>=10}},
-  {id:'hidden_kimchi',xp:50,name:'???',desc:'김치 요리 7번',icon:'icons/badge_hidden_kimchi.png',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&r.name.includes('김치'))c++});return c>=7}},
-  {id:'hidden_ramen',xp:30,name:'???',desc:'라면 요리 5번',icon:'icons/badge_hidden_ramen.png',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&r.name.includes('라면'))c++});return c>=5}},
-  {id:'hidden_tofu',xp:30,name:'???',desc:'두부 요리 5번',icon:'icons/badge_hidden_tofu.png',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&r.name.includes('두부'))c++});return c>=5}},
-  {id:'hidden_combo',xp:100,name:'???',desc:'하루에 3번 요리',icon:'icons/badge_hidden_combo.png',hidden:true,check:function(s){var dayMap={};cookHistory.forEach(function(h){dayMap[h.date]=(dayMap[h.date]||0)+1});return Object.values(dayMap).some(function(c){return c>=3})}},
-  {id:'hidden_norepeat',xp:100,name:'???',desc:'10번 요리 중복 0',icon:'icons/badge_hidden_norepeat.png',hidden:true,check:function(s){return s.total>=10&&s.unique>=10}},
-  {id:'hidden_allhard',xp:100,name:'???',desc:'어려운 요리만 3연속',icon:'icons/badge_hidden_allhard.png',hidden:true,check:function(s){if(cookHistory.length<3)return false;var last3=cookHistory.slice(0,3);return last3.every(function(h){var r=RECIPES.find(function(x){return x.id===h.id});return r&&r.diff===3})}},
-  {id:'hidden_balanced',xp:100,name:'???',desc:'5개 카테고리 각 3번+',icon:'icons/badge_hidden_balanced.png',hidden:true,check:function(s){var cm={};cookHistory.forEach(function(h){cm[h.cat]=(cm[h.cat]||0)+1});var over3=Object.values(cm).filter(function(c){return c>=3}).length;return over3>=5}},
-  {id:'hidden_badge40',xp:100,name:'???',desc:'뱃지 40개!',icon:'icons/badge_hidden_badge40.png',hidden:true,check:function(s){return earnedBadges.length>=40}},
-  {id:'hidden_badge60',xp:100,name:'???',desc:'뱃지 60개!',icon:'icons/badge_hidden_badge60.png',hidden:true,check:function(s){return earnedBadges.length>=60}},
-  {id:'hidden_lv10',xp:100,name:'???',desc:'레벨 10 달성',icon:'icons/badge_hidden_lv10.png',hidden:true,check:function(s){return getLevel().lv>=10}},
-  {id:'hidden_lv15',xp:100,name:'???',desc:'레벨 15 달성',icon:'icons/badge_hidden_lv15.png',hidden:true,check:function(s){return getLevel().lv>=15}},
-  {id:'hidden_100cook',xp:100,name:'???',desc:'100번 요리의 비밀',icon:'icons/badge_hidden_100cook.png',hidden:true,check:function(s){return s.total>=100&&s.unique>=30}},
+  {id:'hidden_first3min',xp:30,name:'???',desc:'초고속 요리사',icon:'🚀',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&r.time<=3)c++});return c>=1}},
+  {id:'hidden_alleasy',xp:50,name:'???',desc:'초간단만 10번',icon:'😎',hidden:true,check:function(s){return s.veryEasyCount>=10&&s.hardCount===0}},
+  {id:'hidden_eggmaster',xp:50,name:'???',desc:'달걀 요리만 10번',icon:'🐣',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&(r.name.includes('달걀')||r.name.includes('계란')))c++});return c>=10}},
+  {id:'hidden_kimchi',xp:50,name:'???',desc:'김치 요리 7번',icon:'🌶️',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&r.name.includes('김치'))c++});return c>=7}},
+  {id:'hidden_ramen',xp:30,name:'???',desc:'라면 요리 5번',icon:'🍥',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&r.name.includes('라면'))c++});return c>=5}},
+  {id:'hidden_tofu',xp:30,name:'???',desc:'두부 요리 5번',icon:'🧊',hidden:true,check:function(s){var c=0;cookHistory.forEach(function(h){var r=RECIPES.find(function(x){return x.id===h.id});if(r&&r.name.includes('두부'))c++});return c>=5}},
+  {id:'hidden_combo',xp:100,name:'???',desc:'하루에 3번 요리',icon:'🤯',hidden:true,check:function(s){var dayMap={};cookHistory.forEach(function(h){dayMap[h.date]=(dayMap[h.date]||0)+1});return Object.values(dayMap).some(function(c){return c>=3})}},
+  {id:'hidden_norepeat',xp:100,name:'???',desc:'10번 요리 중복 0',icon:'🦄',hidden:true,check:function(s){return s.total>=10&&s.unique>=10}},
+  {id:'hidden_allhard',xp:100,name:'???',desc:'어려운 요리만 3연속',icon:'🐲',hidden:true,check:function(s){if(cookHistory.length<3)return false;var last3=cookHistory.slice(0,3);return last3.every(function(h){var r=RECIPES.find(function(x){return x.id===h.id});return r&&r.diff===3})}},
+  {id:'hidden_balanced',xp:100,name:'???',desc:'5개 카테고리 각 3번+',icon:'⚖️',hidden:true,check:function(s){var cm={};cookHistory.forEach(function(h){cm[h.cat]=(cm[h.cat]||0)+1});var over3=Object.values(cm).filter(function(c){return c>=3}).length;return over3>=5}},
+  {id:'hidden_badge40',xp:100,name:'???',desc:'뱃지 40개!',icon:'🏆',hidden:true,check:function(s){return earnedBadges.length>=40}},
+  {id:'hidden_badge60',xp:100,name:'???',desc:'뱃지 60개!',icon:'👑',hidden:true,check:function(s){return earnedBadges.length>=60}},
+  {id:'hidden_lv10',xp:100,name:'???',desc:'레벨 10 달성',icon:'🌟',hidden:true,check:function(s){return getLevel().lv>=10}},
+  {id:'hidden_lv15',xp:100,name:'???',desc:'레벨 15 달성',icon:'💎',hidden:true,check:function(s){return getLevel().lv>=15}},
+  {id:'hidden_100cook',xp:100,name:'???',desc:'100번 요리의 비밀',icon:'🔮',hidden:true,check:function(s){return s.total>=100&&s.unique>=30}},
   // 연속 접속 뱃지는 checkLoginBonus()에서 동적으로 추가됨 (중복 방지)
 ];
 
-
-// 뱃지 아이콘 렌더링 헬퍼
-function badgeIconHtml(icon, size, grayscale) {
-  if (!icon) return '';
-  if (icon.endsWith && icon.endsWith('.png')) {
-    var style = 'width:'+size+'px;height:'+size+'px;object-fit:contain;';
-    if (grayscale) style += 'filter:grayscale(1);opacity:.5;';
-    return '<img src="'+icon+'" style="'+style+'">';
-  }
-  var style = 'font-size:'+size+'px;';
-  if (grayscale) style += 'filter:grayscale(1);';
-  return '<span style="'+style+'">'+icon+'</span>';
-}
 // === DAILY MISSION SYSTEM ===
 var MISSION_POOL=[
   {id:'m_egg',desc:'🥚 달걀 요리 해보기',check:function(id){var r=RECIPES.find(function(x){return x.id===id});return r&&(r.name.includes('달걀')||r.name.includes('계란')||r.cat==='달걀요리')}},
@@ -3487,8 +3474,7 @@ function showBadgePopup(b){
   h+='<div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(232,101,42,.15),transparent);pointer-events:none"></div>';
   h+='<div style="position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(232,101,42,.1),transparent);pointer-events:none"></div>';
   // 뇱지 아이콘 (빙글 돌며 등장)
-  var _bi72=badgeIconHtml(b.icon,72,false);
-  h+='<div style="margin-bottom:8px;display:inline-block;animation:badgeSpin .7s cubic-bezier(.34,1.56,.64,1)">'+_bi72+'</div>';
+  h+='<div style="font-size:72px;margin-bottom:8px;display:inline-block;animation:badgeSpin .7s cubic-bezier(.34,1.56,.64,1)">'+b.icon+'</div>';
   h+='<div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase">🎉 NEW BADGE!</div>';
   h+='<div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px">'+b.name+'</div>';
   h+='<div style="font-size:13px;color:var(--sub);margin-bottom:12px">'+b.desc+'</div>';
@@ -3691,7 +3677,7 @@ function renderMyPage(){
     h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">';
     earnedList.forEach(function(b){
       h+='<div style="text-align:center;padding:8px;border-radius:10px;background:var(--card);border:1px solid var(--border)">';
-      h+='<div>'+badgeIconHtml(b.icon,40,false)+'</div>';
+      h+='<div style="font-size:24px">'+b.icon+'</div>';
       h+='<div style="font-size:10px;margin-top:2px;color:var(--text)">'+b.name+'</div>';
 
       h+='</div>';
@@ -3704,7 +3690,7 @@ function renderMyPage(){
     h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">';
     notEarnedList.forEach(function(b){
       h+='<div style="text-align:center;padding:8px;border-radius:10px;background:var(--border);opacity:.5">';
-      h+='<div>'+badgeIconHtml(b.icon,40,true)+'</div>';
+      h+='<div style="font-size:24px;filter:grayscale(1)">'+b.icon+'</div>';
       h+='<div style="font-size:10px;margin-top:2px;color:var(--sub)">'+b.name+'</div>';
       h+='</div>';
     });
