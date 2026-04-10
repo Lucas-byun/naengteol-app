@@ -18,7 +18,8 @@
 <link rel="apple-touch-icon" href="icons/app_icon_512.png">
 <link rel="icon" type="image/png" href="icons/app_icon_192.png">
 
-<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{--primary:#E8652A;--primary-light:#FEF3EC;--primary-glow:rgba(232,101,42,.08);--bg:#FAFAF8;--card:#fff;--border:#E0E0E0;--text:#1a1a1a;--sub:#6d635c;--green:#2e7d32;--red:#c62828;--radius:16px;--shadow-sm:0 1px 4px rgba(0,0,0,.05);--shadow-md:0 4px 16px rgba(0,0,0,.07);--shadow-lg:0 8px 32px rgba(0,0,0,.10);--ing-bg:linear-gradient(180deg,#FFF8F3 0%,#FFF0E4 100%);--cook-bg:#fff}
@@ -1628,7 +1629,7 @@ function renderCard(r){
   var catImgMap={'찌개/국':'icons/cat_찌개국.png','달걀요리':'icons/cat_달걀요리.png','면류':'icons/cat_면류.png','밥/덮밥':'icons/cat_밥덮밥.png','전/부침':'icons/cat_전부침.png','나물/반찬':'icons/cat_나물반찬.png','간식/분식':'icons/cat_간식분식.png','조림':'icons/cat_조림.png','볶음/구이':'icons/cat_볶음구이.png'};
   var catImg=catImgMap[r.cat]||null;
   if(_bestPhoto){h+='<img src="'+(_bestPhoto.photo||_bestPhoto)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" style="width:100%;height:100%;object-fit:cover"><span style="display:none;font-size:36px;width:100%;height:100%;align-items:center;justify-content:center">'+r.emoji+'</span>';}
-  else if(catImg){h+='<img src="'+catImg+'" style="width:100%;height:100%;object-fit:cover;opacity:0.85">';}
+  else if(catImg){h+='<img src="'+catImg+'" style="width:80%;height:80%;object-fit:contain;opacity:0.9;margin:auto">';}
   else{h+='<span>'+r.emoji+'</span>';}
   h+='</div></div>';
   // 콘텐츠 영역
