@@ -1256,7 +1256,19 @@ function getSubstitutes(r){
 // === RENDER ===
 
 // === 태그 색상/이모지 전역 상수 (renderCard, render, renderDetail에서 공유) ===
-var TAG_COLORS={'초간단':['#388e3c','#e8f5e9'],'5분완성':['#1976d2','#e3f2fd'],'야식':['#6a1b9a','#f3e5f5'],'다이어트':['#00838f','#e0f7fa'],'밑반찬':['#ef6c00','#f5f5f5'],'비오는날':['#455a64','#eceff1'],'든든한끼':['#d84315','#fafafa']};
+var TAG_COLORS={
+  '야식':['#6a1b9a','#f3e5f5'],'아침식사':['#f57f17','#fff8e1'],'브런치':['#ad1457','#fce4ec'],
+  '점심한끼':['#1565c0','#e3f2fd'],'술안주':['#4a148c','#ede7f6'],'해장':['#00695c','#e0f2f1'],
+  '비오는날':['#455a64','#eceff1'],'다이어트':['#00838f','#e0f7fa'],'든든한끼':['#d84315','#fafafa'],
+  '밑반찬':['#ef6c00','#fff3e0'],'도시락':['#558b2f','#f1f8e9'],'혼밥':['#6d4c41','#efebe9'],
+  '손님초대':['#880e4f','#fce4ec'],'초간단':['#388e3c','#e8f5e9'],'5분완성':['#1976d2','#e3f2fd'],
+  '10분완성':['#0288d1','#e1f5fe'],'냉장고털기':['#5d4037','#efebe9'],
+  '매운맛':['#c62828','#ffebee'],'달달한맛':['#f9a825','#fffde7'],'고소한맛':['#6d4c41','#efebe9'],
+  '시원한맛':['#0277bd','#e1f5fe'],'짭짤한맛':['#37474f','#eceff1'],
+  '달걀요리':['#f57f17','#fff8e1'],'두부요리':['#558b2f','#f1f8e9'],'채소위주':['#2e7d32','#e8f5e9'],
+  '고기듬뿍':['#b71c1c','#ffebee'],'면요리':['#4527a0','#ede7f6'],'밥요리':['#e65100','#fff3e0'],
+  '집밥느낌':['#4e342e','#efebe9'],'편의점감성':['#37474f','#eceff1']
+};
 var TAG_EMOJIS={'초간단':'⚡','5분완성':'⏱️','야식':'🌙','다이어트':'🥗','밑반찬':'🍱','비오는날':'🌧️','든든한끼':'💪'};
 
 // === 카테고리 매핑 전역 상수 ===
@@ -1396,16 +1408,8 @@ function render(){
         var perfect=countPerfect(m);var partial=m.length-perfect;
         h+='<div class="recipe-section">';
         h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:8px 12px;background:linear-gradient(135deg,var(--primary-light),transparent);border-radius:12px"><h2 style="margin:0;color:var(--text);font-size:16px">🍽️ 만들 수 있는 요리 <span style="color:var(--primary);font-size:18px;font-weight:800">'+m.length+'</span><span style="font-size:13px;color:var(--sub)">개</span></h2></div>';
-        // 태그 필터 (요리 목록 안)
-        h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
-        var tagList2=['초간단','5분완성','야식','다이어트','밑반찬','비오는날','든든한끼'];
-        var tagColors2=TAG_COLORS;
-        var tagEmojis2=TAG_EMOJIS;
-        tagList2.forEach(function(t){
-          var act=activeTag===t;var tc2=tagColors2[t]||['#333','#eee'];
-          h+='<button onclick="toggleTag(\''+t+'\')" style="display:flex;align-items:center;gap:3px;padding:4px 10px;border-radius:16px;border:'+(act?'2px solid '+tc2[0]:'1px solid var(--border)')+';background:'+(act?tc2[1]:'var(--card)')+';color:'+(act?tc2[0]:'var(--sub)')+';font-size:11px;font-weight:'+(act?'700':'500')+';cursor:pointer;font-family:inherit;white-space:nowrap">'+tagEmojis2[t]+' '+t+'</button>';
-        });
-        h+='</div>';
+        // 태그 필터 (해시태그 클릭 방식 - 버튼 제거)
+        if(activeTag){h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:6px 10px;background:var(--primary-light);border-radius:10px"><span style="font-size:12px;color:var(--primary);font-weight:700">#'+activeTag+' 필터 적용 중</span><button onclick="activeTag=\'\';render()" style="font-size:11px;padding:2px 8px;border-radius:8px;border:1px solid var(--primary);background:none;color:var(--primary);cursor:pointer;font-family:inherit">✕ 해제</button></div>';}
         h+='<div style="display:flex;gap:6px;margin-bottom:10px">';
         ['전체','한끼','반찬','간식'].forEach(function(f){
           var active=mealFilter===f;
@@ -1500,14 +1504,8 @@ function render(){
         h+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:4px 12px;border-radius:16px;font-size:12px;font-weight:'+(actF?'700':'500')+';border:'+(actF?'2px solid '+colF[0]:'1px solid var(--border)')+';background:'+(actF?colF[1]:'var(--bg)')+';color:'+(actF?colF[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';
       });
       h+='</div>';
-      // 태그 필터 (요리모드)
-      h+='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:6px 16px">';
-      ['초간단','5분완성','야식','다이어트','밑반찬','비오는날','든든한끼'].forEach(function(t){
-        var act4=activeTag===t;var tc4={'초간단':['#388e3c','#e8f5e9'],'5분완성':['#1976d2','#e3f2fd'],'야식':['#6a1b9a','#f3e5f5'],'다이어트':['#00838f','#e0f7fa'],'밑반찬':['#ef6c00','#f5f5f5'],'비오는날':['#455a64','#eceff1'],'든든한끼':['#d84315','#fafafa']}[t]||['#333','#eee'];
-        var em4={'초간단':'⚡','5분완성':'⏱️','야식':'🌙','다이어트':'🥗','밑반찬':'🍱','비오는날':'🌧️','든든한끼':'💪'}[t];
-        h+='<button onclick="toggleTag(\''+t+'\')" style="display:flex;align-items:center;gap:3px;padding:4px 10px;border-radius:16px;border:'+(act4?'2px solid '+tc4[0]:'1px solid var(--border)')+';background:'+(act4?tc4[1]:'var(--card)')+';color:'+(act4?tc4[0]:'var(--sub)')+';font-size:11px;font-weight:'+(act4?'700':'500')+';cursor:pointer;font-family:inherit;white-space:nowrap">'+em4+' '+t+'</button>';
-      });
-      h+='</div>';
+      // 태그 필터 (해시태그 클릭 방식 - 버튼 제거)
+      if(activeTag){h+='<div style="display:flex;align-items:center;gap:8px;padding:4px 16px 8px;"><span style="font-size:12px;color:var(--primary);font-weight:700">#'+activeTag+' 필터 적용 중</span><button onclick="activeTag=\'\';render()" style="font-size:11px;padding:2px 8px;border-radius:8px;border:1px solid var(--primary);background:none;color:var(--primary);cursor:pointer;font-family:inherit">✕ 해제</button></div>';}
       h+='<div class="recipe-count">'+fl2.length+'개 레시피</div>';
       cs.forEach(function(c){var rs=fl2.filter(function(r){return r.cat===c});h+='<div class="recipe-section" style="background:var(--cook-bg)"><h2 style="color:var(--text)">'+(rs[0]?rs[0].emoji:'')+' '+c+' ('+rs.length+')</h2>';rs.forEach(function(r){h+=renderCard(Object.assign({},r,{match:sel.size>0?matchRecipe(r,selArr):{pct:0}}))});h+='</div>';});
     }
@@ -1626,7 +1624,7 @@ function renderCard(r){
   h+='<span style="font-size:10px;padding:2px 8px;border-radius:8px;background:'+dfBg+';color:'+dfColor+';font-weight:700">'+dfLabel+'</span>';
   h+='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:#f5f5f5;color:var(--sub)">⏱ '+r.time+'분</span>';
   h+='</div>';
-  var rTags=RECIPE_TAGS[r.id]||[];if(rTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px">';var tagC=TAG_COLORS;rTags.slice(0,2).forEach(function(t){var c=tagC[t]||['#666','#eee'];h+='<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:'+c[1]+';color:'+c[0]+';font-weight:600">'+t+'</span>';});h+='</div>';}
+  var rTags=RECIPE_TAGS[r.id]||[];if(rTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px">';var tagC=TAG_COLORS;rTags.slice(0,3).forEach(function(t){var c=tagC[t]||['#555','#eee'];h+='<span onclick="event.stopPropagation();activeTag=(activeTag===\''+t+'\')?\'\':\'' + "'" + '+t+"'" + ';render()" style="font-size:10px;padding:1px 6px;border-radius:8px;background:'+c[1]+';color:'+c[0]+';font-weight:600;cursor:pointer">#'+t+'</span>';});h+='</div>';}
   if(m.pct===100)h+='<span class="rc-match perfect" style="font-size:11px">✅ 바로 가능</span>';
   h+='</div></div>';
   if(sel.size>0){h+='<div class="rc-ings" style="padding:0 12px 10px;margin-top:0;border-top:1px solid var(--border)">';h+='<div style="padding-top:8px;display:flex;flex-wrap:wrap;gap:4px">';r.ings.filter(function(i){return i.t==='req'}).forEach(function(i){var nm=i.v.split(/\s/)[0].replace(/[()]/g,'');var hv=[...sel].some(function(s){return ingMatch(i.v,s)});h+='<span class="rc-ing '+(hv?'have':'miss')+'">'+nm+'</span>';});h+='</div></div>';}
@@ -1644,7 +1642,7 @@ function renderDetail(){
   h+='<div class="det-hero">'+(getRecipeMedal(r.id)?'<div style="text-align:center;font-size:13px;font-weight:700;color:#ff6f00;margin-bottom:4px">'+getRecipeMedal(r.id)+' 인기 TOP 요리</div>':'')+(_detBestPhoto?'<div style="position:relative;margin-bottom:12px;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:12px"><img src="'+(_detBestPhoto.photo||_detBestPhoto)+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentNode.style.display=\'none\'"><div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:3px 8px;border-radius:8px">📸 '+(_detBestPhoto.author||'유저')+'님의 요리사진</div></div>':'')+'<div class="emoji">'+r.emoji+'</div><h2>'+r.name+'</h2>';
   h+='<div class="meta"><span>'+(['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움')+'</span><span>⏱'+r.time+'분</span><span>'+r.serving+'인분</span></div>';
   h+='<div class="desc">'+r.desc+'</div>';
-  var dTags=RECIPE_TAGS[r.id]||[];if(dTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;justify-content:center">';var dtC=TAG_COLORS;dTags.forEach(function(t){var c=dtC[t]||['#666','#eee'];h+='<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:'+c[1]+';color:'+c[0]+';font-weight:600">'+t+'</span>';});h+='</div>';}
+  var dTags=RECIPE_TAGS[r.id]||[];if(dTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;justify-content:center">';var dtC=TAG_COLORS;dTags.forEach(function(t){var c=dtC[t]||['#555','#eee'];h+='<span onclick="closeDetail();activeTag=\''+t+'\';tab=\'cook\';render()" style="font-size:11px;padding:3px 10px;border-radius:12px;background:'+c[1]+';color:'+c[0]+';font-weight:600;cursor:pointer">#'+t+'</span>';});h+='</div>';}
   h+='</div>';
   h+='<div class="det-info-cards"><div class="info-card"><div class="val">'+r.serving+'인분</div><div class="lbl">기준</div></div><div class="info-card"><div class="val">'+r.time+'분</div><div class="lbl">조리시간</div></div><div class="info-card"><div class="val">'+r.kcal+'</div><div class="lbl">칼로리</div></div></div>';
   // 보관법 표시 제거됨
