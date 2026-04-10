@@ -68,7 +68,6 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .rc-top{display:flex;gap:0;align-items:stretch}
 /* 1:1 정사각형 비율 썸네일 */
 .rc-thumb-wrap{width:90px;height:90px;flex-shrink:0;position:relative;overflow:hidden;background:#f0f0f0;border-radius:10px}
-.rc-thumb-wrap::before{content:'';display:block;padding-top:100%}
 .rc-thumb-inner{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:36px}
 .rc-thumb-inner img{width:100%;height:100%;object-fit:cover}
 .rc-thumb{width:70px;height:70px;border-radius:10px;object-fit:cover;background:#eee;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:32px}
@@ -1630,7 +1629,7 @@ function renderCard(r){
   var catImgMap={'찌개/국':'icons/cat_찌개국.png','달걀요리':'icons/cat_달걀요리.png','면류':'icons/cat_면류.png','밥/덮밥':'icons/cat_밥덮밥.png','전/부침':'icons/cat_전부침.png','나물/반찬':'icons/cat_나물반찬.png','간식/분식':'icons/cat_간식분식.png','조림':'icons/cat_조림.png','볶음/구이':'icons/cat_볶음구이.png'};
   var catImg=catImgMap[r.cat]||null;
   if(_bestPhoto){h+='<img src="'+(_bestPhoto.photo||_bestPhoto)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" style="width:100%;height:100%;object-fit:cover"><span style="display:none;font-size:36px;width:100%;height:100%;align-items:center;justify-content:center">'+r.emoji+'</span>';}
-  else if(catImg){h+='<img src="'+catImg+'" style="width:80%;height:80%;object-fit:contain;opacity:0.9;margin:auto">';}
+  else if(catImg){h+='<img src="'+catImg+'" style="width:80%;height:80%;object-fit:contain;opacity:0.9;display:block;margin:auto;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">';}
   else{h+='<span>'+r.emoji+'</span>';}
   h+='</div></div>';
   // 콘텐츠 영역
