@@ -1047,11 +1047,12 @@ function sharePhotoToCommunity(idx){
 function showAllPhotosModal(photoOnly){
   var allPosts=cookHistory.filter(function(ch){return ch.photo||(ch.comment&&!photoOnly)});
   if(allPosts.length===0){showCartPopup('📷 사진이 없어요','아직 요리 사진이 없습니다. 요리를 완료하고 사진을 남겨보세요!');return;}
-  // 전체화면 뷰어용 사진 배열
-  var allViewerPhotos=allPosts.filter(function(ch){return ch.photo}).map(function(ch){
+  // 전체화면 뷰어용 사진 배열 (전역 변수에 저장하여 onclick에서 안전하게 참조)
+  window._albumViewerPhotos=allPosts.filter(function(ch){return ch.photo}).map(function(ch){
     var r=RECIPES.find(function(x){return x.id===ch.id});
     return{photo:ch.photo,comment:ch.comment||'',date:ch.date,name:r?r.name:'',emoji:r?r.emoji:'🍳'};
   });
+  var allViewerPhotos=window._albumViewerPhotos;
   var existing=document.getElementById('allPhotosModal');
   if(existing)existing.remove();
   var h='<div id="allPhotosModal" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:#000;overflow-y:auto" onclick="if(event.target===this)this.remove()">';
@@ -1075,7 +1076,7 @@ function showAllPhotosModal(photoOnly){
       var chIdx=cookHistory.indexOf(ch);
       var thisVIdx=viewerIdx++;
       h+='<div style="border-radius:0;overflow:hidden">';
-      h+='<div style="aspect-ratio:1;position:relative;cursor:zoom-in" onclick="openPhotoViewer('+JSON.stringify(allViewerPhotos)+','+thisVIdx+')">';
+      h+='<div style="aspect-ratio:1;position:relative;cursor:zoom-in" onclick="openPhotoViewer(window._albumViewerPhotos,'+thisVIdx+')">'; 
       h+='<img src="'+ch.photo+'" style="width:100%;height:100%;object-fit:cover">';
       h+='<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:4px 5px">';
       h+='<div style="font-size:9px;color:#fff;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ch.emoji+' '+ch.name+'</div>';
