@@ -800,12 +800,34 @@ function showRecipePhotos(recipeId){
   // Existing photos & comments
   if(allEntries.length>0){
     allEntries.forEach(function(ch){
-      h+='<div style="margin-bottom:16px">';
-      if(ch.photo)h+='<img src="'+ch.photo+'" style="width:100%;border-radius:12px;object-fit:cover">';
-      h+='<div style="display:flex;justify-content:space-between;margin-top:6px">';
+      var chIdx=cookHistory.indexOf(ch);
+      h+='<div style="margin-bottom:20px;background:rgba(255,255,255,.05);border-radius:14px;overflow:hidden">';
+      if(ch.photo){
+        h+='<div style="position:relative">';
+        h+='<img src="'+ch.photo+'" style="width:100%;display:block;border-radius:14px 14px 0 0;object-fit:cover">';
+        h+='<label style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px">';
+        h+='<input type="file" accept="image/*" style="display:none" onchange="changeExistingPhoto('+chIdx+',this,\''+esc(recipeId)+'\')">';
+        h+='🔄 사진 변경</label>';
+        h+='</div>';
+      }else{
+        h+='<div style="padding:16px;text-align:center">';
+        h+='<div style="font-size:36px;margin-bottom:6px">'+(r?r.emoji:'🍳')+'</div>';
+        h+='<label style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer">';
+        h+='<input type="file" accept="image/*" style="display:none" onchange="changeExistingPhoto('+chIdx+',this,\''+esc(recipeId)+'\')">';
+        h+='📸 사진 추가</label>';
+        h+='</div>';
+      }
+      h+='<div style="padding:10px 12px">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
       h+='<span style="color:#aaa;font-size:11px">🍳 '+ch.date+(ch.photoDate&&ch.photoDate!==ch.date?' · 📸 '+ch.photoDate:'')+'</span>';
+      h+='<button onclick="editPhotoComment('+chIdx+',\''+esc(recipeId)+'\')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">'+(ch.comment?'✏️ 수정':'💬 코멘트')+'</button>';
       h+='</div>';
-      if(ch.comment)h+='<div style="color:#ddd;font-size:12px;margin-top:4px">💬 '+ch.comment+'</div>';
+      if(ch.comment){
+        h+='<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+ch.comment+'</div>';
+      }else{
+        h+='<div style="color:#666;font-size:12px;font-style:italic">코멘트 없음</div>';
+      }
+      h+='</div>';
       h+='</div>';
     });
   }else{
@@ -813,6 +835,91 @@ function showRecipePhotos(recipeId){
     h+='<div style="font-size:40px;margin-bottom:8px">📷</div>';
     h+='<div style="color:#aaa;font-size:13px">아직 사진이 없어요<br>위 버튼으로 첫 사진을 추가해보세요!</div>';
     h+='</div>';
+  }
+  h+='</div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+}
+function changeExistingPhoto(idx,input,recipeId){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      var maxW=800;var scale=Math.min(1,maxW/img.width);
+      canvas.width=img.width*scale;canvas.height=img.height*scale;
+      var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      cookHistory[idx].photo=canvas.toDataURL('image/jpeg',0.7);
+      cookHistory[idx].photoDate=new Date().toISOString().split('T')[0];
+      localStorage.setItem('nt_history',JSON.stringify(cookHistory));
+      var popup=document.getElementById('galleryPopup');
+      if(popup)popup.remove();
+      render();
+      showRecipePhotos(recipeId);
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function editPhotoComment(idx,recipeId){
+  var current=cookHistory[idx]?cookHistory[idx].comment||'':'';
+  var newComment=prompt('코멘트를 입력하세요 (최대 80자):',current);
+  if(newComment===null)return;
+  newComment=newComment.trim().substring(0,80);
+  cookHistory[idx].comment=newComment;
+  localStorage.setItem('nt_history',JSON.stringify(cookHistory));
+  var popup=document.getElementById('galleryPopup');
+  if(popup)popup.remove();
+  render();
+  showRecipePhotos(recipeId);
+}
+function showAllPhotosModal(){
+  var allPosts=cookHistory.filter(function(ch){return ch.photo||ch.comment});
+  if(allPosts.length===0)return;
+  var h='<div id="allPhotosModal" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:#000;overflow-y:auto" onclick="if(event.target===this)this.remove()">';
+  h+='<div style="max-width:480px;margin:0 auto;padding:16px">';
+  // Header
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;position:sticky;top:0;background:#000;padding:8px 0;z-index:1">';
+  h+='<div style="color:#fff;font-size:16px;font-weight:700">🖼️ 내 사진첩 ('+allPosts.length+')</div>';
+  h+='<button onclick="document.getElementById(\'allPhotosModal\').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer">✕</button>';
+  h+='</div>';
+  // 사진이 있는 것만 먼저, 없는 것(코멘트만) 나중에
+  var withPhoto=allPosts.filter(function(ch){return ch.photo});
+  var withoutPhoto=allPosts.filter(function(ch){return !ch.photo&&ch.comment});
+  // 사진 그리드 (3열)
+  if(withPhoto.length>0){
+    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-bottom:16px">';
+    withPhoto.forEach(function(ch){
+      var chIdx=cookHistory.indexOf(ch);
+      h+='<div style="border-radius:0;overflow:hidden;cursor:pointer" onclick="showRecipePhotos(\''+esc(ch.id)+'\')">'; 
+      h+='<div style="aspect-ratio:1;position:relative">';
+      h+='<img src="'+ch.photo+'" style="width:100%;height:100%;object-fit:cover">';
+      h+='<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:4px 5px">';
+      h+='<div style="font-size:9px;color:#fff;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ch.emoji+' '+ch.name+'</div>';
+      h+='</div>';
+      h+='</div>';
+      if(ch.comment){
+        h+='<div style="padding:4px 3px;font-size:10px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#111">💬 '+ch.comment+'</div>';
+      }else{
+        h+='<div style="padding:4px 3px;font-size:9px;color:#555;background:#111">'+ch.date+'</div>';
+      }
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+  // 코멘트만 있는 항목
+  if(withoutPhoto.length>0){
+    h+='<div style="margin-bottom:8px;font-size:12px;color:#888;font-weight:700">💬 코멘트만 있는 기록 ('+withoutPhoto.length+')</div>';
+    withoutPhoto.forEach(function(ch){
+      h+='<div style="background:#111;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer" onclick="showRecipePhotos(\''+esc(ch.id)+'\')">'; 
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+      h+='<span style="font-size:20px">'+ch.emoji+'</span>';
+      h+='<span style="color:#fff;font-size:13px;font-weight:600">'+ch.name+'</span>';
+      h+='<span style="color:#666;font-size:11px;margin-left:auto">'+ch.date+'</span>';
+      h+='</div>';
+      h+='<div style="color:#ccc;font-size:13px;line-height:1.5">💬 '+ch.comment+'</div>';
+      h+='</div>';
+    });
   }
   h+='</div></div>';
   document.body.insertAdjacentHTML('beforeend',h);
@@ -3594,25 +3701,40 @@ function renderMyPage(){
   h+='</div></div>';
   // My Gallery (photos + comments)
   var galleryPosts=cookHistory.filter(function(ch){return ch.photo||ch.comment});
+  var photoPosts=cookHistory.filter(function(ch){return ch.photo});
   if(galleryPosts.length>0){
-    h+='<h2 style="color:var(--text)">📸 갤러리 ('+galleryPosts.length+')</h2>';
-    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px">';
-    galleryPosts.slice(0,12).forEach(function(ch){
-      h+='<div style="position:relative;border-radius:10px;overflow:hidden;cursor:pointer;aspect-ratio:1" onclick="showRecipePhotos(\''+esc(ch.id)+'\')">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    h+='<h2 style="color:var(--text);margin:0">📸 갤러리 ('+galleryPosts.length+')</h2>';
+    h+='<button onclick="showAllPhotosModal()" style="padding:6px 12px;border:1px solid var(--primary);border-radius:8px;background:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🖼️ 전체 사진첩</button>';
+    h+='</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px">';
+    galleryPosts.slice(0,9).forEach(function(ch){
+      h+='<div style="border-radius:10px;overflow:hidden;cursor:pointer" onclick="showRecipePhotos(\''+esc(ch.id)+'\')">'; 
+      h+='<div style="aspect-ratio:1;position:relative">';
       if(ch.photo){
         h+='<img src="'+ch.photo+'" style="width:100%;height:100%;object-fit:cover">';
       }else{
         h+='<div style="width:100%;height:100%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px">';
         h+='<div style="font-size:28px;margin-bottom:4px">'+ch.emoji+'</div>';
-        if(ch.comment)h+='<div style="font-size:9px;color:var(--sub);text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">💬 '+ch.comment+'</div>';
         h+='</div>';
       }
-      h+='<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:5px 6px">';
-      h+='<div style="font-size:10px;color:#fff;font-weight:700">'+ch.emoji+' '+ch.name+'</div>';
-      h+='<div style="font-size:9px;color:#ccc">'+ch.date+'</div>';
-      h+='</div></div>';
+      h+='<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:4px 5px">';
+      h+='<div style="font-size:9px;color:#fff;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ch.emoji+' '+ch.name+'</div>';
+      h+='</div>';
+      h+='</div>';
+      if(ch.comment){
+        h+='<div style="padding:4px 2px;font-size:10px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">💬 '+ch.comment+'</div>';
+      }else{
+        h+='<div style="padding:4px 2px;font-size:9px;color:#555">'+ch.date+'</div>';
+      }
+      h+='</div>';
     });
     h+='</div>';
+    if(galleryPosts.length>9){
+      h+='<div style="text-align:center;margin-bottom:16px"><button onclick="showAllPhotosModal()" style="padding:6px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--sub);font-size:12px;cursor:pointer;font-family:inherit">+'+(galleryPosts.length-9)+'장 더 보기</button></div>';
+    }else{
+      h+='<div style="margin-bottom:16px"></div>';
+    }
   }
   // My Cooking Records (통합: 카운팅 + 사진 + 최근 일자)
   
