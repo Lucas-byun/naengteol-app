@@ -3092,13 +3092,14 @@ async function syncToSheets(){
   var btn=document.getElementById('syncBtn');
   if(btn){btn.disabled=true;btn.textContent='⏳ 동기화 중...';}
   try{
-    // 1. Firebase에서 전체 데이터 읽기
-    var snap=await fbDB.ref('/').once('value');
-    var fbData=snap.val()||{};
+    // 1. Firebase에서 각 노드별 개별 읽기 (루트 전체 읽기는 권한 오류 발생)
+    var snapUsers=await fbDB.ref('users').once('value');
+    var snapComm=await fbDB.ref('community').once('value');
+    var snapRecipes=await fbDB.ref('recipes').once('value');
 
     // 2. 유저목록 데이터 정리
     var users=[];
-    var usersRaw=fbData.users||{};
+    var usersRaw=snapUsers.val()||{};
     Object.keys(usersRaw).forEach(function(uid){
       var u=usersRaw[uid];
       users.push({
@@ -3112,7 +3113,7 @@ async function syncToSheets(){
 
     // 3. 커뮤니티 데이터 정리
     var community=[];
-    var commRaw=fbData.community||{};
+    var commRaw=snapComm.val()||{};
     Object.keys(commRaw).forEach(function(pid){
       var p=commRaw[pid];
       if(!p||p.status==='pending')return; // 승인된 것만
@@ -3131,7 +3132,7 @@ async function syncToSheets(){
 
     // 4. 레시피카운트 데이터 정리
     var recipes=[];
-    var recipesRaw=fbData.recipes||{};
+    var recipesRaw=snapRecipes.val()||{};
     Object.keys(recipesRaw).forEach(function(rid){
       var r=recipesRaw[rid];
       if(!r||!r.count)return;
