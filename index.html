@@ -587,7 +587,6 @@ function triggerProfilePhotoUpload(){
   inp.onchange=function(e){
     var file=e.target.files[0];
     if(!file)return;
-    if(file.size>5*1024*1024){showCartPopup('⚠️ 파일 크기 초과','5MB 이하 이미지만 등록 가능합니다.');return;}
     var reader=new FileReader();
     reader.onload=function(ev){
       var img=new window.Image();
@@ -598,7 +597,12 @@ function triggerProfilePhotoUpload(){
         var ctx=canvas.getContext('2d');
         var sx=(img.width-size)/2,sy=(img.height-size)/2;
         ctx.drawImage(img,sx,sy,size,size,0,0,200,200);
-        var compressed=canvas.toDataURL('image/jpeg',0.8);
+        // 파일 크기에 따라 품질 자동 조절 (용량 무관 자동 압축)
+        var quality=0.85;
+        if(file.size>10*1024*1024) quality=0.5;
+        else if(file.size>5*1024*1024) quality=0.6;
+        else if(file.size>2*1024*1024) quality=0.7;
+        var compressed=canvas.toDataURL('image/jpeg',quality);
         saveProfilePhoto(compressed);
         render();
         showCartPopup('✅ 프로필 사진 저장','프로필 사진이 변경되었습니다!');
@@ -4202,7 +4206,7 @@ function renderMyPage(){
   h+='</div></div>';
   // 프로필 사진 안내 및 삭제 버튼
   h+='<div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border)">';
-  h+='<div style="font-size:11px;color:var(--sub)">📷 프로필 사진을 탭하여 변경 (5MB 이하 이미지)</div>';
+  h+='<div style="font-size:11px;color:var(--sub)">📷 프로필 사진을 탭하여 변경 (자동 압축 적용)</div>';
   if(userProfilePhoto)h+='<button onclick="deleteProfilePhoto()" style="padding:4px 10px;border:1.5px solid #e53935;border-radius:8px;background:transparent;color:#e53935;font-size:11px;cursor:pointer;font-family:inherit">사진 삭제</button>';
   h+='</div>';
   h+='</div>';
