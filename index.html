@@ -301,29 +301,20 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 <!-- ===== END 크롭 모달 ===== -->
 
 <div id="loadingOverlay" class="loading-overlay" style="background:#FAFAF8;justify-content:center">
-  <div style="display:flex;flex-direction:column;align-items:center;gap:0;width:100%;max-width:360px;padding:32px 24px">
-    <div style="font-size:72px;margin-bottom:8px;animation:splashIn .5s ease-out">🍳</div>
-    <div style="font-size:28px;font-weight:800;color:#E8652A;margin-bottom:4px;letter-spacing:-.5px">냉털</div>
-    <div style="font-size:14px;color:#6d635c;margin-bottom:28px">냉장고를 털자!</div>
-    <div style="display:flex;flex-direction:column;gap:10px;width:100%;margin-bottom:28px">
-      <div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#FEF3EC,#fff);border:1.5px solid rgba(232,101,42,.2);border-radius:14px;padding:14px 16px">
-        <span style="font-size:28px">🥕</span>
-        <div><div style="font-size:13px;font-weight:700;color:#E8652A">재료 선택</div><div style="font-size:11px;color:#6d635c">냉장고에 있는 재료를 터치!</div></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E0E0E0;border-radius:12px;padding:12px 16px">
-        <span style="font-size:28px">🍽️</span>
-        <div><div style="font-size:13px;font-weight:700;color:#1a1a1a">레시피 추첸</div><div style="font-size:11px;color:#6d635c">만들 수 있는 요리를 자동 매칭</div></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E0E0E0;border-radius:12px;padding:12px 16px">
-        <span style="font-size:28px">👨‍🍳</span>
-        <div><div style="font-size:13px;font-weight:700;color:#1a1a1a">단계별 가이드</div><div style="font-size:11px;color:#6d635c">초보도 따라 할 수 있는 상세 설명</div></div>
-      </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0;width:100%;max-width:360px;padding:40px 24px">
+    <!-- 냉장고 이미지 -->
+    <div style="animation:splashIn .5s ease-out;margin-bottom:20px">
+      <img src="icons/splash_fridge.png" alt="냉장고" style="width:200px;height:200px;object-fit:contain;filter:drop-shadow(0 8px 24px rgba(232,101,42,.18))">
     </div>
-    <div style="display:flex;align-items:center;gap:8px;color:#6d635c;font-size:13px">
-      <div class="spinner" style="width:18px;height:18px;border-width:2px"></div>
-      <span>레시피 불러오는 중...</span>
+    <!-- 앱 이름 -->
+    <div style="font-size:32px;font-weight:800;color:#E8652A;margin-bottom:6px;letter-spacing:-.5px">냉털</div>
+    <div style="font-size:14px;color:#6d635c;margin-bottom:36px">냉장고를 털자!</div>
+    <!-- 로딩 상태 -->
+    <div style="display:flex;align-items:center;gap:8px;color:#6d635c;font-size:13px;margin-bottom:14px">
+      <div class="spinner" style="width:16px;height:16px;border-width:2px"></div>
+      <span id="loadingTxt">레시피 불러오는 중...</span>
     </div>
-    <div style="margin-top:16px;width:200px;height:4px;background:#E0E0E0;border-radius:4px;overflow:hidden">
+    <div style="width:200px;height:4px;background:#E0E0E0;border-radius:4px;overflow:hidden">
       <div style="height:100%;background:#E8652A;border-radius:4px;animation:loadingBar 2s ease-in-out infinite"></div>
     </div>
   </div>
@@ -334,7 +325,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 setTimeout(function(){
   var btn = document.getElementById('skipLoadingBtn');
   if(btn && !dataLoaded) btn.style.display = 'block';
-}, 3000);
+}, 2000);
 </script>
 <div id="app"></div>
 <script>
@@ -1044,7 +1035,7 @@ async function loadData(){
       dataLoaded = true;
       render();
     }
-  }, 5000);
+  }, 3000);
 
   fetch(csvUrl)
     .then(function(res){
