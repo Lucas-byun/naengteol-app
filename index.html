@@ -300,19 +300,8 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 </div>
 <!-- ===== END 크롭 모달 ===== -->
 
-<div id="loadingOverlay" class="loading-overlay" style="background:#F6EBE0;justify-content:center">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%">
-    <img src="icons/splash_fridge.png" style="width:min(340px,90vw);animation:splashIn .5s ease-out;margin-right:10%" alt="냉털">
-  </div>
-  <button id="skipLoadingBtn" onclick="var lo=document.getElementById('loadingOverlay');if(lo)lo.classList.add('hide');if(!dataLoaded){dataLoaded=true;render();}" style="display:none;position:absolute;bottom:40px;left:50%;transform:translateX(-50%);padding:10px 28px;border:none;border-radius:20px;background:#E8652A;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">건너뛰기</button>
+
 </div>
-<script>
-// 3초 후 건너뛰기 버튼 표시
-setTimeout(function(){
-  var btn = document.getElementById('skipLoadingBtn');
-  if(btn && !dataLoaded) btn.style.display = 'block';
-}, 2000);
-</script>
 <div id="app"></div>
 <script>
 
@@ -1006,11 +995,7 @@ function resetIngs(){
 }
 
 // === LOAD ===
-var _loadDataCalled = false;
 async function loadData(){
-  // 중복 호출 방지
-  if(_loadDataCalled){ console.warn('loadData 중복 호출 차단'); return; }
-  _loadDataCalled = true;
   // 구글 시트 CSV 직접 fetch
   var csvUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID
     + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_NAME);
@@ -1021,8 +1006,6 @@ async function loadData(){
     if(!_loadDone){
       console.warn('⏱️ 로딩 타임아웃 - 앱 먼저 표시');
       _loadDone = true;
-      var lo=document.getElementById('loadingOverlay');
-      if(lo){ lo.style.display='none'; lo.classList.add('hide'); }
       dataLoaded = true;
       render();
     }
@@ -1040,7 +1023,7 @@ async function loadData(){
       RECIPES = rows
         .filter(function(r){ return r['ID'] && r['이름']; })
         .map(sheetRowToRecipe);
-      dataSource = 'sheets'; var lo=document.getElementById('loadingOverlay'); if(lo){ lo.style.display='none'; lo.classList.add('hide'); }
+      dataSource = 'sheets';
       _loadDone = true; dataLoaded = true;
       console.log('✅ Google Sheets 연동 성공: ' + RECIPES.length + '개 레시피');
       updateBestPhotos(); initTags(); render();
@@ -1049,7 +1032,7 @@ async function loadData(){
       clearTimeout(timeoutId);
       console.warn('⚠️ Sheets 연동 실패:', e.message);
       RECIPES = [];
-      dataSource = 'error'; var lo=document.getElementById('loadingOverlay'); if(lo){ lo.style.display='none'; lo.classList.add('hide'); }
+      dataSource = 'error';
       _loadDone = true; dataLoaded = true;
       // 연결 실패 시에도 render() 호출하여 앱 표시 (흰 화면 방지)
       render();
@@ -3770,18 +3753,19 @@ function showSplash(){
   setTimeout(function(){loadData();},1000);
 }
 document.addEventListener('DOMContentLoaded',function(){
-  // 2번째 이후 접속 시 냉장고 스플래시 화면 표시
-  if(localStorage.getItem('nt_done')){
-    showFridgeSplash();
-  } else {
-    loadData();
+  // 로딩 중 냉장고 화면을 app div에 직접 표시
+  var app = document.getElementById('app');
+  if(app){
+    app.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#F6EBE0;text-align:center">' +
+      '<img src="icons/splash_fridge.png" style="width:min(300px,85vw);animation:splashIn .5s ease-out" alt="냉털">' +
+      '<div style="margin-top:16px;font-size:14px;color:#a0856a">레시피 불러오는 중...</div>' +
+      '<div style="width:160px;height:4px;background:#e0cfc0;border-radius:4px;margin-top:12px;overflow:hidden">' +
+        '<div style="height:100%;background:#E8652A;border-radius:4px;animation:loadingBar 1.5s ease-in-out infinite"></div>' +
+      '</div>' +
+    '</div>';
   }
-});
-function showFridgeSplash(){
-  // 냉장고 이미지로 로딩 화면 교체 (이미 HTML에 적용되어 있으므로 별도 처리 불필요)
-  // loadData()가 완료되면 내부에서 loadingOverlay를 자동으로 hide함
   loadData();
-}
+});
 
 
 // ===== 정사각형 크롭 모달 로직 =====
