@@ -1963,9 +1963,9 @@ function renderFS(){
   // Completion - doneSteps는 위에서 이미 계산됨
   if(doneSteps===totalSteps && totalSteps>0){
     // Auto-register to history (only once per session)
-    if(!fsChecked.has('_recorded')){fsChecked.add('_recorded');addCookHistory(r.id,false);launchConfetti();}
+    if(!fsChecked.has('_recorded')){fsChecked.add('_recorded');launchConfetti();}
     h+='<div data-complete-section="1" style="text-align:center;padding:24px 16px"><div style="font-size:64px;margin-bottom:12px">🎉</div><div style="font-size:20px;font-weight:700;color:var(--primary)">요리 완성!</div>';
-    h+='<div style="font-size:14px;color:var(--sub);margin-top:8px">내기록에 자동 저장되었어요 ✅</div></div>';
+    h+='<div style="font-size:14px;color:var(--sub);margin-top:8px">아래 버튼을 눌러 기록을 저장하세요 📝</div></div>';
     // Photo capture section
     h+='<div style="margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">';
     h+='<div style="font-size:14px;font-weight:700;margin-bottom:12px">📸 기념 사진 남기기</div>';
@@ -1978,8 +1978,8 @@ function renderFS(){
     h+='</div>';
     h+='<input type="text" id="commentInput" placeholder="한줄 코멘트 (예: 처음 만들었는데 성공!)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;margin-top:10px;outline:none;background:var(--bg);color:var(--text);box-sizing:border-box">';
     h+='<div style="display:flex;gap:8px;margin-top:10px">';
-    h+='<button onclick="savePhotoComment(\''+r.id+'\',false);closeFS()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
-    h+='<button onclick="savePhotoComment(\''+r.id+'\',true);closeFS()" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
+    h+='<button onclick="addCookHistory(\''+r.id+'\',false);savePhotoComment(\''+r.id+'\',false);closeFS()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
+    h+='<button onclick="addCookHistory(\''+r.id+'\',false);savePhotoComment(\''+r.id+'\',true);closeFS()" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
     h+='</div>';
     h+='<div style="margin-top:8px;padding:8px 10px;background:#fff8e1;border-radius:8px;border-left:3px solid #ffc107;font-size:11px;color:#795548;line-height:1.5">⏳ 커뮤니티 게시글은 <b>관리자 승인 후</b> 등록됩니다. 승인 전까지 커뮤니티 탭에서 "⏳ 대기중" 표시가 보입니다.</div>';
     h+='<div style="text-align:center;margin-top:8px"><span onclick="closeFS()" style="font-size:12px;color:var(--sub);cursor:pointer;text-decoration:underline">사진 없이 닫기</span></div>';
@@ -2035,12 +2035,11 @@ function startTimer(mins,btn){
 }
 
 function detCookDone(id){
-  addCookHistory(id);
   // 콘페티 효과!
   launchConfetti();
   var el=document.getElementById('det-cook-btn-'+id);
   if(!el)return;
-  var h='<div style="padding:12px;text-align:center;font-size:14px;color:var(--primary);font-weight:700;margin-bottom:8px">✅ 요리 기록 완료!</div>';
+  var h='<div style="padding:12px;text-align:center;font-size:14px;color:var(--primary);font-weight:700;margin-bottom:8px">🎉 요리 완성! 아래 버튼으로 기록을 저장하세요</div>';
   h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">';
   h+='<div style="font-size:14px;font-weight:700;margin-bottom:12px">📸 기념 사진 남기기</div>';
   h+='<div id="detPhotoPreview" style="display:none;margin-bottom:12px;text-align:center"><img id="detPhotoImg" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover"/></div>';
@@ -2048,8 +2047,8 @@ function detCookDone(id){
   h+='<button onclick="document.getElementById(\'detPhotoInput\').click()" id="detPhotoBtn" style="width:100%;padding:12px;border:2px dashed var(--primary);border-radius:10px;background:none;color:var(--primary);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">📸 요리 사진 올리기</button>';
   h+='<input type="text" id="detCommentInput" placeholder="한줄 코멘트 (예: 처음 만들었는데 성공!)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;margin-top:10px;outline:none;background:var(--bg);color:var(--text);box-sizing:border-box">';
   h+='<div style="display:flex;gap:8px;margin-top:10px">';
-  h+='<button onclick="saveDetPhoto(\''+id+'\',false);closeDetail()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
-  h+='<button onclick="saveDetPhoto(\''+id+'\',true);closeDetail()" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
+  h+='<button onclick="addCookHistory(\''+id+'\',false);saveDetPhoto(\''+id+'\',false);closeDetail()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
+  h+='<button onclick="addCookHistory(\''+id+'\',false);saveDetPhoto(\''+id+'\',true);closeDetail()" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
   h+='</div></div>';
   el.innerHTML=h;
 }
