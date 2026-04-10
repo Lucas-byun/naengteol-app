@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#E8652A">
-<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22%EB%83%89%ED%84%B8%20%E2%80%94%20%EB%83%89%EC%9E%A5%EA%B3%A0%EB%A5%BC%20%ED%84%B8%EC%9E%90!%22%2C%22short_name%22%3A%22%EB%83%89%ED%84%B8%22%2C%22description%22%3A%22%EB%83%89%EC%9E%A5%EA%B3%A0%20%EC%9E%AC%EB%A3%8C%EB%A1%9C%20%EB%9A%9D%EB%94%B1!%20%EC%B4%88%EB%B3%B4%20%EB%A7%9E%EC%B6%A4%20%EB%A0%88%EC%8B%9C%ED%94%BC%20%EC%B6%94%EC%B2%9C%22%2C%22start_url%22%3A%22%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%23E8652A%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%3E%3Ctext%20y%3D'.9em'%20font-size%3D'90'%3E%F0%9F%8D%B3%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="냉털">
@@ -15,7 +15,8 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://nimble-selkie-30b14a.netlify.app/">
 <meta name="description" content="장보기 없이, 냉장고 재료만으로 한 끼 해결! 246개 초보 맞춤 레시피">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍳</text></svg>">
+<link rel="apple-touch-icon" href="icons/app_icon_512.png">
+<link rel="icon" type="image/png" href="icons/app_icon_192.png">
 
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" rel="stylesheet">
 <style>
@@ -1624,7 +1625,10 @@ function renderCard(r){
   // 1:1 정사각형 비율 썸네일
   h+='<div class="rc-thumb-wrap" style="background:'+catBg+'">';
   h+='<div class="rc-thumb-inner">';
+  var catImgMap={'찌개/국':'icons/cat_찌개국.png','달걀요리':'icons/cat_달걀요리.png','면류':'icons/cat_면류.png','밥/덮밥':'icons/cat_밥덮밥.png','전/부침':'icons/cat_전부침.png','나물/반찬':'icons/cat_나물반찬.png','간식/분식':'icons/cat_간식분식.png','조림':'icons/cat_조림.png','볶음/구이':'icons/cat_볶음구이.png'};
+  var catImg=catImgMap[r.cat]||null;
   if(_bestPhoto){h+='<img src="'+(_bestPhoto.photo||_bestPhoto)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" style="width:100%;height:100%;object-fit:cover"><span style="display:none;font-size:36px;width:100%;height:100%;align-items:center;justify-content:center">'+r.emoji+'</span>';}
+  else if(catImg){h+='<img src="'+catImg+'" style="width:100%;height:100%;object-fit:cover;opacity:0.85">';}
   else{h+='<span>'+r.emoji+'</span>';}
   h+='</div></div>';
   // 콘텐츠 영역
