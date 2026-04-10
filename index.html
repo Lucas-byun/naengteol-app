@@ -760,10 +760,11 @@ function registerUserToFirebase(nickname){
 function reportUserToSheet(nickname,timestamp){
   if(!COMMUNITY_SCRIPT_URL)return;
   try{
-    // 1. POST 방식 (기본)
+    // 1. POST 방식 (no-cors 모드 - Apps Script CORS 우회)
     fetch(COMMUNITY_SCRIPT_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({
         action:'registerUser',
         uid:fbUid,
@@ -772,7 +773,7 @@ function reportUserToSheet(nickname,timestamp){
       })
     }).catch(function(){});
     
-    // 2. GET 방식 (CORS 우회 및 확실한 전달을 위한 백업)
+    // 2. GET 방식 (추가 백업 - Image 태그 이용)
     var getUrl = COMMUNITY_SCRIPT_URL + '?action=registerUser&uid=' + encodeURIComponent(fbUid) + '&nickname=' + encodeURIComponent(nickname);
     var img = new Image();
     img.src = getUrl;
