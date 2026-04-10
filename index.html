@@ -1958,7 +1958,9 @@ function render(){
     h+='<div style="text-align:center;padding:8px 0 20px">';
     if(isAdmin){
       h+='<span style="font-size:11px;color:var(--sub);cursor:pointer" onclick="if(confirm(\'\uad00\ub9ac\uc790 \ubaa8\ub4dc\ub97c \ud574\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?\')){{localStorage.removeItem(\'nt_admin\');render();}}">\u2705 \uad00\ub9ac\uc790 \ubaa8\ub4dc \ud65c성화 중 (탭하면 해제)</span>';
-      h+='<div style="margin-top:12px;padding:12px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;border:1px solid rgba(255,200,0,.3)">';
+      h+='<div id="adminStatsArea"></div>';
+      h+='<button onclick="loadAdminStats()" style="width:100%;padding:9px;background:linear-gradient(135deg,#7b1fa2,#4a148c);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px">📊 통계 대시보드 보기</button>';
+      h+='<div style="margin-top:0px;padding:12px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;border:1px solid rgba(255,200,0,.3)">';
       h+='<div style="font-size:12px;font-weight:700;color:#fbc02d;margin-bottom:8px">📊 데이터 내보내기 (CSV)</div>';
       h+='<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px">Firebase 데이터를 CSV로 다운로드 후 구글 시트에 붙여넣기<br>(유저목록 · 커뮤니티 · 레시피카운트)</div>';
       h+='<button onclick="exportUsersCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#fbc02d,#f57f17);border:none;border-radius:8px;color:#1a1a2e;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">👥 유저목록 CSV 다운로드</button>';
@@ -3190,6 +3192,105 @@ async function exportRecipesCSV(){
     downloadCSV('냉털_레시피카운트_'+new Date().toISOString().substring(0,10)+'.csv',rows);
     alert('✅ 레시피카운트 CSV 다운로드 완료! ('+(rows.length-1)+'개)');
   }catch(e){alert('❌ 오류: '+e.message);}
+}
+
+// ===== 관리자 통계 대시보드 =====
+async function loadAdminStats(){
+  var area=document.getElementById('adminStatsArea');
+  if(!area)return;
+  area.innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,255,255,.5);font-size:12px">⏳ 데이터 불러오는 중...</div>';
+  try{
+    // Firebase 데이터 병렬 로드
+    var [snapUsers, snapComm, snapHistory] = await Promise.all([
+      fbDB.ref('users').once('value'),
+      fbDB.ref('community').once('value'),
+      fbDB.ref('history').once('value')
+    ]);
+    var usersRaw = snapUsers.val()||{};
+    var commRaw = snapComm.val()||{};
+    var histRaw = snapHistory.val()||{};
+
+    // 유저 통계
+    var totalUsers = Object.keys(usersRaw).length;
+    var now = new Date();
+    var thisMonth = now.getFullYear()+'-'+(String(now.getMonth()+1).padStart(2,'0'));
+    var newUsersThisMonth = Object.values(usersRaw).filter(function(u){
+      return u.timestamp && u.timestamp.startsWith(thisMonth);
+    }).length;
+
+    // 커뮤니티 통계
+    var commList = Object.values(commRaw).filter(Boolean);
+    var approvedComm = commList.filter(function(p){return p.status==='approved'||!p.status;});
+    var pendingComm = commList.filter(function(p){return p.status==='pending';});
+    var totalLikes = approvedComm.reduce(function(s,p){return s+(p.likes||0);},0);
+    var ratingsArr = approvedComm.filter(function(p){return p.rating>0;}).map(function(p){return p.rating;});
+    var avgRating = ratingsArr.length>0 ? Math.round(ratingsArr.reduce(function(s,r){return s+r;},0)/ratingsArr.length*10)/10 : '-';
+
+    // 레시피 통계 (history 기반)
+    var recipeMap = {};
+    Object.values(histRaw).forEach(function(userHist){
+      if(typeof userHist!=='object')return;
+      Object.values(userHist).forEach(function(entry){
+        if(!entry||!entry.recipeId)return;
+        var rid = entry.recipeId;
+        var rname = entry.recipeName||entry.recipe||rid;
+        if(!recipeMap[rid])recipeMap[rid]={name:rname,count:0};
+        recipeMap[rid].count++;
+      });
+    });
+    var recipeList = Object.values(recipeMap).sort(function(a,b){return b.count-a.count;});
+    var totalCooks = recipeList.reduce(function(s,r){return s+r.count;},0);
+
+    // TOP 10 레시피 HTML
+    var top10 = recipeList.slice(0,10);
+    var maxCount = top10.length>0 ? top10[0].count : 1;
+    var top10html = top10.map(function(r,i){
+      var bar = Math.round(r.count/maxCount*100);
+      var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'위';
+      return '<div style="margin-bottom:6px">'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">'
+        +'<span>'+medal+' '+r.name+'</span><span style="color:#fbc02d;font-weight:700">'+r.count+'회</span></div>'
+        +'<div style="background:rgba(255,255,255,.1);border-radius:4px;height:5px">'
+        +'<div style="background:linear-gradient(90deg,#fbc02d,#f57f17);width:'+bar+'%;height:100%;border-radius:4px"></div></div>'
+        +'</div>';
+    }).join('');
+
+    var statsHtml = '<div style="margin-top:12px;margin-bottom:10px;padding:14px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;border:1px solid rgba(123,31,162,.5);text-align:left">';
+    // 헤더
+    statsHtml += '<div style="font-size:12px;font-weight:700;color:#ce93d8;margin-bottom:12px">📊 통계 대시보드 <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,.4)">· '+now.toLocaleString(\'ko-KR\',{timeZone:\'Asia/Seoul\'})+'</span></div>';
+    // 유저 카드
+    statsHtml += '<div style="display:flex;gap:8px;margin-bottom:10px">';
+    statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:#fbc02d">'+totalUsers+'</div>';
+    statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">총 유저</div></div>';
+    statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:#81c784">'+newUsersThisMonth+'</div>';
+    statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">이번달 신규</div></div>';
+    statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:#64b5f6">'+totalCooks+'</div>';
+    statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">총 요리횟수</div></div>';
+    statsHtml += '</div>';
+    // 커뮤니티 카드
+    statsHtml += '<div style="display:flex;gap:8px;margin-bottom:12px">';
+    statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:#fff">'+approvedComm.length+'</div>';
+    statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">커뮤니티 게시글</div></div>';
+    statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:'+(pendingComm.length>0?'#ff8a65':'rgba(255,255,255,.4)')+'">'+pendingComm.length+'</div>';
+    statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">승인 대기</div></div>';
+    statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:#ffb74d">'+avgRating+'</div>';
+    statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">평균 평점</div></div>';
+    statsHtml += '</div>';
+    // 레시피 TOP 10
+    statsHtml += '<div style="font-size:11px;font-weight:700;color:#ce93d8;margin-bottom:8px">🍽️ 레시피 TOP '+Math.min(10,top10.length)+'</div>';
+    statsHtml += top10html;
+    statsHtml += '</div>';
+
+    area.innerHTML = statsHtml;
+  }catch(e){
+    area.innerHTML='<div style="color:#ef9a9a;font-size:11px;padding:8px">❌ 오류: '+e.message+'</div>';
+  }
 }
 
 // ===== 관리자 전용: Google Sheets 수동 동기화 (구버전 - 미사용) =====
