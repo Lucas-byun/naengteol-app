@@ -15,8 +15,8 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://nimble-selkie-30b14a.netlify.app/">
 <meta name="description" content="장보기 없이, 냉장고 재료만으로 한 끼 해결! 246개 초보 맞춤 레시피">
-<link rel="apple-touch-icon" href="app_icon_192.png">
-<link rel="icon" type="image/png" href="app_icon_192.png">
+<link rel="apple-touch-icon" href="icons/app_icon_192.png">
+<link rel="icon" type="image/png" href="icons/app_icon_192.png">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
@@ -2290,7 +2290,7 @@ function showAboutPage(){
   
   // 앱 로고
   h+='<div style="text-align:center;margin-bottom:24px">';
-  h+='<img src="app_icon_192.png" alt="냉털 아이콘" style="width:80px;height:80px;border-radius:20px;margin-bottom:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)">';
+  h+='<img src="icons/app_icon_192.png" alt="냉털 아이콘" style="width:80px;height:80px;border-radius:20px;margin-bottom:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)">';
   h+='<div style="font-size:22px;font-weight:800;color:var(--primary)">냉장고를 털자!</div>';
   h+='<div style="font-size:14px;color:var(--sub);margin-top:2px">냉털 Ver. 0.8</div>';
   h+='</div>';
@@ -3981,5 +3981,19 @@ function cropConfirm(){
   });
 })();
 // ===== END 크롭 모달 로직 =====
+
+// ===== Service Worker 등록 =====
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/sw.js')
+      .then(function(reg){
+        console.log('[SW] 등록 성공:', reg.scope);
+      })
+      .catch(function(err){
+        console.warn('[SW] 등록 실패:', err);
+      });
+  });
+}
+// ===== END Service Worker 등록 =====
 
 </script></body></html>
