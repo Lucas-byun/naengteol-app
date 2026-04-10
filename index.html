@@ -1061,7 +1061,7 @@ function showAllPhotosModal(photoOnly){
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:sticky;top:0;background:#000;padding:8px 0;z-index:1">';
   h+='<div style="color:#fff;font-size:16px;font-weight:700">🖼️ 내 사진첩</div>';
   h+='<div style="display:flex;align-items:center;gap:8px">';
-  h+='<button onclick="var m=document.getElementById(\'allPhotosModal\');if(m)m.remove();showAllPhotosModal('+(photoOnly?'false':'true')+')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit">'+(photoOnly?'💬 코멘트도 보기':'📸 사진만 보기')+'</button>';
+  h+='<button onclick="var m=document.getElementById(\'allPhotosModal\');if(m)m.remove();showAllPhotosModal('+(photoOnly?0:1)+')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit">'+(photoOnly?'💬 코멘트도 보기':'📸 사진만 보기')+'</button>';
   h+='<button onclick="document.getElementById(\'allPhotosModal\').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">✕</button>';
   h+='</div></div>';
   h+='<div style="color:#aaa;font-size:11px;margin-bottom:12px">사진 '+allViewerPhotos.length+'장 · 전체 기록 '+allPosts.length+'개 · 사진 탭 시 전체화면</div>';
