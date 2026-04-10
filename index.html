@@ -318,24 +318,9 @@ var fbDB=firebase.database();
 // 커뮤니티 승인 기록용 Apps Script URL (구글 시트 '커뮤니티_승인기록' 탭에 기록)
 var COMMUNITY_SCRIPT_URL='https://script.google.com/macros/s/AKfycbyks9VaDhOGY2L4g-RFfnuzxE1bRLyijRvTXW6HFe5df_1AetQeMllsCGSARXs3nqZ59g/exec';
 
-// 커뮤니티 승인 시 구글 시트에 기록 (백그라운드, 실패해도 앱 동작에 영향 없음)
+// 커뮤니티 승인 시 구글 시트 기록 → 관리자 수동 동기화 방식으로 변경 (실시간 전송 제거)
 function reportCommunityApprovalToSheet(post){
-  if(!COMMUNITY_SCRIPT_URL)return;
-  try{
-    fetch(COMMUNITY_SCRIPT_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        action:'logCommunityApproval',
-        postId:post.id||'',
-        recipe:post.recipe||'',
-        recipeId:post.recipeId||'',
-        text:post.text||'',
-        likes:post.likes||0,
-        date:post.date||''
-      })
-    }).catch(function(){/* 시트 기록 실패 시 무시 */});
-  }catch(e){/* 무시 */}
+  // 실시간 전송 제거 - 관리자 동기화 버튼 사용
 }
 
 // 유저 고유 ID (기기별)
@@ -719,28 +704,9 @@ function registerUserToFirebase(nickname){
   // Google Sheets 유저목록 시트에도 기록 (백그라운드, 실패 무시)
   reportUserToSheet(nickname,now);
 }
-// Google Sheets 유저목록 시트에 유저 정보 전송
+// Google Sheets 유저목록 → 관리자 수동 동기화 방식으로 변경 (실시간 전송 제거)
 function reportUserToSheet(nickname,timestamp){
-  if(!COMMUNITY_SCRIPT_URL)return;
-  try{
-    // 1. POST 방식 (no-cors 모드 - Apps Script CORS 우회)
-    fetch(COMMUNITY_SCRIPT_URL,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({
-        action:'registerUser',
-        uid:fbUid,
-        nickname:nickname,
-        timestamp:timestamp||new Date().toISOString()
-      })
-    }).catch(function(){});
-    
-    // 2. GET 방식 (추가 백업 - Image 태그 이용)
-    var getUrl = COMMUNITY_SCRIPT_URL + '?action=registerUser&uid=' + encodeURIComponent(fbUid) + '&nickname=' + encodeURIComponent(nickname);
-    var img = new Image();
-    img.src = getUrl;
-  }catch(e){/* 무시 */}
+  // 실시간 전송 제거 - 관리자 동기화 버튼 사용
 }
 
 var showShopList=false;
@@ -1996,6 +1962,11 @@ function render(){
     h+='<div style="text-align:center;padding:8px 0 20px">';
     if(isAdmin){
       h+='<span style="font-size:11px;color:var(--sub);cursor:pointer" onclick="if(confirm(\'\uad00\ub9ac\uc790 \ubaa8\ub4dc\ub97c \ud574\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?\')){{localStorage.removeItem(\'nt_admin\');render();}}">\u2705 \uad00\ub9ac\uc790 \ubaa8\ub4dc \ud65c성화 중 (탭하면 해제)</span>';
+      h+='<div style="margin-top:12px;padding:12px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;border:1px solid rgba(255,200,0,.3)">';
+      h+='<div style="font-size:12px;font-weight:700;color:#fbc02d;margin-bottom:8px">📊 Google Sheets 동기화</div>';
+      h+='<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px">Firebase 데이터를 구글 시트로 내보냅니다<br>(유저목록 · 커뮤니티 · 레시피카운트)</div>';
+      h+='<button onclick="syncToSheets()" id="syncBtn" style="width:100%;padding:10px;background:linear-gradient(135deg,#fbc02d,#f57f17);border:none;border-radius:8px;color:#1a1a2e;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🔄 지금 동기화하기</button>';
+      h+='</div>';
     }else{
       h+='<button onclick="activateAdmin()" style="padding:4px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--sub);font-size:11px;cursor:pointer;font-family:inherit;opacity:0.6">관리자</button>';
     }
@@ -3106,6 +3077,96 @@ function deleteCommunityPost(idx){
     });
   }
 }
+// ===== 관리자 전용: Google Sheets 수동 동기화 =====
+async function syncToSheets(){
+  var btn=document.getElementById('syncBtn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 동기화 중...';}
+  try{
+    // 1. Firebase에서 전체 데이터 읽기
+    var snap=await fbDB.ref('/').once('value');
+    var fbData=snap.val()||{};
+
+    // 2. 유저목록 데이터 정리
+    var users=[];
+    var usersRaw=fbData.users||{};
+    Object.keys(usersRaw).forEach(function(uid){
+      var u=usersRaw[uid];
+      users.push({
+        uid:uid,
+        nickname:u.nickname||'',
+        timestamp:u.timestamp||u.joinedAt||'',
+        posts:(u.posts||0)
+      });
+    });
+
+    // 3. 커뮤니티 데이터 정리
+    var community=[];
+    var commRaw=fbData.community||{};
+    Object.keys(commRaw).forEach(function(pid){
+      var p=commRaw[pid];
+      if(!p||p.status==='pending')return; // 승인된 것만
+      community.push({
+        postId:pid,
+        uid:p.uid||'',
+        nickname:p.nickname||'나',
+        recipe:p.recipe||'',
+        recipeId:p.recipeId||'',
+        text:p.text||'',
+        likes:p.likes||0,
+        date:p.date||'',
+        status:p.status||'approved'
+      });
+    });
+
+    // 4. 레시피카운트 데이터 정리
+    var recipes=[];
+    var recipesRaw=fbData.recipes||{};
+    Object.keys(recipesRaw).forEach(function(rid){
+      var r=recipesRaw[rid];
+      if(!r||!r.count)return;
+      var avgRating=null;
+      if(r.totalRating&&r.ratingCount&&r.ratingCount>0){
+        avgRating=Math.round((r.totalRating/r.ratingCount)*10)/10;
+      }
+      recipes.push({
+        recipeId:rid,
+        recipeName:r.name||'',
+        count:r.count||0,
+        lastDate:r.lastDate||'',
+        totalRating:r.totalRating||0,
+        ratingCount:r.ratingCount||0,
+        avgRating:avgRating!==null?avgRating:''
+      });
+    });
+
+    // 5. Apps Script로 전체 데이터 전송
+    var payload={
+      action:'fullSync',
+      users:users,
+      community:community,
+      recipes:recipes,
+      syncTime:new Date().toISOString()
+    };
+
+    var resp=await fetch(COMMUNITY_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify(payload)
+    });
+    var result=await resp.json();
+
+    if(result&&result.ok){
+      alert('✅ 동기화 완료!\n\n유저: '+users.length+'명\n커뮤니티: '+community.length+'건\n레시피카운트: '+recipes.length+'개');
+    }else{
+      alert('⚠️ 동기화 완료 (응답: '+(result&&result.msg?result.msg:'확인 필요')+')');
+    }
+  }catch(e){
+    alert('❌ 동기화 실패: '+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='🔄 지금 동기화하기';}
+  }
+}
+
 async function activateAdmin(){
   var pw=prompt('관리자 비밀번호를 입력하세요:');
   if(!pw) return;
@@ -3655,19 +3716,7 @@ function addCookHistory(id,skipBadge,ratingVal){
   if(cookHistory.length>100)cookHistory=cookHistory.slice(0,100);
   localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   reportRecipeToFirebase(id,r.name);
-  // Google Sheets 레시피카운트 탭 업데이트 (백그라운드, 실패해도 앱 동작에 영향 없음)
-  if(COMMUNITY_SCRIPT_URL){
-    try{
-      var payload={action:'save_cook_log',recipe_id:id,recipe_name:r.name};
-      if(ratingVal&&ratingVal>0)payload.rating=ratingVal;
-      fetch(COMMUNITY_SCRIPT_URL,{
-        method:'POST',
-        mode:'no-cors',
-        headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify(payload)
-      });
-    }catch(e){/* 무시 */}
-  }
+  // Google Sheets 레시피카운트 → 관리자 수동 동기화 방식으로 변경 (실시간 전송 제거)
   if(!skipBadge)checkBadges();
   else checkLevelUp();
   // 요리 완료 시 미션 체크
