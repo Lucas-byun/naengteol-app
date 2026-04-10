@@ -2895,9 +2895,7 @@ function renderCommunity(){
           h+='</div>';
           // 회전 및 자르기 툴바
           h+='<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">';
-          h+='<button onclick="adminRotateImg('+pidx+',-90)" style="flex:1;min-width:60px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↺ 왼쪽</button>';
-          h+='<button onclick="adminRotateImg('+pidx+',90)" style="flex:1;min-width:60px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↻ 오른쪽</button>';
-          h+='<button onclick="adminCropSquare('+pidx+')" style="flex:1;min-width:60px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#fff3e0;color:#e65100;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">⬜ 정사각형</button>';
+          h+='<button onclick="adminCropModal('+pidx+')" style="flex:1;min-width:80px;padding:5px;border:1px solid #ff6b35;border-radius:6px;background:#fff3e0;color:#e65100;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✂️ 영역 선택 크롭</button>';
           h+='<button onclick="adminResetImg('+pidx+',\''+p.photo.replace(/'/g,"\\'")+'\')" style="flex:1;min-width:60px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↩ 원본</button>';
           h+='</div>';
           h+='</div>';
@@ -2963,24 +2961,15 @@ function adminRotateImg(pidx, deg){
   tmpImg.src=origSrc;
 }
 
-function adminCropSquare(pidx){
+function adminCropModal(pidx){
   var img=document.getElementById('adminImg_'+pidx);
   if(!img)return;
   var src=_adminImgEdited[pidx]||(getPendingPosts()[pidx]&&getPendingPosts()[pidx].photo)||img.src;
-  var tmpImg=new Image();
-  tmpImg.crossOrigin='anonymous';
-  tmpImg.onload=function(){
-    var w=tmpImg.naturalWidth, h=tmpImg.naturalHeight;
-    var size=Math.min(w,h);
-    var canvas=document.createElement('canvas');
-    canvas.width=size; canvas.height=size;
-    var ctx=canvas.getContext('2d');
-    ctx.drawImage(tmpImg,(w-size)/2,(h-size)/2,size,size,0,0,size,size);
-    var dataUrl=canvas.toDataURL('image/jpeg',0.92);
-    _adminImgEdited[pidx]=dataUrl;
-    img.src=dataUrl;
-  };
-  tmpImg.src=src;
+  // 새 선택박스 크롭 모달 열기
+  openCropModal(src, function(croppedDataUrl){
+    _adminImgEdited[pidx]=croppedDataUrl;
+    img.src=croppedDataUrl;
+  });
 }
 
 function adminResetImg(pidx, origSrc){
