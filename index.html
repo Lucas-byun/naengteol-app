@@ -15,8 +15,8 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://nimble-selkie-30b14a.netlify.app/">
 <meta name="description" content="장보기 없이, 냉장고 재료만으로 한 끼 해결! 246개 초보 맞춤 레시피">
-<link rel="apple-touch-icon" href="icons/app_icon_512.png">
-<link rel="icon" type="image/png" href="icons/app_icon_192.png">
+<link rel="apple-touch-icon" href="app_icon_192.png">
+<link rel="icon" type="image/png" href="app_icon_192.png">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
@@ -2290,7 +2290,7 @@ function showAboutPage(){
   
   // 앱 로고
   h+='<div style="text-align:center;margin-bottom:24px">';
-  h+='<div style="font-size:48px;margin-bottom:8px">🍳</div>';
+  h+='<img src="app_icon_192.png" alt="냉털 아이콘" style="width:80px;height:80px;border-radius:20px;margin-bottom:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)">';
   h+='<div style="font-size:22px;font-weight:800;color:var(--primary)">냉장고를 털자!</div>';
   h+='<div style="font-size:14px;color:var(--sub);margin-top:2px">냉털 Ver. 0.8</div>';
   h+='</div>';
@@ -2426,7 +2426,8 @@ function renderCommunity(){
       if(_isBest)h+='<div style="position:absolute;top:6px;left:6px;background:rgba(255,111,0,.92);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px">👑 대표 사진</div>';
       h+='</div>';
     }
-    h+='<div class="comm-actions"><span onclick="likePost('+idx+')" style="cursor:pointer">❤️ '+(c.likes||0)+'</span></div>';
+    var _liked=localStorage.getItem('nt_liked_'+(c.id||c._fbKey||('idx_'+idx)))==='1';
+    h+='<div class="comm-actions"><span onclick="likePost('+idx+')" style="cursor:pointer;color:'+(_liked?'#e53935':'inherit')+'">'+(_liked?'❤️':'❤️')+' '+(c.likes||0)+'</span></div>';
     h+='</div>';
   });
   // 관리자 전용: 승인 대기 섹션 (일반 유저에게는 절대 표시 안 됨)
@@ -2595,16 +2596,23 @@ function rejectPendingPost(pidx){
 function likePost(idx){
   if(!communityPosts[idx])return;
   var postId=communityPosts[idx].id||communityPosts[idx]._fbKey||('idx_'+idx);
-  var likedKey='nt_liked_'+postId;
-  if(localStorage.getItem(likedKey)==='1'){
-    showCartPopup('❤️ 이미 좋아요!','이미 좋아요를 눌렀습니다.');
-    return;
-  }
-  localStorage.setItem(likedKey,'1');
-  // Firebase 좋아요 카운트 트랜잭션 업데이트
   var fbKey=communityPosts[idx]._fbKey||postId;
-  fbDB.ref('community/approved/'+fbKey+'/likes').transaction(function(cur){
-    return (cur||0)+1;
+  // Firebase uid 기반 좋아요 중복 방지 (재설치/브라우저 초기화 후에도 유지)
+  var likeRef=fbDB.ref('community/likes/'+fbKey+'/'+fbUid);
+  likeRef.once('value',function(snap){
+    if(snap.val()===true){
+      showCartPopup('❤️ 이미 좋아요!','이미 좋아요를 눌렀습니다.');
+      return;
+    }
+    // 좋아요 표시 저장 (uid 기반)
+    likeRef.set(true);
+    // 좋아요 카운트 트랜잭션 업데이트
+    fbDB.ref('community/approved/'+fbKey+'/likes').transaction(function(cur){
+      return (cur||0)+1;
+    });
+    // localStorage에도 동시 저장 (오프라인 빠른 체크용)
+    localStorage.setItem('nt_liked_'+postId,'1');
+    showCartPopup('❤️ 좋아요!','좋아요를 눌렀습니다.');
   });
 }
 // === END 관리자 승인/거절 ===
@@ -2626,9 +2634,14 @@ function deleteCommunityPost(idx){
     });
   }
 }
-function activateAdmin(){
+async function activateAdmin(){
   var pw=prompt('관리자 비밀번호를 입력하세요:');
-  if(pw==='2231064go!'){
+  if(!pw) return;
+  var enc=new TextEncoder();
+  var hashBuf=await crypto.subtle.digest('SHA-256',enc.encode(pw));
+  var hashArr=Array.from(new Uint8Array(hashBuf));
+  var hashHex=hashArr.map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  if(hashHex==='be43e68df297ba8d0500c65de953a3b74d6254525096fbc6a6b552bc66bfdf7e'){
     localStorage.setItem('nt_admin','1');
     startPendingListener(); // 관리자 활성화 시 pending 실시간 구독 시작
     alert('✅ 관리자 모드 활성화! 커뮤니티 탭 하단에서 대기 글을 승인/거절할 수 있습니다.');
