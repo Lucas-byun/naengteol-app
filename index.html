@@ -2421,8 +2421,8 @@ function renderFS(){
     });
     h+='</div>';
     h+='<div style="display:flex;gap:8px;margin-top:10px">';
-    h+='<button onclick="addCookHistory(\''+r.id+'\',false);savePhotoComment(\''+r.id+'\',false);closeFS()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
-    h+='<button onclick="addCookHistory(\''+r.id+'\',false);savePhotoComment(\''+r.id+'\',true);closeFS()" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
+    h+='<button onclick="completeCookSave(\''+r.id+'\',false)" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
+    h+='<button onclick="completeCookSave(\''+r.id+'\',true)" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
     h+='</div>';
     h+='<div style="margin-top:8px;padding:8px 10px;background:#fff8e1;border-radius:8px;border-left:3px solid #ffc107;font-size:11px;color:#795548;line-height:1.5">⏳ 커뮤니티 게시글은 <b>관리자 승인 후</b> 등록됩니다. 승인 전까지 커뮤니티 탭에서 "⏳ 대기중" 표시가 보입니다.</div>';
     h+='<div style="text-align:center;margin-top:8px"><span onclick="closeFS()" style="font-size:12px;color:var(--sub);cursor:pointer;text-decoration:underline">사진 없이 닫기</span></div>';
@@ -3287,6 +3287,59 @@ function handlePhoto(input){
   };
   reader.readAsDataURL(file);
 }
+function completeCookSave(recipeId,share){
+  // 1. DOM이 살아있는 동안 코멘트/별점/사진 값을 먼저 읽음
+  var commentEl=document.getElementById('commentInput');
+  var commentText=commentEl?commentEl.value.trim():'';
+  var ratingEl=document.getElementById('ratingInput');
+  var rating=ratingEl?parseInt(ratingEl.value)||0:0;
+  var photo=tempPhoto||null;
+  // 2. 커뮤니티 자랑 시 사진 필수 검증
+  if(share&&!photo){
+    showCartPopup('📸 사진이 없어요!','커뮤니티에 자랑하려면 사진이 필수입니다.\n사진을 찍거나 갤러리에서 선택해주세요!');
+    return;
+  }
+  // 3. 요리 기록 추가 (unshift)
+  addCookHistory(recipeId,false);
+  // 4. 방금 추가된 cookHistory[0]에 코멘트/별점/사진 저장
+  var entry=cookHistory[0];
+  if(entry&&entry.id==recipeId){
+    if(photo)entry.photo=photo;
+    if(commentText)entry.comment=commentText;
+    if(rating>0)entry.rating=rating;
+    localStorage.setItem('nt_history',JSON.stringify(cookHistory));
+  }
+  // 5. 커뮤니티 자랑
+  if(share&&photo){
+    var r=RECIPES.find(function(x){return x.id===recipeId});
+    var postId='p_'+Date.now();
+    var newPost={
+      id:postId,
+      recipe:r?r.name:'',
+      recipeId:recipeId,
+      emoji:r?r.emoji:'🍳',
+      user:getDisplayName(),
+      date:new Date().toISOString().split('T')[0],
+      text:commentText,
+      photo:photo,
+      rating:rating>0?rating:0,
+      likes:0,
+      status:'pending',
+      submittedAt:new Date().toISOString()
+    };
+    fbDB.ref('community/pending').push(newPost).then(function(){
+      var sharedEntry=cookHistory.find(function(ch){return ch.id===recipeId&&!ch.shared});
+      if(sharedEntry){sharedEntry.shared=true;localStorage.setItem('nt_history',JSON.stringify(cookHistory));}
+      showCartPopup('⏳ 자랑 신청 완료!','관리자 승인 후 커뮤니티에 등록됩니다.');
+    }).catch(function(){showCartPopup('❌ 오류','게시글 저장 중 오류가 발생했습니다.');});
+  } else {
+    showCartPopup('✅ 저장 완료!','내기록에 저장되었어요! 승급에 한 걸음 더 다가갔어요 🎉');
+  }
+  tempPhoto=null;
+  tempPhotoFile=null;
+  closeFS();
+}
+
 function savePhotoComment(recipeId,share){
   var comment=document.getElementById('commentInput');
   var commentText=comment?comment.value.trim():'';
