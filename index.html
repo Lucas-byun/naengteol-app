@@ -589,25 +589,12 @@ function triggerProfilePhotoUpload(){
     if(!file)return;
     var reader=new FileReader();
     reader.onload=function(ev){
-      var img=new window.Image();
-      img.onload=function(){
-        var canvas=document.createElement('canvas');
-        var size=Math.min(img.width,img.height);
-        canvas.width=200;canvas.height=200;
-        var ctx=canvas.getContext('2d');
-        var sx=(img.width-size)/2,sy=(img.height-size)/2;
-        ctx.drawImage(img,sx,sy,size,size,0,0,200,200);
-        // 파일 크기에 따라 품질 자동 조절 (용량 무관 자동 압축)
-        var quality=0.85;
-        if(file.size>10*1024*1024) quality=0.5;
-        else if(file.size>5*1024*1024) quality=0.6;
-        else if(file.size>2*1024*1024) quality=0.7;
-        var compressed=canvas.toDataURL('image/jpeg',quality);
-        saveProfilePhoto(compressed);
+      // 크롭 모달 열기 (드래그/핀치로 원하는 부분 선택 가능)
+      openCropModal(ev.target.result, function(croppedDataUrl){
+        saveProfilePhoto(croppedDataUrl);
         render();
         showCartPopup('✅ 프로필 사진 저장','프로필 사진이 변경되었습니다!');
-      };
-      img.src=ev.target.result;
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -731,20 +718,14 @@ function addPhotoToHistory(idx,input){
   var file=input.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      var canvas=document.createElement('canvas');
-      var maxW=900;var scale=Math.min(1,maxW/img.width);
-      canvas.width=img.width*scale;canvas.height=img.height*scale;
-      var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      var compressed=canvas.toDataURL('image/jpeg',0.80);
-      cookHistory[idx].photo=compressed;
+    // 크롭 모달 열기 (드래그/핀치로 원하는 부분 선택 가능)
+    openCropModal(e.target.result, function(croppedDataUrl){
+      cookHistory[idx].photo=croppedDataUrl;
       cookHistory[idx].photoDate=new Date().toISOString().split('T')[0];
       localStorage.setItem('nt_history',JSON.stringify(cookHistory));
       render();
       showCartPopup('📸 사진 추가 완료!',cookHistory[idx].name+' ('+cookHistory[idx].date+' 요리) 사진 저장됨');
-    };
-    img.src=e.target.result;
+    });
   };
   reader.readAsDataURL(file);
 }
@@ -867,21 +848,16 @@ function changeExistingPhoto(idx,input,recipeId){
   var file=input.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      var canvas=document.createElement('canvas');
-      var maxW=900;var scale=Math.min(1,maxW/img.width);
-      canvas.width=img.width*scale;canvas.height=img.height*scale;
-      var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      cookHistory[idx].photo=canvas.toDataURL('image/jpeg',0.80);
+    // 크롭 모달 열기 (드래그/핀치로 원하는 부분 선택 가능)
+    openCropModal(e.target.result, function(croppedDataUrl){
+      cookHistory[idx].photo=croppedDataUrl;
       cookHistory[idx].photoDate=new Date().toISOString().split('T')[0];
       localStorage.setItem('nt_history',JSON.stringify(cookHistory));
       var popup=document.getElementById('galleryPopup');
       if(popup)popup.remove();
       render();
       showRecipePhotos(recipeId);
-    };
-    img.src=e.target.result;
+    });
   };
   reader.readAsDataURL(file);
 }
@@ -1137,13 +1113,9 @@ function previewPhotoInGallery(idx,input){
   _pendingPhotoIdx=idx;
   var reader=new FileReader();
   reader.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      var canvas=document.createElement('canvas');
-      var maxW=900;var scale=Math.min(1,maxW/img.width);
-      canvas.width=img.width*scale;canvas.height=img.height*scale;
-      var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      _pendingPhotoData=canvas.toDataURL('image/jpeg',0.80);
+    // 크롭 모달 열기 (드래그/핀치로 원하는 부분 선택 가능)
+    openCropModal(e.target.result, function(croppedDataUrl){
+      _pendingPhotoData=croppedDataUrl;
       var preview=document.getElementById('photoPreviewArea');
       var previewImg=document.getElementById('galleryPreviewImg');
       if(preview&&previewImg){preview.style.display='block';previewImg.src=_pendingPhotoData;}
@@ -1152,8 +1124,7 @@ function previewPhotoInGallery(idx,input){
       if(targetInfo&&cookHistory[idx]){
         targetInfo.textContent='📅 '+cookHistory[idx].date+' 요리 기록에 저장됩니다';
       }
-    };
-    img.src=e.target.result;
+    });
   };
   reader.readAsDataURL(file);
 }
@@ -2504,10 +2475,13 @@ function handleDetPhoto(input){
   if(!input.files[0])return;
   var reader=new FileReader();
   reader.onload=function(e){
-    detPhotoData=e.target.result;
-    document.getElementById('detPhotoImg').src=detPhotoData;
-    document.getElementById('detPhotoPreview').style.display='block';
-    document.getElementById('detPhotoBtn').textContent='📸 사진 변경';
+    // 크롭 모달 열기 (드래그/핀치로 원하는 부분 선택 가능)
+    openCropModal(e.target.result, function(croppedDataUrl){
+      detPhotoData=croppedDataUrl;
+      document.getElementById('detPhotoImg').src=detPhotoData;
+      document.getElementById('detPhotoPreview').style.display='block';
+      document.getElementById('detPhotoBtn').textContent='📸 사진 변경';
+    });
   };
   reader.readAsDataURL(input.files[0]);
 }
