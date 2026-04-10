@@ -17,12 +17,12 @@
 <meta name="description" content="장보기 없이, 냉장고 재료만으로 한 끼 해결! 246개 초보 맞춤 레시피">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍳</text></svg>">
 
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{--primary:#E8652A;--primary-light:#FEF3EC;--primary-glow:rgba(232,101,42,.08);--bg:#FAFAF8;--card:#fff;--border:#E0E0E0;--text:#1a1a1a;--sub:#6d635c;--green:#2e7d32;--red:#c62828;--radius:16px;--shadow-sm:0 1px 4px rgba(0,0,0,.05);--shadow-md:0 4px 16px rgba(0,0,0,.07);--shadow-lg:0 8px 32px rgba(0,0,0,.10);--ing-bg:linear-gradient(180deg,#FFF8F3 0%,#FFF0E4 100%);--cook-bg:#fff}
 }
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;padding-bottom:80px;overflow-x:hidden;min-height:100vh}
+body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;padding-bottom:80px;overflow-x:hidden;min-height:100vh}
 /* Header — v14 강화 */
 .hdr{position:sticky;top:0;z-index:100;background:linear-gradient(135deg,#E8652A 0%,#d4541a 100%);padding:0 16px;border-bottom:none;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 2px 12px rgba(232,101,42,.35)}
 .hdr-logo{display:flex;align-items:center;gap:8px;cursor:pointer}
@@ -54,7 +54,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 /* Ingredient Grid */
 .fav-label{padding:10px 16px 4px;font-size:13px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:4px}
 .ing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px 16px 16px}
-.ing-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 8px;border-radius:14px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;font-size:11px;font-family:inherit;color:var(--text);transition:all .2s cubic-bezier(.25,.46,.45,.94);box-shadow:var(--shadow-sm);overflow:hidden}
+.ing-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px 10px;border-radius:14px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;font-size:12px;font-family:inherit;color:var(--text);transition:all .2s cubic-bezier(.25,.46,.45,.94);box-shadow:var(--shadow-sm);overflow:hidden}
 .ing-btn:active{transform:scale(.92)}
 .ing-btn .em{font-size:26px}
 .ing-btn.on{border-color:var(--primary);background:#FFF0E8;color:var(--primary);font-weight:700;box-shadow:0 2px 8px rgba(232,101,42,.15)}
@@ -1161,7 +1161,7 @@ function toggleIngredient(n){
     else window.scrollTo(0,winScroll);
   }
 }
-function ingBtn(n,on){var ig=INGS.find(function(i){return i.n===n});var icon=ig&&ig.ic?'<img src="'+ig.ic+'" width="40" height="40" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'block\'" style="display:block;margin:0 auto;object-fit:contain;flex-shrink:0"><span style="display:none;font-size:24px;line-height:1">'+(ig?ig.e:'')+'</span>':'<span class="em">'+(ig?ig.e:'')+'</span>';return '<button class="ing-btn '+(on?'on':'')+'" data-name="'+esc(n)+'" onclick="toggleIngredient(\''+esc(n)+'\')">'+(on?'<span class="ing-check" style="position:absolute;top:3px;right:5px;font-size:10px;color:#fff;font-weight:700;width:16px;height:16px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;line-height:1">✓</span>':'')+icon+n+'</button>';}
+function ingBtn(n,on){var ig=INGS.find(function(i){return i.n===n});var icon=ig&&ig.ic?'<img src="'+ig.ic+'" width="46" height="46" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'block\'" style="display:block;margin:0 auto;object-fit:contain;flex-shrink:0"><span style="display:none;font-size:24px;line-height:1">'+(ig?ig.e:'')+'</span>':'<span class="em">'+(ig?ig.e:'')+'</span>';return '<button class="ing-btn '+(on?'on':'')+'" data-name="'+esc(n)+'" onclick="toggleIngredient(\''+esc(n)+'\')">'+(on?'<span class="ing-check" style="position:absolute;top:3px;right:5px;font-size:10px;color:#fff;font-weight:700;width:16px;height:16px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;line-height:1">✓</span>':'')+icon+n+'</button>';}
 function ingTag(s){var ig=INGS.find(function(i){return i.n===s});var icon=ig&&ig.ic?'<img src="'+ig.ic+'" width="16" height="16" style="vertical-align:middle" onerror="this.outerHTML=\''+ig.e+'\'">':ig?ig.e:'';return '<span class="my-ing-tag">'+icon+' '+s+' <span class="x" onclick="sel.delete(\''+esc(s)+'\');save();render()">✕</span></span>';}
 function scaleVal(txt,mul,isStep){
   if(mul===1)return txt;
