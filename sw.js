@@ -1,11 +1,12 @@
-// 냉털 Service Worker v1.0
+// 냉털 Service Worker v1.1
 // 캐시 버전 — 업데이트 시 이 값을 올리면 기존 캐시가 자동 교체됩니다
-const CACHE_VERSION = 'naengteol-v1';
+const CACHE_VERSION = 'naengteol-v2';
 
 // 앱 셸: 설치 즉시 캐시할 핵심 파일 목록
 const SHELL_ASSETS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/manifest.json',
   '/icons/app_icon_192.png',
   '/icons/app_icon_512.png',
@@ -73,6 +74,9 @@ self.addEventListener('fetch', function(event) {
             });
           }
           return response;
+        }).catch(function() {
+          // 이미지 오프라인 시 빈 응답 (오류 방지)
+          return new Response('', { status: 408 });
         });
       })
     );
@@ -81,6 +85,7 @@ self.addEventListener('fetch', function(event) {
 
   // 3) 앱 셸 (index.html, manifest.json 등) → 네트워크 우선, 실패 시 캐시
   //    → 항상 최신 앱 코드를 받아오되, 오프라인이면 캐시 제공
+  //    → 캐시도 없으면 offline.html 표시
   event.respondWith(
     fetch(event.request).then(function(response) {
       if (response && response.status === 200 && event.request.method === 'GET') {
@@ -93,10 +98,10 @@ self.addEventListener('fetch', function(event) {
     }).catch(function() {
       return caches.match(event.request).then(function(cached) {
         if (cached) return cached;
-        // HTML 요청이 오프라인이면 index.html 반환
+        // HTML 요청이 오프라인이고 캐시도 없으면 → offline.html 반환
         if (event.request.headers.get('accept') &&
             event.request.headers.get('accept').includes('text/html')) {
-          return caches.match('/index.html');
+          return caches.match('/offline.html');
         }
       });
     })
