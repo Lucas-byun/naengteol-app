@@ -3098,6 +3098,17 @@ function addCookHistory(id,skipBadge){
   if(cookHistory.length>100)cookHistory=cookHistory.slice(0,100);
   localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   reportRecipeToFirebase(id,r.name);
+  // Google Sheets 레시피카운트 탭 업데이트 (백그라운드, 실패해도 앱 동작에 영향 없음)
+  if(COMMUNITY_SCRIPT_URL){
+    try{
+      fetch(COMMUNITY_SCRIPT_URL,{
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'save_cook_log',recipe_id:id,recipe_name:r.name})
+      });
+    }catch(e){/* 무시 */}
+  }
   if(!skipBadge)checkBadges();
   else checkLevelUp();
   // 요리 완료 시 미션 체크
