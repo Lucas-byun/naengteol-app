@@ -838,6 +838,10 @@ function showRecipePhotos(recipeId,sortAsc){
       if(ch.photo)h+='<button onclick="deletePhotoOnly('+chIdx+',\''+esc(recipeId)+'\')" style="background:none;border:1px solid rgba(229,57,53,.6);color:#ef9a9a;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">🗑️</button>';
       h+='</div>';
       h+='</div>';
+      // 별점 표시
+      if(ch.rating){
+        h+='<div style="margin-bottom:4px">'+getRatingStars(ch.rating)+'<span style="color:#aaa;font-size:10px;margin-left:4px">'+ch.rating+'/5</span></div>';
+      }
       // 코멘트 인라인 편집 영역
       h+='<div id="commentArea_'+chIdx+'">';
       if(ch.comment){
@@ -892,6 +896,60 @@ function editPhotoComment(idx,recipeId){
   render();
   showRecipePhotos(recipeId);
 }
+// ===== 별점 / 코멘트 헬퍼 함수 =====
+function setRating(val){
+  document.getElementById('ratingInput').value=val;
+  hoverRating(val,true);
+}
+function hoverRating(val,lock){
+  var stars=document.querySelectorAll('#ratingStars span');
+  var locked=parseInt(document.getElementById('ratingInput').value)||0;
+  stars.forEach(function(s,i){
+    var n=i+1;
+    var active=val>0?n<=val:n<=locked;
+    s.textContent=active?'★':'☆';
+    s.style.color=active?'#fbc02d':'#ccc';
+    s.style.transform=(val>0&&n===val)?'scale(1.2)':'scale(1)';
+  });
+}
+function applyCommentTag(tag){
+  var inp=document.getElementById('commentInput');
+  if(!inp)return;
+  // 20자 초과 방지
+  var t=tag.length>20?tag.slice(0,20):tag;
+  inp.value=t;
+  updateCommentCount(inp,'commentCount');
+  inp.focus();
+}
+function updateCommentCount(inp,countId){
+  var el=document.getElementById(countId);
+  if(!el)return;
+  var len=inp.value.length;
+  el.textContent=len+'/20';
+  el.style.color=len>=18?'#e53935':len>=15?'#ff9800':'#aaa';
+}
+function getRatingStars(rating){
+  if(!rating||rating<1)return '';
+  var s='';
+  for(var i=1;i<=5;i++)s+=(i<=rating?'★':'☆');
+  return '<span style="color:#fbc02d;font-size:13px">'+s+'</span>';
+}
+function filterMyHistory(q){
+  var list=document.getElementById('myHistList');
+  if(!list)return;
+  var items=list.querySelectorAll('[data-hist-id]');
+  var kw=q.trim().toLowerCase();
+  var found=0;
+  items.forEach(function(el){
+    var name=(el.getAttribute('data-hist-name')||'').toLowerCase();
+    var comment=(el.getAttribute('data-hist-comment')||'').toLowerCase();
+    var show=!kw||name.indexOf(kw)!==-1||comment.indexOf(kw)!==-1;
+    el.style.display=show?'':'none';
+    if(show)found++;
+  });
+  var noResult=document.getElementById('myHistNoResult');
+  if(noResult)noResult.style.display=(kw&&found===0)?'block':'none';
+}
 function deletePhotoOnly(idx,recipeId){
   if(!confirm('사진만 삭제할까요?\n(요리 기록과 코멘트는 유지됩니다)'))return;
   delete cookHistory[idx].photo;
@@ -913,32 +971,61 @@ function inlineEditComment(idx,recipeId){
   wrap.style.cssText='display:flex;flex-direction:column;gap:6px';
   var ta=document.createElement('textarea');
   ta.value=current;
-  ta.placeholder='코멘트 입력... (최대 80자)';
-  ta.maxLength=80;
+  ta.placeholder='한줄 코멘트 (최대 20자)';
+  ta.maxLength=20;
   ta.style.cssText='width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:rgba(255,255,255,.1);color:#fff;box-sizing:border-box;resize:none;line-height:1.4';
-  ta.rows=2;
+  ta.rows=1;
+  // 글자수 카운터
+  var countSpan=document.createElement('span');
+  countSpan.style.cssText='font-size:10px;color:#aaa;text-align:right;display:block';
+  countSpan.textContent=current.length+'/20';
+  ta.addEventListener('input',function(){
+    var l=ta.value.length;
+    countSpan.textContent=l+'/20';
+    countSpan.style.color=l>=18?'#e53935':l>=15?'#ff9800':'#aaa';
+  });
+  // 템플릿 태그
+  var ITAGS=['😋 맛있어요','🎉 첫 성공!','👨‍👩‍👧 가족이 좋아해','🔄 다음엔 더 잘할게','간단하고 맛있어','실패했지만 맛있어'];
+  var tagWrap=document.createElement('div');
+  tagWrap.style.cssText='display:flex;flex-wrap:wrap;gap:4px;margin-top:4px';
+  ITAGS.forEach(function(t){
+    var sp=document.createElement('span');
+    sp.textContent=t;
+    sp.style.cssText='padding:3px 8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;font-size:10px;color:#ccc;cursor:pointer';
+    sp.onclick=function(){
+      ta.value=t.length>20?t.slice(0,20):t;
+      var l=ta.value.length;
+      countSpan.textContent=l+'/20';
+      countSpan.style.color=l>=18?'#e53935':l>=15?'#ff9800':'#aaa';
+    };
+    tagWrap.appendChild(sp);
+  });
   var btnRow=document.createElement('div');
-  btnRow.style.cssText='display:flex;gap:6px';
+  btnRow.style.cssText='display:flex;gap:6px;margin-top:4px';
   var cancelBtn=document.createElement('button');
   cancelBtn.textContent='취소';
   cancelBtn.style.cssText='flex:1;padding:6px;border:1px solid rgba(255,255,255,.3);border-radius:8px;background:none;color:#ccc;font-size:12px;cursor:pointer;font-family:inherit';
   cancelBtn.onclick=function(){
     var c=cookHistory[idx]?cookHistory[idx].comment||'':'';
-    area.innerHTML=c?'<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+c+'</div>':'<div style="color:#666;font-size:12px;font-style:italic">코멘트 없음</div>';
+    var stars=cookHistory[idx]?getRatingStars(cookHistory[idx].rating):'';
+    area.innerHTML=(stars?'<div style="margin-bottom:4px">'+stars+'</div>':'')+(c?'<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+c+'</div>':'<div style="color:#666;font-size:12px;font-style:italic">코멘트 없음</div>');
   };
   var saveBtn=document.createElement('button');
   saveBtn.textContent='저장';
   saveBtn.style.cssText='flex:1;padding:6px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
   saveBtn.onclick=function(){
-    var val=ta.value.trim().substring(0,80);
+    var val=ta.value.trim().substring(0,20);
     cookHistory[idx].comment=val;
     localStorage.setItem('nt_history',JSON.stringify(cookHistory));
-    area.innerHTML=val?'<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+val+'</div>':'<div style="color:#666;font-size:12px;font-style:italic">코멘트 없음</div>';
+    var stars=cookHistory[idx]?getRatingStars(cookHistory[idx].rating):'';
+    area.innerHTML=(stars?'<div style="margin-bottom:4px">'+stars+'</div>':'')+(val?'<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+val+'</div>':'<div style="color:#666;font-size:12px;font-style:italic">코멘트 없음</div>');
     render();
   };
   btnRow.appendChild(cancelBtn);
   btnRow.appendChild(saveBtn);
   wrap.appendChild(ta);
+  wrap.appendChild(countSpan);
+  wrap.appendChild(tagWrap);
   wrap.appendChild(btnRow);
   area.appendChild(wrap);
   ta.focus();
@@ -2199,7 +2286,27 @@ function renderFS(){
     h+='<button onclick="document.getElementById(\'photoInput\').click()" id="photoBtn" style="padding:12px 8px;border:2px dashed var(--primary);border-radius:10px;background:none;color:var(--primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">📸<br>요리 사진 찍기</button>';
     h+='<button onclick="document.getElementById(\'photoGalleryInput\').click()" id="photoGalleryBtn" style="padding:12px 8px;border:2px dashed #888;border-radius:10px;background:none;color:#555;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">🖼️<br>갤러리에서 찾기</button>';
     h+='</div>';
-    h+='<input type="text" id="commentInput" placeholder="한줄 코멘트 (예: 처음 만들었는데 성공!)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;margin-top:10px;outline:none;background:var(--bg);color:var(--text);box-sizing:border-box">';
+    // 별점
+    h+='<div style="margin-top:10px">';
+    h+='<div style="font-size:12px;color:var(--sub);margin-bottom:6px;font-weight:600">⭐ 오늘 요리 만족도</div>';
+    h+='<div id="ratingStars" style="display:flex;gap:4px">';
+    for(var si=1;si<=5;si++){
+      h+='<span onclick="setRating('+si+')" data-star="'+si+'" style="font-size:28px;cursor:pointer;transition:transform .1s;user-select:none" onmouseover="hoverRating('+si+')" onmouseout="hoverRating(0)">☆</span>';
+    }
+    h+='</div></div>';
+    h+='<input type="hidden" id="ratingInput" value="0">';
+    // 코멘트 + 글자수 카운터
+    h+='<div style="position:relative;margin-top:10px">';
+    h+='<input type="text" id="commentInput" maxlength="20" placeholder="한줄 코멘트 (최대 20자)" style="width:100%;padding:10px 14px;padding-right:44px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);color:var(--text);box-sizing:border-box" oninput="updateCommentCount(this,\'commentCount\')">';
+    h+='<span id="commentCount" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:#aaa">0/20</span>';
+    h+='</div>';
+    // 템플릿 태그
+    var TAGS=['😋 맛있어요','🎉 첫 성공!','👨‍👩‍👧 가족이 좋아해','궁금해서 도전','🔄 다음엔 더 잘할게','간단하고 맛있어','반찬으로 제격','실패했지만 맛있어'];
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+    TAGS.forEach(function(tag){
+      h+='<span onclick="applyCommentTag(\''+tag+'\')" style="padding:4px 10px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--text);cursor:pointer">'+ tag+'</span>';
+    });
+    h+='</div>';
     h+='<div style="display:flex;gap:8px;margin-top:10px">';
     h+='<button onclick="addCookHistory(\''+r.id+'\',false);savePhotoComment(\''+r.id+'\',false);closeFS()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
     h+='<button onclick="addCookHistory(\''+r.id+'\',false);savePhotoComment(\''+r.id+'\',true);closeFS()" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
@@ -3039,6 +3146,8 @@ function handlePhoto(input){
 function savePhotoComment(recipeId,share){
   var comment=document.getElementById('commentInput');
   var commentText=comment?comment.value.trim():'';
+  var ratingEl=document.getElementById('ratingInput');
+  var rating=ratingEl?parseInt(ratingEl.value)||0:0;
   // 커뮤니티 자랑 시 사진 필수 검증
   if(share&&!tempPhoto){
     showCartPopup('📸 사진이 없어요!','커뮤니티에 자랑하려면 사진이 필수입니다.\n사진을 찍거나 갤러리에서 선택해주세요!');
@@ -3049,6 +3158,7 @@ function savePhotoComment(recipeId,share){
   if(entry && entry.id == recipeId){
     if(tempPhoto)entry.photo=tempPhoto;
     if(commentText)entry.comment=commentText;
+    if(rating>0)entry.rating=rating;
     localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   }
   // Share to community - base64 직접 pending에 저장
@@ -3754,6 +3864,10 @@ function renderMyPage(){
   h+='</div>';
   h+='<h2 style="color:var(--text)">📊 내 요리 기록</h2>';
   // 문구형 스탯 카드
+  // 코멘트/별점 통계
+  var commentCount=cookHistory.filter(function(ch){return ch.comment&&ch.comment.trim()}).length;
+  var ratedList=cookHistory.filter(function(ch){return ch.rating&&ch.rating>0});
+  var avgRating=ratedList.length>0?(ratedList.reduce(function(s,ch){return s+ch.rating},0)/ratedList.length).toFixed(1):null;
   h+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px">';
   h+='<div class="info-card" style="text-align:left;padding:14px 16px">';
   h+='<div style="font-size:22px;margin-bottom:4px">🍳</div>';
@@ -3766,14 +3880,14 @@ function renderMyPage(){
   h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">다양한 메뉴 도전!</div>';
   h+='</div>';
   h+='<div class="info-card" style="text-align:left;padding:14px 16px">';
-  h+='<div style="font-size:22px;margin-bottom:4px">🔥</div>';
-  h+='<div style="font-size:18px;font-weight:800;color:var(--primary)">'+stats.streak+'일</div>';
-  h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">'+( stats.streak>0?stats.streak+'일 연속 요리 중!':'오늘 첫 요리 도전!')+'</div>';
+  h+='<div style="font-size:22px;margin-bottom:4px">💬</div>';
+  h+='<div style="font-size:18px;font-weight:800;color:var(--primary)">'+commentCount+'개</div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">코멘트 남긴 요리</div>';
   h+='</div>';
   h+='<div class="info-card" style="text-align:left;padding:14px 16px">';
-  h+='<div style="font-size:22px;margin-bottom:4px">📅</div>';
-  h+='<div style="font-size:18px;font-weight:800;color:var(--primary)">'+stats.thisWeek+'회</div>';
-  h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">이번 주 '+stats.thisWeek+'번 요리했어요!</div>';
+  h+='<div style="font-size:22px;margin-bottom:4px">⭐</div>';
+  h+='<div style="font-size:18px;font-weight:800;color:var(--primary)">'+(avgRating?avgRating+'점':'-')+'</div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin-top:2px">'+(avgRating?'평균 만족도 ('+ratedList.length+'회 평가)':'별점 평가 전')+'</div>';
   h+='</div>';
   h+='</div>';
   // 레벨 카드
@@ -3791,8 +3905,9 @@ function renderMyPage(){
   h+='<div style="font-size:24px;font-weight:800;color:#fbc02d;margin-bottom:8px">Lv.'+lvl.lv+' '+lvl.name+'</div>';
   h+='<div style="display:inline-block;background:rgba(255,255,255,.1);padding:4px 12px;border-radius:20px;font-size:11px;color:rgba(255,255,255,.7)">'+nextLvlMsg+'</div>';
   h+='<div style="display:flex;justify-content:space-around;margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.1)">';
-  h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+stats.total+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">총 요리</div></div>';
-  h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+earnedBadges.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">획득 뱃지</div></div>';
+  h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+stats.total+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">전체 요리</div></div>';
+  h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+commentCount+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">코멘트</div></div>';
+  h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+(avgRating||'-')+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">평균 별점</div></div>';
   h+='<div><div style="font-size:18px;font-weight:700;color:#fbc02d">'+stats.unique+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">요리 종류</div></div>';
   h+='</div></div>';
   // Weekly challenge
@@ -3863,7 +3978,14 @@ function renderMyPage(){
   }
   // My Cooking Records (통합: 카운팅 + 사진 + 최근 일자)
   
-  h+='<h2 style="color:var(--text)">🍳 내 요리 기록</h2>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  h+='<h2 style="color:var(--text);margin:0">🍳 내 요리 기록</h2>';
+  h+='</div>';
+  h+='<div style="position:relative;margin-bottom:12px">';
+  h+='<input type="text" id="myHistSearch" placeholder="코멘트/요리명 검색..." style="width:100%;padding:9px 36px 9px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:var(--card);color:var(--text);box-sizing:border-box" oninput="filterMyHistory(this.value)">';
+  h+='<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:14px;color:#aaa">🔍</span>';
+  h+='</div>';
+  h+='<div id="myHistList">';
   var countMap={};
   cookHistory.forEach(function(ch){
     if(!countMap[ch.id])countMap[ch.id]={count:0,name:ch.name,emoji:ch.emoji,photo:null,lastDate:ch.date,id:ch.id,shared:false};
@@ -3890,7 +4012,8 @@ function renderMyPage(){
       if(!localStorage.getItem('nt_hist_all')&&idx>=5)return;
       var recipePhotos=cookHistory.filter(function(ch){return ch.id===item.id&&ch.photo});
       var lastComment=cookHistory.find(function(ch){return ch.id===item.id&&ch.comment});
-      h+='<div style="padding:10px 0;border-bottom:1px solid var(--border)">';
+      var itemComment=lastComment?lastComment.comment:'';
+      h+='<div style="padding:10px 0;border-bottom:1px solid var(--border)" data-hist-id="'+esc(item.id)+'" data-hist-name="'+esc(item.name)+'" data-hist-comment="'+esc(itemComment)+'">';
       h+='<div style="display:flex;align-items:center;gap:8px">';
       h+='<div style="width:36px;height:36px;border-radius:10px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:1px solid var(--border);cursor:pointer" onclick="showRecipePhotos(\''+esc(item.id)+'\')">' +item.emoji+'</div>';
       h+='<div style="flex:1;min-width:0;cursor:pointer" onclick="showRecipePhotos(\''+esc(item.id)+'\')">';
@@ -3899,10 +4022,13 @@ function renderMyPage(){
       h+='<span style="font-size:10px;color:#fff;background:var(--primary);border-radius:10px;padding:1px 6px;flex-shrink:0">'+item.count+'회</span>';
       h+='</div>';
       h+='<div style="font-size:10px;color:var(--sub);margin-top:2px">'+item.lastDate.slice(5)+(recipePhotos.length>0?' · 사진 '+recipePhotos.length+'장':'')+'</div>';
+      // 별점 표시 (최근 요리에 별점이 있는 경우)
+      var lastRating=cookHistory.find(function(ch){return ch.id===item.id&&ch.rating});
+      if(lastRating)h+='<div style="font-size:11px;margin-top:2px">'+getRatingStars(lastRating.rating)+'</div>';
       if(lastComment)h+='<div style="font-size:11px;color:var(--sub);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">💬 '+lastComment.comment+'</div>';
       h+='</div>';
       h+='<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">';
-      h+='<button onclick="event.stopPropagation();editCommentBtn(this)" data-id="'+esc(item.id)+'" data-name="'+esc(item.name)+'" style="padding:5px 10px;border:1px solid #7b5ea7;border-radius:8px;background:var(--bg);color:#7b5ea7;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">'+(lastComment?'💬 한줄평 수정':'💬 한줄평 추가')+'</button>';
+      h+='<button onclick="event.stopPropagation();editCommentBtn(this)" data-id="'+esc(item.id)+'" data-name="'+esc(item.name)+'" style="padding:5px 10px;border:1px solid '+(lastComment?'#7b5ea7':'var(--primary)')+';border-radius:8px;background:'+(lastComment?'var(--bg)':'rgba(255,140,0,.08)')+';color:'+(lastComment?'#7b5ea7':'var(--primary)')+';font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">'+(lastComment?'💬 한줄평 수정':'✏️ 한마디 남기기')+'</button>';
       if(item.shared){
         h+='<button disabled style="padding:5px 10px;border:1px solid #aaa;border-radius:8px;background:#f5f5f5;color:#aaa;font-size:11px;font-weight:700;cursor:not-allowed;font-family:inherit">자랑완료</button>';
       } else {
@@ -3918,6 +4044,8 @@ function renderMyPage(){
       h+='<div style="text-align:center;padding:10px"><button onclick="localStorage.removeItem(\'nt_hist_all\');render()" style="padding:6px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--sub);font-size:12px;cursor:pointer;font-family:inherit">접기</button></div>';
     }
   }
+  h+='<div id="myHistNoResult" style="display:none;text-align:center;padding:20px;color:var(--sub);font-size:13px">🔍 검색 결과가 없어요</div>';
+  h+='</div>'; // myHistList 닫기
   // Badges
   var bc=earnedBadges.length;
   h+='<h2 style="margin-top:16px;color:var(--text)">🏅 뱃지 ('+earnedBadges.length+'/'+BADGES.length+')</h2>';
