@@ -820,7 +820,10 @@ function showRecipePhotos(recipeId){
       h+='<div style="padding:10px 12px">';
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
       h+='<span style="color:#aaa;font-size:11px">🍳 '+ch.date+(ch.photoDate&&ch.photoDate!==ch.date?' · 📸 '+ch.photoDate:'')+'</span>';
+      h+='<div style="display:flex;gap:4px">';
       h+='<button onclick="editPhotoComment('+chIdx+',\''+esc(recipeId)+'\')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">'+(ch.comment?'✏️ 수정':'💬 코멘트')+'</button>';
+      if(ch.photo)h+='<button onclick="deletePhotoOnly('+chIdx+',\''+esc(recipeId)+'\')" style="background:none;border:1px solid rgba(229,57,53,.6);color:#ef9a9a;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">🗑️ 사진</button>';
+      h+='</div>';
       h+='</div>';
       if(ch.comment){
         h+='<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+ch.comment+'</div>';
@@ -867,6 +870,16 @@ function editPhotoComment(idx,recipeId){
   if(newComment===null)return;
   newComment=newComment.trim().substring(0,80);
   cookHistory[idx].comment=newComment;
+  localStorage.setItem('nt_history',JSON.stringify(cookHistory));
+  var popup=document.getElementById('galleryPopup');
+  if(popup)popup.remove();
+  render();
+  showRecipePhotos(recipeId);
+}
+function deletePhotoOnly(idx,recipeId){
+  if(!confirm('사진만 삭제할까요?\n(요리 기록과 코멘트는 유지됩니다)'))return;
+  delete cookHistory[idx].photo;
+  delete cookHistory[idx].photoDate;
   localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   var popup=document.getElementById('galleryPopup');
   if(popup)popup.remove();
