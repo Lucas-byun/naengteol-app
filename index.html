@@ -1039,9 +1039,12 @@ function sharePhotoToCommunity(idx){
     recipeId:ch.id,
     emoji:r?r.emoji:'🍳',
     user:getDisplayName(),
+    nickname:getDisplayName(),
+    uid:fbUid||'',
     date:new Date().toISOString().split('T')[0],
     text:ch.comment||'',
     photo:ch.photo,
+    rating:ch.rating||0,
     likes:0,
     status:'pending',
     submittedAt:new Date().toISOString()
@@ -2526,9 +2529,12 @@ function saveDetPhoto(id,share){
           recipeId:id,
           emoji:r?r.emoji:'🍳',
           user:getDisplayName(),
+          nickname:getDisplayName(),
+          uid:fbUid||'',
           date:new Date().toISOString().split('T')[0],
           text:comment,
           photo:detPhotoData,
+          rating:entry?entry.rating||0:0,
           likes:0,
           status:'pending',
           submittedAt:new Date().toISOString()
@@ -3015,9 +3021,12 @@ function approvePendingPost(pidx){
     recipeId:post.recipeId||'',
     emoji:post.emoji||'🍳',
     user:post.user||'익명',
+    nickname:post.nickname||post.user||'익명',
+    uid:post.uid||'',
     date:post.date,
     text:post.text||'',
     photo:finalPhoto,
+    rating:post.rating||0,
     likes:0,
     approvedAt:new Date().toISOString()
   };
@@ -3026,6 +3035,23 @@ function approvePendingPost(pidx){
     if(!err){
       // pending 노드에서 제거
       if(fbKey)fbDB.ref('community/pending/'+fbKey).remove();
+      // 커뮤니티 평점이 있으면 Firebase recipes 노드에 집계
+      if(approvedPost.recipeId && approvedPost.rating > 0){
+        var recRef=fbDB.ref('recipes/'+approvedPost.recipeId);
+        recRef.once('value',function(snap){
+          var cur=snap.val()||{};
+          var updates={
+            name:approvedPost.recipe||cur.name||'',
+            emoji:approvedPost.emoji||cur.emoji||'🍳',
+            count:cur.count||0,
+            lastDate:cur.lastDate||'',
+            commTotalRating:(cur.commTotalRating||0)+approvedPost.rating,
+            commRatingCount:(cur.commRatingCount||0)+1
+          };
+          updates.commAvgRating=Math.round((updates.commTotalRating/updates.commRatingCount)*10)/10;
+          recRef.update(updates);
+        });
+      }
       // 구글 시트에 승인 기록 (백그라운드)
       reportCommunityApprovalToSheet(approvedPost);
       showCartPopup('✅ 승인 완료!','커뮤니티에 게시되었습니다.');
@@ -3126,6 +3152,7 @@ async function syncToSheets(){
         recipe:p.recipe||'',
         recipeId:p.recipeId||'',
         text:p.text||'',
+        rating:p.rating||0,
         likes:p.likes||0,
         date:p.date||'',
         status:'approved'
@@ -3143,6 +3170,7 @@ async function syncToSheets(){
         recipe:p.recipe||'',
         recipeId:p.recipeId||'',
         text:p.text||'',
+        rating:p.rating||0,
         likes:0,
         date:p.date||'',
         status:'pending'
@@ -3159,6 +3187,10 @@ async function syncToSheets(){
       if(r.totalRating&&r.ratingCount&&r.ratingCount>0){
         avgRating=Math.round((r.totalRating/r.ratingCount)*10)/10;
       }
+      var commAvgRating=null;
+      if(r.commTotalRating&&r.commRatingCount&&r.commRatingCount>0){
+        commAvgRating=Math.round((r.commTotalRating/r.commRatingCount)*10)/10;
+      }
       recipes.push({
         recipeId:rid,
         recipeName:r.name||'',
@@ -3166,7 +3198,10 @@ async function syncToSheets(){
         lastDate:r.lastDate||'',
         totalRating:r.totalRating||0,
         ratingCount:r.ratingCount||0,
-        avgRating:avgRating!==null?avgRating:''
+        avgRating:avgRating!==null?avgRating:'',
+        commTotalRating:r.commTotalRating||0,
+        commRatingCount:r.commRatingCount||0,
+        commAvgRating:commAvgRating!==null?commAvgRating:''
       });
     });
 
@@ -3476,9 +3511,12 @@ function savePhotoComment(recipeId,share){
       recipeId:recipeId,
       emoji:r?r.emoji:'🍳',
       user:getDisplayName(),
+      nickname:getDisplayName(),
+      uid:fbUid||'',
       date:new Date().toISOString().split('T')[0],
       text:commentText,
       photo:tempPhoto,
+      rating:rating||0,
       likes:0,
       status:'pending',
       submittedAt:new Date().toISOString()

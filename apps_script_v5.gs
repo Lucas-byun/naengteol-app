@@ -124,7 +124,7 @@ function syncCommunity(ss, community) {
   }
 
   // 헤더 설정
-  var headers = ['게시글ID', 'UID', '닉네임', '레시피명', '레시피ID', '내용', '좋아요', '날짜', '상태', '동기화시각'];
+  var headers = ['게시글ID', 'UID', '닉네임', '레시피명', '레시피 ID', '내용', '평점', '좋아요', '날짜', '상태', '동기화시각'];
   sheet.clearContents();
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#4caf50').setFontColor('#fff');
@@ -140,6 +140,7 @@ function syncCommunity(ss, community) {
       p.recipe || '',
       p.recipeId || '',
       p.text || '',
+      p.rating || 0,
       p.likes || 0,
       p.date || '',
       p.status || 'approved',
@@ -161,8 +162,8 @@ function syncRecipes(ss, recipes) {
     sheet = ss.insertSheet(sheetName);
   }
 
-  // 헤더 설정 (A~G열)
-  var headers = ['레시피ID', '레시피명', '요리횟수', '최근요리일', '총평점합계', '평점횟수', '평균평점', '동기화시각'];
+  // 헤더 설정 (A~K열)
+  var headers = ['레시피ID', '레시피명', '요리횟수', '최근요리일', '내평점합계', '내평점횟수', '내평균평점', '커뮤평점합계', '커뮤평점횟수', '커뮤평균평점', '동기화시각'];
   sheet.clearContents();
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#1565c0').setFontColor('#fff');
@@ -182,6 +183,9 @@ function syncRecipes(ss, recipes) {
       r.totalRating || 0,
       r.ratingCount || 0,
       r.avgRating !== '' && r.avgRating !== null ? r.avgRating : '',
+      r.commTotalRating || 0,
+      r.commRatingCount || 0,
+      r.commAvgRating !== '' && r.commAvgRating !== null ? r.commAvgRating : '',
       now
     ];
   });
