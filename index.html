@@ -1959,9 +1959,11 @@ function render(){
     if(isAdmin){
       h+='<span style="font-size:11px;color:var(--sub);cursor:pointer" onclick="if(confirm(\'\uad00\ub9ac\uc790 \ubaa8\ub4dc\ub97c \ud574\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?\')){{localStorage.removeItem(\'nt_admin\');render();}}">\u2705 \uad00\ub9ac\uc790 \ubaa8\ub4dc \ud65c성화 중 (탭하면 해제)</span>';
       h+='<div style="margin-top:12px;padding:12px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;border:1px solid rgba(255,200,0,.3)">';
-      h+='<div style="font-size:12px;font-weight:700;color:#fbc02d;margin-bottom:8px">📊 Google Sheets 동기화</div>';
-      h+='<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px">Firebase 데이터를 구글 시트로 내보냅니다<br>(유저목록 · 커뮤니티 · 레시피카운트)</div>';
-      h+='<button onclick="syncToSheets()" id="syncBtn" style="width:100%;padding:10px;background:linear-gradient(135deg,#fbc02d,#f57f17);border:none;border-radius:8px;color:#1a1a2e;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🔄 지금 동기화하기</button>';
+      h+='<div style="font-size:12px;font-weight:700;color:#fbc02d;margin-bottom:8px">📊 데이터 내보내기 (CSV)</div>';
+      h+='<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px">Firebase 데이터를 CSV로 다운로드 후 구글 시트에 붙여넣기<br>(유저목록 · 커뮤니티 · 레시피카운트)</div>';
+      h+='<button onclick="exportUsersCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#fbc02d,#f57f17);border:none;border-radius:8px;color:#1a1a2e;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">👥 유저목록 CSV 다운로드</button>';
+      h+='<button onclick="exportCommunityCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#4caf50,#2e7d32);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">💬 커뮤니티 CSV 다운로드</button>';
+      h+='<button onclick="exportRecipesCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#1565c0,#0d47a1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🍽️ 레시피카운트 CSV 다운로드</button>';
       h+='</div>';
     }else{
       h+='<button onclick="activateAdmin()" style="padding:4px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--sub);font-size:11px;cursor:pointer;font-family:inherit;opacity:0.6">관리자</button>';
@@ -3090,7 +3092,107 @@ function deleteCommunityPost(idx){
     });
   }
 }
-// ===== 관리자 전용: Google Sheets 수동 동기화 =====
+// ===== CSV 다운로드 헬퍼 =====
+function downloadCSV(filename, rows){
+  var bom='\uFEFF'; // UTF-8 BOM (한글 깨짐 방지)
+  var csv=bom+rows.map(function(r){
+    return r.map(function(v){
+      var s=String(v===null||v===undefined?'':v);
+      if(s.includes(',')|| s.includes('"')||s.includes('\n'))s='"'+s.replace(/"/g,'""')+'"';
+      return s;
+    }).join(',');
+  }).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== 유저목록 CSV =====
+async function exportUsersCSV(){
+  try{
+    var snap=await fbDB.ref('users').once('value');
+    var usersRaw=snap.val()||{};
+    var snapComm=await fbDB.ref('community').once('value');
+    var commRaw=snapComm.val()||{};
+    // 게시글수 집계
+    var postCount={};
+    Object.values(commRaw).forEach(function(p){if(p&&p.uid)postCount[p.uid]=(postCount[p.uid]||0)+1;});
+    var now=new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+    var rows=[['UID','닉네임','가입일시','게시글수','닉네임이력','내보내기시각']];
+    Object.keys(usersRaw).forEach(function(uid){
+      var u=usersRaw[uid];
+      var hist='';
+      if(u.nicknameHistory&&u.nicknameHistory.length>0){
+        hist=u.nicknameHistory.map(function(h){return h.nickname+'('+(h.changedAt||'').substring(0,10)+')';}).join(' → ');
+      }
+      rows.push([uid,u.nickname||'',u.timestamp||'',postCount[uid]||0,hist,now]);
+    });
+    downloadCSV('냉털_유저목록_'+new Date().toISOString().substring(0,10)+'.csv',rows);
+    alert('✅ 유저목록 CSV 다운로드 완료! ('+( rows.length-1)+'명)\n\n구글 시트에서 파일 → 가져오기 → 업로드로 붙여넣으세요.');
+  }catch(e){alert('❌ 오류: '+e.message);}
+}
+
+// ===== 커뮤니티 CSV =====
+async function exportCommunityCSV(){
+  try{
+    var snap=await fbDB.ref('community').once('value');
+    var commRaw=snap.val()||{};
+    var now=new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+    var rows=[['게시글ID','UID','닉네임','레시피명','레시피ID','내용','평점','좋아요','날짜','상태','내보내기시각']];
+    Object.keys(commRaw).forEach(function(pid){
+      var p=commRaw[pid];
+      if(!p)return;
+      rows.push([pid,p.uid||'',p.nickname||'',p.recipe||'',p.recipeId||'',p.text||'',p.rating||0,p.likes||0,p.date||'',p.status||'approved',now]);
+    });
+    rows.sort(function(a,b){return b[8]>a[8]?1:-1;});
+    downloadCSV('냉털_커뮤니티_'+new Date().toISOString().substring(0,10)+'.csv',rows);
+    alert('✅ 커뮤니티 CSV 다운로드 완료! ('+(rows.length-1)+'건)');
+  }catch(e){alert('❌ 오류: '+e.message);}
+}
+
+// ===== 레시피카운트 CSV =====
+async function exportRecipesCSV(){
+  try{
+    var snapH=await fbDB.ref('history').once('value');
+    var histRaw=snapH.val()||{};
+    var snapC=await fbDB.ref('community').once('value');
+    var commRaw=snapC.val()||{};
+    var recipeMap={};
+    // history 집계
+    Object.values(histRaw).forEach(function(userHist){
+      if(typeof userHist!=='object')return;
+      Object.values(userHist).forEach(function(entry){
+        if(!entry||!entry.recipeId)return;
+        var rid=entry.recipeId;
+        if(!recipeMap[rid])recipeMap[rid]={recipeId:rid,recipeName:entry.recipeName||entry.recipe||'',count:0,lastDate:'',totalRating:0,ratingCount:0,commTotal:0,commCount:0};
+        recipeMap[rid].count++;
+        if(entry.date&&entry.date>recipeMap[rid].lastDate)recipeMap[rid].lastDate=entry.date;
+        if(entry.rating&&entry.rating>0){recipeMap[rid].totalRating+=Number(entry.rating);recipeMap[rid].ratingCount++;}
+      });
+    });
+    // 커뮤니티 평점 집계
+    Object.values(commRaw).forEach(function(p){
+      if(!p||!p.recipeId||!p.rating||p.rating<=0)return;
+      var rid=p.recipeId;
+      if(!recipeMap[rid])recipeMap[rid]={recipeId:rid,recipeName:p.recipe||'',count:0,lastDate:'',totalRating:0,ratingCount:0,commTotal:0,commCount:0};
+      recipeMap[rid].commTotal+=Number(p.rating);
+      recipeMap[rid].commCount++;
+    });
+    var now=new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+    var rows=[['레시피ID','레시피명','요리횟수','최근요리일','내평점합계','내평점횟수','내평균평점','커뮤평점합계','커뮤평점횟수','커뮤평균평점','내보내기시각']];
+    Object.values(recipeMap).sort(function(a,b){return b.count-a.count;}).forEach(function(r){
+      var avg=r.ratingCount>0?Math.round(r.totalRating/r.ratingCount*10)/10:'';
+      var cAvg=r.commCount>0?Math.round(r.commTotal/r.commCount*10)/10:'';
+      rows.push([r.recipeId,r.recipeName,r.count,r.lastDate,r.totalRating,r.ratingCount,avg,r.commTotal,r.commCount,cAvg,now]);
+    });
+    downloadCSV('냉털_레시피카운트_'+new Date().toISOString().substring(0,10)+'.csv',rows);
+    alert('✅ 레시피카운트 CSV 다운로드 완료! ('+(rows.length-1)+'개)');
+  }catch(e){alert('❌ 오류: '+e.message);}
+}
+
+// ===== 관리자 전용: Google Sheets 수동 동기화 (구버전 - 미사용) =====
 async function syncToSheets(){
   var btn=document.getElementById('syncBtn');
   if(btn){btn.disabled=true;btn.textContent='⏳ 동기화 중...';}
