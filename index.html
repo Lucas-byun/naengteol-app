@@ -528,6 +528,7 @@ function sheetRowToRecipe(r) {
     pair:   r['곁들임'] || '',
     ings:   ings,
     steps:  steps,
+    sheetTags: (r['태그']||'').split(',').map(function(t){return t.trim();}).filter(Boolean),
   };
 }
 
@@ -1266,6 +1267,11 @@ var CAT_BG_MAP={'한끼':'#e3f2fd','반찬':'#e8f5e9','간식':'#f5f5f5'};
 var RECIPE_TAGS={};
 function initTags(){
   RECIPES.forEach(function(r){
+    // Sheets 태그 컬럼이 있으면 우선 사용, 없으면 자동 계산
+    if(r.sheetTags&&r.sheetTags.length>0){
+      RECIPE_TAGS[r.id]=r.sheetTags;
+      return;
+    }
     var tags=[];
     // 초간단 (난이도1 + 10분 이내)
     if(r.diff<=1&&r.time<=10)tags.push('초간단');
@@ -1483,9 +1489,19 @@ function render(){
     }else{
       var q=searchQ.toLowerCase();var fl2=q?RECIPES.filter(function(r){var nm=r.name.toLowerCase();if(nm.includes(q))return true;var sq=SYN_MAP[q];return sq&&nm.includes(sq);}):RECIPES;
       if(activeTag)fl2=fl2.filter(function(r){return RECIPE_TAGS[r.id]&&RECIPE_TAGS[r.id].indexOf(activeTag)!==-1});
+      // 카테고리 필터 (요리모드)
+      if(mealFilter!=='전체')fl2=fl2.filter(function(r){return CAT_LABEL_MAP[r.cat]===mealFilter});
       var cs=[...new Set(fl2.map(function(r){return r.cat}))];
+      // 카테고리 필터 버튼 (전체/한끼/반찬/간식)
+      h+='<div style="display:flex;gap:6px;padding:8px 16px 0">';
+      ['전체','한끼','반찬','간식'].forEach(function(f){
+        var actF=mealFilter===f;
+        var colF={'전체':['var(--text)','var(--border)'],'한끼':['#1976d2','#e3f2fd'],'반찬':['#388e3c','#e8f5e9'],'간식':['#ff6f00','#f5f5f5']}[f];
+        h+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:4px 12px;border-radius:16px;font-size:12px;font-weight:'+(actF?'700':'500')+';border:'+(actF?'2px solid '+colF[0]:'1px solid var(--border)')+';background:'+(actF?colF[1]:'var(--bg)')+';color:'+(actF?colF[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';
+      });
+      h+='</div>';
       // 태그 필터 (요리모드)
-      h+='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px">';
+      h+='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:6px 16px">';
       ['초간단','5분완성','야식','다이어트','밑반찬','비오는날','든든한끼'].forEach(function(t){
         var act4=activeTag===t;var tc4={'초간단':['#388e3c','#e8f5e9'],'5분완성':['#1976d2','#e3f2fd'],'야식':['#6a1b9a','#f3e5f5'],'다이어트':['#00838f','#e0f7fa'],'밑반찬':['#ef6c00','#f5f5f5'],'비오는날':['#455a64','#eceff1'],'든든한끼':['#d84315','#fafafa']}[t]||['#333','#eee'];
         var em4={'초간단':'⚡','5분완성':'⏱️','야식':'🌙','다이어트':'🥗','밑반찬':'🍱','비오는날':'🌧️','든든한끼':'💪'}[t];
@@ -1784,7 +1800,7 @@ function renderFS(){
   // Serving
   h+='<div class="serving-ctrl"><button class="sv-btn" onclick="if(fsServMul>1){fsServMul--;renderFS()}">−</button><span class="sv-val">'+Math.round(r.serving*fsServMul)+'인분</span><button class="sv-btn" onclick="if(fsServMul<10){fsServMul++;renderFS()}">＋</button></div>';
   h+='<div class="det-section"><h3>📝 재료 준비</h3>';
-  h+='<div style="margin-bottom:10px"><button onclick="toggleMeasure(this)" style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;color:#795548;cursor:pointer;font-family:inherit;width:100%">📏 계량 단위 안내 (탭하여 펼치기)</button><div style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:0 0 8px 8px;padding:10px 12px;font-size:12px;color:#5d4037;line-height:1.8">🥄 <b>1큰술</b> = 밥숟가락 1숟가락 반<br>🍵 <b>1작은술</b> = 티스푼 1개<br>🥤 <b>1컵</b> = 종이컵 1컵</div></div>';
+  h+='<div style="margin-bottom:10px"><button onclick="toggleMeasure(this)" style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;color:#795548;cursor:pointer;font-family:inherit;width:100%">📏 계량 단위 안내 (탭하여 펼치기)</button><div style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:0 0 8px 8px;padding:10px 14px;font-size:12px;color:#5d4037"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🥄</div><div style="font-weight:700;font-size:13px">1큰술</div><div style="color:#795548;font-size:11px;line-height:1.5">밥숟가락 1개 가득<br><span style="color:#d84315">≈ 15ml</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🍵</div><div style="font-weight:700;font-size:13px">1작은술</div><div style="color:#795548;font-size:11px;line-height:1.5">티스푼 1개 가득<br><span style="color:#d84315">≈ 5ml (큰술의 1/3)</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🥤</div><div style="font-weight:700;font-size:13px">1컵</div><div style="color:#795548;font-size:11px;line-height:1.5">종이컵 1컵<br><span style="color:#d84315">≈ 200ml</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🤏</div><div style="font-weight:700;font-size:13px">약간/조금</div><div style="color:#795548;font-size:11px;line-height:1.5">손가락 두 개로<br>집은 정도</div></div></div><div style="font-size:11px;color:#8d6e63;background:#fffde7;border-radius:6px;padding:6px 8px">💡 계량스푼 없을 땐 밥숟가락(큰술)·티스푼(작은술)으로 대체하세요</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sub);margin-bottom:8px">● 필수 재료 ('+reqIngs.length+'개) / ○ 선택 재료 ('+optIngs.length+'개)' + (sel.size>0 ? ' · <span style="color:var(--green)">보유</span> / <span style="color:#d84315">부족</span>' : '') + '</div>';
   // Required
   h+='<div style="font-size:12px;font-weight:700;color:var(--green);padding:8px 0 4px;border-bottom:2px solid var(--green)">● 필수 재료</div>';
