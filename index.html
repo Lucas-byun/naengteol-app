@@ -1918,7 +1918,7 @@ function render(){
         var stars='';
         var avgR=Math.round(b.avgRating);
         for(var si=1;si<=5;si++)stars+=(si<=avgR?'★':'☆');
-        h+='<div onclick="openDetail(''+b.id+'')" style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer'+(i<userBestList.length-1?';border-bottom:1px solid rgba(255,255,255,.08)':'')+'">'
+        h+='<div onclick="openDetail(\''+b.id+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer'+(i<userBestList.length-1?';border-bottom:1px solid rgba(255,255,255,.08)':'')+'">'
         h+='<span style="font-size:16px;min-width:22px">'+userBestMedals[i]+'</span>';
         h+='<span style="font-size:24px">'+emoji+'</span>';
         h+='<div style="flex:1;min-width:0">';
@@ -4119,7 +4119,7 @@ function renderMyPage(){
         var stars='';
         var avgR=Math.round(b.avgRating);
         for(var si=1;si<=5;si++)stars+=(si<=avgR?'★':'☆');
-        h+='<div onclick="openDetail(''+b.id+'')" style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer'+(i<myBestList.length-1?';border-bottom:1px solid rgba(255,255,255,.08)':'')+'">';
+        h+='<div onclick="openDetail(\''+b.id+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer'+(i<myBestList.length-1?';border-bottom:1px solid rgba(255,255,255,.08)':'')+'">'
         h+='<span style="font-size:16px;min-width:22px">'+myBestMedals[i]+'</span>';
         h+='<span style="font-size:24px">'+recipe.emoji+'</span>';
         h+='<div style="flex:1;min-width:0">';
