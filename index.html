@@ -236,41 +236,48 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .data-src .dot{width:6px;height:6px;border-radius:50%;background:var(--primary);display:inline-block;animation:dotPulse 2s ease-in-out infinite}
 
 
-/* ===== 정사각형 크롭 모달 ===== */
+/* ===== 크롭 모달 (선택박스 방식) ===== */
 #cropModalOverlay{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);
-  z-index:9999;flex-direction:column;align-items:center;justify-content:center;
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);
+  z-index:9999;flex-direction:column;align-items:center;justify-content:flex-start;
+  overflow-y:auto;
 }
 #cropModalOverlay.active{display:flex;}
-#cropBox{
-  position:relative;width:300px;height:300px;
-  overflow:hidden;border:3px solid #fff;border-radius:8px;
-  background:#111;cursor:grab;touch-action:none;
+#cropImgContainer{
+  position:relative;display:inline-block;touch-action:none;
+  user-select:none;
 }
-#cropBox:active{cursor:grabbing;}
-#cropImg{
-  position:absolute;transform-origin:center center;
-  user-select:none;pointer-events:none;
+#cropFullImg{
+  display:block;max-width:100%;max-height:60vh;object-fit:contain;
+  pointer-events:none;user-select:none;
 }
-.crop-corner{
-  position:absolute;width:20px;height:20px;border-color:#fff;
-  border-style:solid;pointer-events:none;
+#cropSelBox{
+  position:absolute;border:2px solid #ff6b35;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.55);
+  cursor:move;box-sizing:border-box;
+  touch-action:none;
 }
-.crop-corner.tl{top:0;left:0;border-width:3px 0 0 3px;}
-.crop-corner.tr{top:0;right:0;border-width:3px 3px 0 0;}
-.crop-corner.bl{bottom:0;left:0;border-width:0 0 3px 3px;}
-.crop-corner.br{bottom:0;right:0;border-width:0 3px 3px 0;}
+.crop-sel-handle{
+  position:absolute;width:22px;height:22px;
+  background:#ff6b35;border-radius:50%;
+  touch-action:none;
+}
+.crop-sel-handle.tl{top:-11px;left:-11px;cursor:nw-resize;}
+.crop-sel-handle.tr{top:-11px;right:-11px;cursor:ne-resize;}
+.crop-sel-handle.bl{bottom:-11px;left:-11px;cursor:sw-resize;}
+.crop-sel-handle.br{bottom:-11px;right:-11px;cursor:se-resize;}
 #cropToolbar{
-  display:flex;gap:10px;margin-top:14px;
+  display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center;
+  padding:0 12px;
 }
 #cropToolbar button{
-  padding:9px 18px;border:none;border-radius:8px;
+  padding:9px 16px;border:none;border-radius:8px;
   font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
 }
 .crop-btn-rotate{background:#444;color:#fff;}
 .crop-btn-confirm{background:#ff6b35;color:#fff;}
 .crop-btn-cancel{background:#555;color:#fff;}
-#cropGuide{color:#ccc;font-size:12px;margin-top:8px;text-align:center;}
+#cropGuide{color:#ccc;font-size:12px;margin-top:8px;text-align:center;padding:0 16px;}
 /* ===== END 크롭 모달 ===== */
 </style>
 
@@ -280,21 +287,21 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 </head>
 <body>
 
-<!-- ===== 정사각형 크롭 모달 ===== -->
+<!-- ===== 크롭 모달 (선택박스 방식) ===== -->
 <div id="cropModalOverlay">
-  <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:12px">크롭 영역을 드래그하세요</div>
-  <div id="cropBox">
-    <img id="cropImg" src="" alt="">
-    <div class="crop-corner tl"></div>
-    <div class="crop-corner tr"></div>
-    <div class="crop-corner bl"></div>
-    <div class="crop-corner br"></div>
+  <div style="color:#fff;font-size:15px;font-weight:700;margin:14px 0 10px">크롭할 영역을 선택하세요</div>
+  <div id="cropImgContainer">
+    <img id="cropFullImg" src="" alt="">
+    <div id="cropSelBox">
+      <div class="crop-sel-handle tl" data-corner="tl"></div>
+      <div class="crop-sel-handle tr" data-corner="tr"></div>
+      <div class="crop-sel-handle bl" data-corner="bl"></div>
+      <div class="crop-sel-handle br" data-corner="br"></div>
+    </div>
   </div>
-  <div id="cropGuide">손가락으로 드래그하여 사진 위치를 조정하세요</div>
+  <div id="cropGuide">노란 테두리를 드래그하여 이동 • 모서리 동그라미로 크기 조절</div>
   <div id="cropToolbar">
-    <button class="crop-btn-rotate" onclick="cropRotate(-90)">↺ 왼쪽</button>
-    <button class="crop-btn-rotate" onclick="cropRotate(90)">↻ 오른쪽</button>
-    <button class="crop-btn-confirm" onclick="cropConfirm()">✅ 확정</button>
+    <button class="crop-btn-confirm" onclick="cropConfirm()">✅ 크롭 확정</button>
     <button class="crop-btn-cancel" onclick="cropCancel()">❌ 취소</button>
   </div>
 </div>
@@ -4537,14 +4544,14 @@ document.addEventListener('DOMContentLoaded',function(){
 
 // ===== 정사각형 크롭 모달 로직 =====
 var _cropCallback=null;   // 크롭 확정 시 호출할 콜백 (base64 전달)
-var _cropRotAngle=0;       // 현재 회전각
 var _cropOrigSrc='';       // 원본 이미지 src
 var _cropImgNW=0, _cropImgNH=0; // 원본 이미지 크기
-var _cropX=0, _cropY=0;    // cropImg 위치 (px)
-var _cropScale=1;          // 현재 스케일
-var _cropDragging=false;
+// 선택박스 방식 변수
+var _cropSelX=0, _cropSelY=0, _cropSelW=0, _cropSelH=0; // 선택박스 위치/크기 (표시 px)
+var _cropImgDispW=0, _cropImgDispH=0; // 화면에 표시된 이미지 크기
+var _cropDragMode=null; // 'move' | 'tl'|'tr'|'bl'|'br'
 var _cropDragStartX=0, _cropDragStartY=0;
-var _cropImgStartX=0, _cropImgStartY=0;
+var _cropSelStartX=0, _cropSelStartY=0, _cropSelStartW=0, _cropSelStartH=0;
 
 // ===== 사진 전체화면 뷰어 + 스와이프 =====
 var _viewerPhotos=[];
@@ -4621,45 +4628,49 @@ function closePhotoViewer(){
 }
 // ===== END 사진 전체화면 뷰어 =====
 
+// ===== 크롭 모달 (선택박스 방식) =====
 function openCropModal(srcDataUrl, callback){
   _cropCallback=callback;
-  _cropRotAngle=0;
   _cropOrigSrc=srcDataUrl;
   var overlay=document.getElementById('cropModalOverlay');
-  var img=document.getElementById('cropImg');
+  var img=document.getElementById('cropFullImg');
   img.onload=function(){
     _cropImgNW=img.naturalWidth;
     _cropImgNH=img.naturalHeight;
-    _cropApplyTransform();
+    _cropImgDispW=img.offsetWidth;
+    _cropImgDispH=img.offsetHeight;
+    // 선택박스 초기화: 이미지 전체의 60%를 중앙에 배치
+    var minSide=Math.min(_cropImgDispW,_cropImgDispH);
+    _cropSelW=Math.round(minSide*0.6);
+    _cropSelH=Math.round(minSide*0.6);
+    _cropSelX=Math.round((_cropImgDispW-_cropSelW)/2);
+    _cropSelY=Math.round((_cropImgDispH-_cropSelH)/2);
+    _cropUpdateSelBox();
   };
   img.src=srcDataUrl;
   overlay.classList.add('active');
+  // 이미지 로드 후 스타일 적용을 위해 짧간 대기
+  setTimeout(function(){
+    if(img.complete&&img.naturalWidth>0){
+      _cropImgDispW=img.offsetWidth;
+      _cropImgDispH=img.offsetHeight;
+      var minSide=Math.min(_cropImgDispW,_cropImgDispH);
+      _cropSelW=Math.round(minSide*0.6);
+      _cropSelH=Math.round(minSide*0.6);
+      _cropSelX=Math.round((_cropImgDispW-_cropSelW)/2);
+      _cropSelY=Math.round((_cropImgDispH-_cropSelH)/2);
+      _cropUpdateSelBox();
+    }
+  },100);
 }
 
-function _cropApplyTransform(){
-  var BOX=300;
-  var img=document.getElementById('cropImg');
-  // 회전 각도에 따라 이미지 스케일 계산 (정사각형 크롭 틀 기준)
-  var rad=_cropRotAngle*Math.PI/180;
-  var sin=Math.abs(Math.sin(rad)), cos=Math.abs(Math.cos(rad));
-  var rotW=_cropImgNW*cos+_cropImgNH*sin;
-  var rotH=_cropImgNW*sin+_cropImgNH*cos;
-  _cropScale=Math.max(BOX/rotW, BOX/rotH);
-  var dispW=_cropImgNW*_cropScale;
-  var dispH=_cropImgNH*_cropScale;
-  // 중앙 정렬 초기 위치
-  _cropX=(BOX-dispW)/2;
-  _cropY=(BOX-dispH)/2;
-  img.style.width=dispW+'px';
-  img.style.height=dispH+'px';
-  img.style.left=_cropX+'px';
-  img.style.top=_cropY+'px';
-  img.style.transform='rotate('+_cropRotAngle+'deg)';
-}
-
-function cropRotate(deg){
-  _cropRotAngle=(_cropRotAngle+deg+360)%360;
-  _cropApplyTransform();
+function _cropUpdateSelBox(){
+  var sel=document.getElementById('cropSelBox');
+  if(!sel)return;
+  sel.style.left=_cropSelX+'px';
+  sel.style.top=_cropSelY+'px';
+  sel.style.width=_cropSelW+'px';
+  sel.style.height=_cropSelH+'px';
 }
 
 function cropCancel(){
@@ -4668,35 +4679,25 @@ function cropCancel(){
 }
 
 function cropConfirm(){
-  var DISPLAY_BOX=300; // 화면 표시 크기 (좌표 계산 기준)
-  var OUTPUT_BOX=800;  // 출력 해상도 (고화질)
-  var img=document.getElementById('cropImg');
+  var OUTPUT_SIZE=800; // 출력 해상도
+  var img=document.getElementById('cropFullImg');
+  _cropImgDispW=img.offsetWidth;
+  _cropImgDispH=img.offsetHeight;
+  // 화면 표시 크기 대비 원본 이미지 비율
+  var scaleX=_cropImgNW/_cropImgDispW;
+  var scaleY=_cropImgNH/_cropImgDispH;
+  // 선택박스를 원본 이미지 좌표로 변환
+  var srcX=_cropSelX*scaleX;
+  var srcY=_cropSelY*scaleY;
+  var srcW=_cropSelW*scaleX;
+  var srcH=_cropSelH*scaleY;
   var canvas=document.createElement('canvas');
-  canvas.width=OUTPUT_BOX; canvas.height=OUTPUT_BOX;
+  canvas.width=OUTPUT_SIZE;
+  canvas.height=OUTPUT_SIZE;
   var ctx=canvas.getContext('2d');
-  // 정사각형 틀 내에서 cropImg의 위치를 기준으로 원본 이미지 좌표 계산
-  var dispW=parseFloat(img.style.width);
-  var dispH=parseFloat(img.style.height);
-  var imgLeft=parseFloat(img.style.left);
-  var imgTop=parseFloat(img.style.top);
-  // 크롭 틀 좌표 (0,0)에서 cropImg 좌표
-  // 디스플레이 스케일 관련 원본 좌표 변환 (화면 BOX 기준으로 계산)
-  var srcX=-imgLeft/_cropScale;
-  var srcY=-imgTop/_cropScale;
-  var srcSize=DISPLAY_BOX/_cropScale;
-  // 회전 고려하여 캔버스에 그리기
-  var tmpCanvas=document.createElement('canvas');
-  var rad=_cropRotAngle*Math.PI/180;
-  var sin=Math.abs(Math.sin(rad)), cos=Math.abs(Math.cos(rad));
-  tmpCanvas.width=Math.round(_cropImgNW*cos+_cropImgNH*sin);
-  tmpCanvas.height=Math.round(_cropImgNW*sin+_cropImgNH*cos);
-  var tCtx=tmpCanvas.getContext('2d');
-  tCtx.translate(tmpCanvas.width/2,tmpCanvas.height/2);
-  tCtx.rotate(rad);
   var origImg=new Image();
   origImg.onload=function(){
-    tCtx.drawImage(origImg,-_cropImgNW/2,-_cropImgNH/2);
-    ctx.drawImage(tmpCanvas,srcX,srcY,srcSize,srcSize,0,0,OUTPUT_BOX,OUTPUT_BOX);
+    ctx.drawImage(origImg,srcX,srcY,srcW,srcH,0,0,OUTPUT_SIZE,OUTPUT_SIZE);
     var result=canvas.toDataURL('image/jpeg',0.88);
     document.getElementById('cropModalOverlay').classList.remove('active');
     if(_cropCallback)_cropCallback(result);
@@ -4705,69 +4706,86 @@ function cropConfirm(){
   origImg.src=_cropOrigSrc;
 }
 
-// 드래그 이벤트 (PC 마우스 + 모바일 터치)
+// 선택박스 드래그 이벤트 (PC 마우스 + 모바일 터치)
 (function(){
+  var MIN_SEL=40; // 최소 선택 크기
   function getPos(e){
     if(e.touches)return{x:e.touches[0].clientX,y:e.touches[0].clientY};
     return{x:e.clientX,y:e.clientY};
   }
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
   document.addEventListener('DOMContentLoaded',function(){
-    var box=document.getElementById('cropBox');
-    if(!box)return;
-    box.addEventListener('mousedown',function(e){
-      _cropDragging=true;
+    var sel=document.getElementById('cropSelBox');
+    var container=document.getElementById('cropImgContainer');
+    if(!sel||!container)return;
+
+    function startDrag(e,mode){
+      _cropDragMode=mode;
       var p=getPos(e);
       _cropDragStartX=p.x; _cropDragStartY=p.y;
-      var img=document.getElementById('cropImg');
-      _cropImgStartX=parseFloat(img.style.left)||0;
-      _cropImgStartY=parseFloat(img.style.top)||0;
+      _cropSelStartX=_cropSelX; _cropSelStartY=_cropSelY;
+      _cropSelStartW=_cropSelW; _cropSelStartH=_cropSelH;
       e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // 선택박스 이동 (move)
+    sel.addEventListener('mousedown',function(e){
+      // 핸들 클릭이 아닌 경우만 move
+      if(e.target.classList.contains('crop-sel-handle'))return;
+      startDrag(e,'move');
     });
-    box.addEventListener('touchstart',function(e){
-      _cropDragging=true;
-      var p=getPos(e);
-      _cropDragStartX=p.x; _cropDragStartY=p.y;
-      var img=document.getElementById('cropImg');
-      _cropImgStartX=parseFloat(img.style.left)||0;
-      _cropImgStartY=parseFloat(img.style.top)||0;
-      e.preventDefault();
+    sel.addEventListener('touchstart',function(e){
+      if(e.target.classList.contains('crop-sel-handle'))return;
+      startDrag(e,'move');
     },{passive:false});
-    document.addEventListener('mousemove',function(e){
-      if(!_cropDragging)return;
+
+    // 모서리 핸들 (resize)
+    sel.querySelectorAll('.crop-sel-handle').forEach(function(h){
+      h.addEventListener('mousedown',function(e){startDrag(e,h.dataset.corner);});
+      h.addEventListener('touchstart',function(e){startDrag(e,h.dataset.corner);},{passive:false});
+    });
+
+    function onMove(e){
+      if(!_cropDragMode)return;
       var p=getPos(e);
       var dx=p.x-_cropDragStartX, dy=p.y-_cropDragStartY;
-      var img=document.getElementById('cropImg');
-      var BOX=300;
-      var newX=_cropImgStartX+dx;
-      var newY=_cropImgStartY+dy;
-      // 범위 제한: 크롭 틀 밖으로 나가지 않도록
-      var dispW=parseFloat(img.style.width)||BOX;
-      var dispH=parseFloat(img.style.height)||BOX;
-      newX=Math.min(0,Math.max(BOX-dispW,newX));
-      newY=Math.min(0,Math.max(BOX-dispH,newY));
-      img.style.left=newX+'px';
-      img.style.top=newY+'px';
-      _cropX=newX; _cropY=newY;
-    });
-    document.addEventListener('touchmove',function(e){
-      if(!_cropDragging)return;
-      var p=getPos(e);
-      var dx=p.x-_cropDragStartX, dy=p.y-_cropDragStartY;
-      var img=document.getElementById('cropImg');
-      var BOX=300;
-      var newX=_cropImgStartX+dx;
-      var newY=_cropImgStartY+dy;
-      var dispW=parseFloat(img.style.width)||BOX;
-      var dispH=parseFloat(img.style.height)||BOX;
-      newX=Math.min(0,Math.max(BOX-dispW,newX));
-      newY=Math.min(0,Math.max(BOX-dispH,newY));
-      img.style.left=newX+'px';
-      img.style.top=newY+'px';
-      _cropX=newX; _cropY=newY;
+      var imgEl=document.getElementById('cropFullImg');
+      var imgW=imgEl.offsetWidth, imgH=imgEl.offsetHeight;
+
+      if(_cropDragMode==='move'){
+        _cropSelX=clamp(_cropSelStartX+dx,0,imgW-_cropSelW);
+        _cropSelY=clamp(_cropSelStartY+dy,0,imgH-_cropSelH);
+      } else if(_cropDragMode==='br'){
+        var nw=clamp(_cropSelStartW+dx,MIN_SEL,imgW-_cropSelX);
+        var nh=clamp(_cropSelStartH+dy,MIN_SEL,imgH-_cropSelY);
+        _cropSelW=nw; _cropSelH=nh;
+      } else if(_cropDragMode==='tl'){
+        var nw=clamp(_cropSelStartW-dx,MIN_SEL,_cropSelStartX+_cropSelStartW);
+        var nh=clamp(_cropSelStartH-dy,MIN_SEL,_cropSelStartY+_cropSelStartH);
+        _cropSelX=_cropSelStartX+_cropSelStartW-nw;
+        _cropSelY=_cropSelStartY+_cropSelStartH-nh;
+        _cropSelW=nw; _cropSelH=nh;
+      } else if(_cropDragMode==='tr'){
+        var nw=clamp(_cropSelStartW+dx,MIN_SEL,imgW-_cropSelX);
+        var nh=clamp(_cropSelStartH-dy,MIN_SEL,_cropSelStartY+_cropSelStartH);
+        _cropSelY=_cropSelStartY+_cropSelStartH-nh;
+        _cropSelW=nw; _cropSelH=nh;
+      } else if(_cropDragMode==='bl'){
+        var nw=clamp(_cropSelStartW-dx,MIN_SEL,_cropSelStartX+_cropSelStartW);
+        var nh=clamp(_cropSelStartH+dy,MIN_SEL,imgH-_cropSelY);
+        _cropSelX=_cropSelStartX+_cropSelStartW-nw;
+        _cropSelW=nw; _cropSelH=nh;
+      }
+      _cropUpdateSelBox();
       e.preventDefault();
-    },{passive:false});
-    document.addEventListener('mouseup',function(){_cropDragging=false;});
-    document.addEventListener('touchend',function(){_cropDragging=false;});
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    function endDrag(){_cropDragMode=null;}
+    document.addEventListener('mouseup',endDrag);
+    document.addEventListener('touchend',endDrag);
   });
 })();
 // ===== END 크롭 모달 로직 =====
