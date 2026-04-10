@@ -730,10 +730,10 @@ function addPhotoToHistory(idx,input){
     var img=new Image();
     img.onload=function(){
       var canvas=document.createElement('canvas');
-      var maxW=600;var scale=Math.min(1,maxW/img.width);
+      var maxW=900;var scale=Math.min(1,maxW/img.width);
       canvas.width=img.width*scale;canvas.height=img.height*scale;
       var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      var compressed=canvas.toDataURL('image/jpeg',0.65);
+      var compressed=canvas.toDataURL('image/jpeg',0.80);
       cookHistory[idx].photo=compressed;
       cookHistory[idx].photoDate=new Date().toISOString().split('T')[0];
       localStorage.setItem('nt_history',JSON.stringify(cookHistory));
@@ -866,10 +866,10 @@ function changeExistingPhoto(idx,input,recipeId){
     var img=new Image();
     img.onload=function(){
       var canvas=document.createElement('canvas');
-      var maxW=800;var scale=Math.min(1,maxW/img.width);
+      var maxW=900;var scale=Math.min(1,maxW/img.width);
       canvas.width=img.width*scale;canvas.height=img.height*scale;
       var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      cookHistory[idx].photo=canvas.toDataURL('image/jpeg',0.7);
+      cookHistory[idx].photo=canvas.toDataURL('image/jpeg',0.80);
       cookHistory[idx].photoDate=new Date().toISOString().split('T')[0];
       localStorage.setItem('nt_history',JSON.stringify(cookHistory));
       var popup=document.getElementById('galleryPopup');
@@ -1136,10 +1136,10 @@ function previewPhotoInGallery(idx,input){
     var img=new Image();
     img.onload=function(){
       var canvas=document.createElement('canvas');
-      var maxW=600;var scale=Math.min(1,maxW/img.width);
+      var maxW=900;var scale=Math.min(1,maxW/img.width);
       canvas.width=img.width*scale;canvas.height=img.height*scale;
       var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      _pendingPhotoData=canvas.toDataURL('image/jpeg',0.65);
+      _pendingPhotoData=canvas.toDataURL('image/jpeg',0.80);
       var preview=document.getElementById('photoPreviewArea');
       var previewImg=document.getElementById('galleryPreviewImg');
       if(preview&&previewImg){preview.style.display='block';previewImg.src=_pendingPhotoData;}
@@ -4690,10 +4690,11 @@ function cropCancel(){
 }
 
 function cropConfirm(){
-  var BOX=300;
+  var DISPLAY_BOX=300; // 화면 표시 크기 (좌표 계산 기준)
+  var OUTPUT_BOX=800;  // 출력 해상도 (고화질)
   var img=document.getElementById('cropImg');
   var canvas=document.createElement('canvas');
-  canvas.width=BOX; canvas.height=BOX;
+  canvas.width=OUTPUT_BOX; canvas.height=OUTPUT_BOX;
   var ctx=canvas.getContext('2d');
   // 정사각형 틀 내에서 cropImg의 위치를 기준으로 원본 이미지 좌표 계산
   var dispW=parseFloat(img.style.width);
@@ -4701,10 +4702,10 @@ function cropConfirm(){
   var imgLeft=parseFloat(img.style.left);
   var imgTop=parseFloat(img.style.top);
   // 크롭 틀 좌표 (0,0)에서 cropImg 좌표
-  // 디스플레이 스케일 관련 원본 좌표 변환
+  // 디스플레이 스케일 관련 원본 좌표 변환 (화면 BOX 기준으로 계산)
   var srcX=-imgLeft/_cropScale;
   var srcY=-imgTop/_cropScale;
-  var srcSize=BOX/_cropScale;
+  var srcSize=DISPLAY_BOX/_cropScale;
   // 회전 고려하여 캔버스에 그리기
   var tmpCanvas=document.createElement('canvas');
   var rad=_cropRotAngle*Math.PI/180;
@@ -4717,7 +4718,7 @@ function cropConfirm(){
   var origImg=new Image();
   origImg.onload=function(){
     tCtx.drawImage(origImg,-_cropImgNW/2,-_cropImgNH/2);
-    ctx.drawImage(tmpCanvas,srcX,srcY,srcSize,srcSize,0,0,BOX,BOX);
+    ctx.drawImage(tmpCanvas,srcX,srcY,srcSize,srcSize,0,0,OUTPUT_BOX,OUTPUT_BOX);
     var result=canvas.toDataURL('image/jpeg',0.88);
     document.getElementById('cropModalOverlay').classList.remove('active');
     if(_cropCallback)_cropCallback(result);
