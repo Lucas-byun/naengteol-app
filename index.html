@@ -768,19 +768,25 @@ function addPhotoToHistory(idx,input){
   };
   reader.readAsDataURL(file);
 }
-function showRecipePhotos(recipeId){
+function showRecipePhotos(recipeId,sortAsc){
   var photos=cookHistory.filter(function(ch){return ch.id===recipeId&&ch.photo});
   var allEntries=cookHistory.filter(function(ch){return ch.id===recipeId&&(ch.photo||ch.comment)});
+  if(sortAsc)allEntries=allEntries.slice().reverse();
   var r=RECIPES.find(function(x){return x.id===recipeId});
   var histIdx=cookHistory.findIndex(function(ch){return ch.id===recipeId});
+  // 전체화면 뷰어용 사진 배열 준비
+  var viewerList=allEntries.filter(function(ch){return ch.photo}).map(function(ch){return{photo:ch.photo,comment:ch.comment||'',date:ch.date,name:r?r.name:'',emoji:r?r.emoji:'🍳'};});
   var h='<div id="galleryPopup" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:rgba(0,0,0,.85);overflow-y:auto" onclick="if(event.target===this)this.remove()">';
   h+='<div style="max-width:480px;margin:0 auto;padding:16px">';
   // Header
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
   h+='<div style="color:#fff;font-size:16px;font-weight:700">'+(r?r.emoji+' '+r.name:'')+'</div>';
   h+='<button onclick="document.getElementById(\'galleryPopup\').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer">✕</button>';
   h+='</div>';
-  h+='<div style="color:#aaa;font-size:12px;margin-bottom:12px">📸 갤러리 · '+photos.length+'장</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  h+='<span style="color:#aaa;font-size:12px">📸 갤러리 · '+photos.length+'장</span>';
+  h+='<button onclick="var p=document.getElementById(\'galleryPopup\');if(p)p.remove();showRecipePhotos(\''+esc(recipeId)+'\','+(sortAsc?'false':'true')+')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit">'+(sortAsc?'↓ 최신순':'↑ 오래된순')+'</button>';
+  h+='</div>';
   // Add photo section
   if(histIdx>=0){
     h+='<div id="photoAddSection" style="margin-bottom:16px">';
@@ -799,21 +805,27 @@ function showRecipePhotos(recipeId){
   }
   // Existing photos & comments
   if(allEntries.length>0){
+    var viewerPhotoIdx=0;
     allEntries.forEach(function(ch){
       var chIdx=cookHistory.indexOf(ch);
+      var thisViewerIdx=ch.photo?viewerPhotoIdx:-1;
+      if(ch.photo)viewerPhotoIdx++;
       h+='<div style="margin-bottom:20px;background:rgba(255,255,255,.05);border-radius:14px;overflow:hidden">';
       if(ch.photo){
         h+='<div style="position:relative">';
-        h+='<img src="'+ch.photo+'" style="width:100%;display:block;border-radius:14px 14px 0 0;object-fit:cover">';
-        h+='<label style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px">';
-        h+='<input type="file" accept="image/*" style="display:none" onchange="changeExistingPhoto('+chIdx+',this,\''+esc(recipeId)+'\')">';
-        h+='🔄 사진 변경</label>';
+        // 사진 클릭 시 전체화면 뷰어
+        h+='<img src="'+ch.photo+'" style="width:100%;display:block;border-radius:14px 14px 0 0;object-fit:cover;cursor:zoom-in" onclick="openPhotoViewer('+JSON.stringify(viewerList)+','+thisViewerIdx+')">';
+        h+='<div style="position:absolute;bottom:8px;right:8px;display:flex;gap:6px">';
+        h+='<label style="background:rgba(0,0,0,.65);color:#fff;font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px">';
+        h+='<input type="file" accept="image/*" style="display:none" onchange="changeExistingPhoto('+chIdx+',this,\''+esc(recipeId)+'\')">'; 
+        h+='🔄 변경</label>';
+        h+='</div>';
         h+='</div>';
       }else{
         h+='<div style="padding:16px;text-align:center">';
         h+='<div style="font-size:36px;margin-bottom:6px">'+(r?r.emoji:'🍳')+'</div>';
         h+='<label style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer">';
-        h+='<input type="file" accept="image/*" style="display:none" onchange="changeExistingPhoto('+chIdx+',this,\''+esc(recipeId)+'\')">';
+        h+='<input type="file" accept="image/*" style="display:none" onchange="changeExistingPhoto('+chIdx+',this,\''+esc(recipeId)+'\')">'; 
         h+='📸 사진 추가</label>';
         h+='</div>';
       }
@@ -821,15 +833,19 @@ function showRecipePhotos(recipeId){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
       h+='<span style="color:#aaa;font-size:11px">🍳 '+ch.date+(ch.photoDate&&ch.photoDate!==ch.date?' · 📸 '+ch.photoDate:'')+'</span>';
       h+='<div style="display:flex;gap:4px">';
-      h+='<button onclick="editPhotoComment('+chIdx+',\''+esc(recipeId)+'\')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">'+(ch.comment?'✏️ 수정':'💬 코멘트')+'</button>';
-      if(ch.photo)h+='<button onclick="deletePhotoOnly('+chIdx+',\''+esc(recipeId)+'\')" style="background:none;border:1px solid rgba(229,57,53,.6);color:#ef9a9a;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">🗑️ 사진</button>';
+      if(ch.photo)h+='<button onclick="sharePhotoToCommunity('+chIdx+')" style="background:none;border:1px solid rgba(255,165,0,.6);color:#ffd580;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">📢 자랑</button>';
+      h+='<button onclick="inlineEditComment('+chIdx+',\''+esc(recipeId)+'\')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">'+(ch.comment?'✏️ 수정':'💬 코멘트')+'</button>';
+      if(ch.photo)h+='<button onclick="deletePhotoOnly('+chIdx+',\''+esc(recipeId)+'\')" style="background:none;border:1px solid rgba(229,57,53,.6);color:#ef9a9a;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit">🗑️</button>';
       h+='</div>';
       h+='</div>';
+      // 코멘트 인라인 편집 영역
+      h+='<div id="commentArea_'+chIdx+'">';
       if(ch.comment){
         h+='<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+ch.comment+'</div>';
       }else{
         h+='<div style="color:#666;font-size:12px;font-style:italic">코멘트 없음</div>';
       }
+      h+='</div>';
       h+='</div>';
       h+='</div>';
     });
@@ -886,26 +902,107 @@ function deletePhotoOnly(idx,recipeId){
   render();
   showRecipePhotos(recipeId);
 }
-function showAllPhotosModal(){
-  var allPosts=cookHistory.filter(function(ch){return ch.photo||ch.comment});
-  if(allPosts.length===0)return;
+function inlineEditComment(idx,recipeId){
+  var area=document.getElementById('commentArea_'+idx);
+  if(!area)return;
+  var current=cookHistory[idx]?cookHistory[idx].comment||'':'';
+  // 이미 입력중이면 스킵
+  if(area.querySelector('textarea'))return;
+  area.innerHTML='';
+  var wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;flex-direction:column;gap:6px';
+  var ta=document.createElement('textarea');
+  ta.value=current;
+  ta.placeholder='코멘트 입력... (최대 80자)';
+  ta.maxLength=80;
+  ta.style.cssText='width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:rgba(255,255,255,.1);color:#fff;box-sizing:border-box;resize:none;line-height:1.4';
+  ta.rows=2;
+  var btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:6px';
+  var cancelBtn=document.createElement('button');
+  cancelBtn.textContent='취소';
+  cancelBtn.style.cssText='flex:1;padding:6px;border:1px solid rgba(255,255,255,.3);border-radius:8px;background:none;color:#ccc;font-size:12px;cursor:pointer;font-family:inherit';
+  cancelBtn.onclick=function(){
+    var c=cookHistory[idx]?cookHistory[idx].comment||'':'';
+    area.innerHTML=c?'<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+c+'</div>':'<div style="color:#666;font-size:12px;font-style:italic">코멘트 없음</div>';
+  };
+  var saveBtn=document.createElement('button');
+  saveBtn.textContent='저장';
+  saveBtn.style.cssText='flex:1;padding:6px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
+  saveBtn.onclick=function(){
+    var val=ta.value.trim().substring(0,80);
+    cookHistory[idx].comment=val;
+    localStorage.setItem('nt_history',JSON.stringify(cookHistory));
+    area.innerHTML=val?'<div style="color:#fff;font-size:13px;line-height:1.5;background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">'+val+'</div>':'<div style="color:#666;font-size:12px;font-style:italic">코멘트 없음</div>';
+    render();
+  };
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(saveBtn);
+  wrap.appendChild(ta);
+  wrap.appendChild(btnRow);
+  area.appendChild(wrap);
+  ta.focus();
+}
+function sharePhotoToCommunity(idx){
+  var ch=cookHistory[idx];
+  if(!ch||!ch.photo){showCartPopup('📸 사진이 없어요!','코멘트만 있는 기록은 커뮤니티에 자랑할 수 없어요.');return;}
+  var r=RECIPES.find(function(x){return x.id===ch.id});
+  if(!confirm('이 사진을 커뮤니티에 자랑할까요?\n(관리자 승인 후 등록됩니다)'))return;
+  var postId='p_'+Date.now();
+  var newPost={
+    id:postId,
+    recipe:r?r.name:'',
+    recipeId:ch.id,
+    emoji:r?r.emoji:'🍳',
+    user:getDisplayName(),
+    date:new Date().toISOString().split('T')[0],
+    text:ch.comment||'',
+    photo:ch.photo,
+    likes:0,
+    status:'pending',
+    submittedAt:new Date().toISOString()
+  };
+  fbDB.ref('community/pending').push(newPost).then(function(){
+    ch.shared=true;
+    localStorage.setItem('nt_history',JSON.stringify(cookHistory));
+    showCartPopup('⏳ 자랑 신청 완료!','관리자 승인 후 커뮤니티에 등록됩니다.');
+  }).catch(function(){
+    showCartPopup('❌ 오류','자랑 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
+  });
+}
+function showAllPhotosModal(photoOnly){
+  var allPosts=cookHistory.filter(function(ch){return ch.photo||(ch.comment&&!photoOnly)});
+  if(allPosts.length===0){showCartPopup('📷 사진이 없어요','아직 요리 사진이 없습니다.
+요리를 완료하고 사진을 남겨보세요!');return;}
+  // 전체화면 뷰어용 사진 배열
+  var allViewerPhotos=allPosts.filter(function(ch){return ch.photo}).map(function(ch){
+    var r=RECIPES.find(function(x){return x.id===ch.id});
+    return{photo:ch.photo,comment:ch.comment||'',date:ch.date,name:r?r.name:'',emoji:r?r.emoji:'🍳'};
+  });
+  var existing=document.getElementById('allPhotosModal');
+  if(existing)existing.remove();
   var h='<div id="allPhotosModal" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:#000;overflow-y:auto" onclick="if(event.target===this)this.remove()">';
   h+='<div style="max-width:480px;margin:0 auto;padding:16px">';
   // Header
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;position:sticky;top:0;background:#000;padding:8px 0;z-index:1">';
-  h+='<div style="color:#fff;font-size:16px;font-weight:700">🖼️ 내 사진첩 ('+allPosts.length+')</div>';
-  h+='<button onclick="document.getElementById(\'allPhotosModal\').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer">✕</button>';
-  h+='</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:sticky;top:0;background:#000;padding:8px 0;z-index:1">';
+  h+='<div style="color:#fff;font-size:16px;font-weight:700">🖼️ 내 사진첩</div>';
+  h+='<div style="display:flex;align-items:center;gap:8px">';
+  h+='<button onclick="var m=document.getElementById(\'allPhotosModal\');if(m)m.remove();showAllPhotosModal('+(photoOnly?'false':'true')+')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit">'+(photoOnly?'💬 코멘트도 보기':'📸 사진만 보기')+'</button>';
+  h+='<button onclick="document.getElementById(\'allPhotosModal\').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">✕</button>';
+  h+='</div></div>';
+  h+='<div style="color:#aaa;font-size:11px;margin-bottom:12px">사진 '+allViewerPhotos.length+'장 · 전체 기록 '+allPosts.length+'개 · 사진 탭 시 전체화면</div>';
   // 사진이 있는 것만 먼저, 없는 것(코멘트만) 나중에
   var withPhoto=allPosts.filter(function(ch){return ch.photo});
   var withoutPhoto=allPosts.filter(function(ch){return !ch.photo&&ch.comment});
-  // 사진 그리드 (3열)
+  // 사진 그리드 (3열) - 클릭 시 전체화면 뷰어
   if(withPhoto.length>0){
     h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-bottom:16px">';
+    var viewerIdx=0;
     withPhoto.forEach(function(ch){
       var chIdx=cookHistory.indexOf(ch);
-      h+='<div style="border-radius:0;overflow:hidden;cursor:pointer" onclick="showRecipePhotos(\''+esc(ch.id)+'\')">'; 
-      h+='<div style="aspect-ratio:1;position:relative">';
+      var thisVIdx=viewerIdx++;
+      h+='<div style="border-radius:0;overflow:hidden">';
+      h+='<div style="aspect-ratio:1;position:relative;cursor:zoom-in" onclick="openPhotoViewer('+JSON.stringify(allViewerPhotos)+','+thisVIdx+')">';
       h+='<img src="'+ch.photo+'" style="width:100%;height:100%;object-fit:cover">';
       h+='<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:4px 5px">';
       h+='<div style="font-size:9px;color:#fff;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ch.emoji+' '+ch.name+'</div>';
@@ -920,8 +1017,8 @@ function showAllPhotosModal(){
     });
     h+='</div>';
   }
-  // 코멘트만 있는 항목
-  if(withoutPhoto.length>0){
+  // 코멘트만 있는 항목 (사진만 보기 필터 시 숨김)
+  if(!photoOnly&&withoutPhoto.length>0){
     h+='<div style="margin-bottom:8px;font-size:12px;color:#888;font-weight:700">💬 코멘트만 있는 기록 ('+withoutPhoto.length+')</div>';
     withoutPhoto.forEach(function(ch){
       h+='<div style="background:#111;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer" onclick="showRecipePhotos(\''+esc(ch.id)+'\')">'; 
@@ -933,6 +1030,12 @@ function showAllPhotosModal(){
       h+='<div style="color:#ccc;font-size:13px;line-height:1.5">💬 '+ch.comment+'</div>';
       h+='</div>';
     });
+  }
+  if(withPhoto.length===0&&!photoOnly){
+    h+='<div style="text-align:center;padding:40px 0">';
+    h+='<div style="font-size:48px;margin-bottom:12px">📷</div>';
+    h+='<div style="color:#aaa;font-size:14px">아직 사진이 없어요<br>요리 완료 후 사진을 남겨보세요!</div>';
+    h+='</div>';
   }
   h+='</div></div>';
   document.body.insertAdjacentHTML('beforeend',h);
@@ -3720,9 +3823,18 @@ function renderMyPage(){
     h+='<h2 style="color:var(--text);margin:0">📸 갤러리 ('+galleryPosts.length+')</h2>';
     h+='<button onclick="showAllPhotosModal()" style="padding:6px 12px;border:1px solid var(--primary);border-radius:8px;background:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🖼️ 전체 사진첩</button>';
     h+='</div>';
+    // 전체화면 뷰어용 사진 배열 (미리보기용)
+    var previewViewerPhotos=galleryPosts.filter(function(ch){return ch.photo}).slice(0,9).map(function(ch){
+      var r2=RECIPES.find(function(x){return x.id===ch.id});
+      return{photo:ch.photo,comment:ch.comment||'',date:ch.date,name:r2?r2.name:'',emoji:r2?r2.emoji:'🍳'};
+    });
+    var previewVIdx=0;
     h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px">';
     galleryPosts.slice(0,9).forEach(function(ch){
-      h+='<div style="border-radius:10px;overflow:hidden;cursor:pointer" onclick="showRecipePhotos(\''+esc(ch.id)+'\')">'; 
+      var thisPreviewVIdx=ch.photo?previewVIdx:-1;
+      if(ch.photo)previewVIdx++;
+      var clickAction=ch.photo?'openPhotoViewer('+JSON.stringify(previewViewerPhotos)+','+thisPreviewVIdx+')':'showRecipePhotos(\''+esc(ch.id)+'\')'; 
+      h+='<div style="border-radius:10px;overflow:hidden;cursor:pointer" onclick="'+clickAction+'">';
       h+='<div style="aspect-ratio:1;position:relative">';
       if(ch.photo){
         h+='<img src="'+ch.photo+'" style="width:100%;height:100%;object-fit:cover">';
@@ -3941,6 +4053,81 @@ var _cropScale=1;          // 현재 스케일
 var _cropDragging=false;
 var _cropDragStartX=0, _cropDragStartY=0;
 var _cropImgStartX=0, _cropImgStartY=0;
+
+// ===== 사진 전체화면 뷰어 + 스와이프 =====
+var _viewerPhotos=[];
+var _viewerIdx=0;
+var _viewerTouchStartX=0;
+function openPhotoViewer(photos,startIdx){
+  if(!photos||photos.length===0)return;
+  _viewerPhotos=photos;
+  _viewerIdx=startIdx||0;
+  var existing=document.getElementById('photoViewerOverlay');
+  if(existing)existing.remove();
+  var el=document.createElement('div');
+  el.id='photoViewerOverlay';
+  el.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:1100;background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;user-select:none';
+  el.innerHTML=_buildViewerHTML();
+  document.body.appendChild(el);
+  // 터치 스와이프
+  el.addEventListener('touchstart',function(e){_viewerTouchStartX=e.touches[0].clientX;},{passive:true});
+  el.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-_viewerTouchStartX;
+    if(Math.abs(dx)>50){if(dx<0)_viewerNext();else _viewerPrev();}
+  },{passive:true});
+  // 키보드
+  el._keyHandler=function(e){
+    if(e.key==='ArrowRight')_viewerNext();
+    else if(e.key==='ArrowLeft')_viewerPrev();
+    else if(e.key==='Escape')closePhotoViewer();
+  };
+  document.addEventListener('keydown',el._keyHandler);
+}
+function _buildViewerHTML(){
+  var p=_viewerPhotos[_viewerIdx];
+  var total=_viewerPhotos.length;
+  var h='';
+  // 상단 바
+  h+='<div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(rgba(0,0,0,.7),transparent);z-index:2">';
+  h+='<div style="color:#fff;font-size:13px;font-weight:700">'+(p.emoji||'')+(p.name?' '+p.name:'')+'</div>';
+  h+='<div style="display:flex;align-items:center;gap:12px">';
+  h+='<span style="color:#aaa;font-size:12px">'+(_viewerIdx+1)+' / '+total+'</span>';
+  h+='<button onclick="closePhotoViewer()" style="background:none;border:none;color:#fff;font-size:26px;cursor:pointer;line-height:1">✕</button>';
+  h+='</div></div>';
+  // 사진
+  h+='<img src="'+p.photo+'" style="max-width:100%;max-height:calc(100vh - 140px);object-fit:contain;display:block" onclick="event.stopPropagation()">';
+  // 코멘트
+  if(p.comment){
+    h+='<div style="position:absolute;bottom:60px;left:0;right:0;padding:10px 20px;background:linear-gradient(transparent,rgba(0,0,0,.8));text-align:center">';
+    h+='<div style="color:#fff;font-size:13px;line-height:1.5">💬 '+p.comment+'</div>';
+    h+='</div>';
+  }
+  // 하단 네비게이션
+  h+='<div style="position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(transparent,rgba(0,0,0,.7))">';
+  h+='<button onclick="_viewerPrev()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:44px;height:44px;border-radius:50%;cursor:pointer;'+(total<=1?'opacity:.2;pointer-events:none':'')+'">&lt;</button>';
+  h+='<div style="color:#aaa;font-size:11px">'+p.date+'</div>';
+  h+='<button onclick="_viewerNext()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:44px;height:44px;border-radius:50%;cursor:pointer;'+(total<=1?'opacity:.2;pointer-events:none':'')+'">&gt;</button>';
+  h+='</div>';
+  return h;
+}
+function _viewerNext(){
+  if(_viewerIdx<_viewerPhotos.length-1){_viewerIdx++;_refreshViewer();}
+}
+function _viewerPrev(){
+  if(_viewerIdx>0){_viewerIdx--;_refreshViewer();}
+}
+function _refreshViewer(){
+  var el=document.getElementById('photoViewerOverlay');
+  if(el)el.innerHTML=_buildViewerHTML();
+}
+function closePhotoViewer(){
+  var el=document.getElementById('photoViewerOverlay');
+  if(el){
+    if(el._keyHandler)document.removeEventListener('keydown',el._keyHandler);
+    el.remove();
+  }
+}
+// ===== END 사진 전체화면 뷰어 =====
 
 function openCropModal(srcDataUrl, callback){
   _cropCallback=callback;
