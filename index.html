@@ -3200,15 +3200,17 @@ async function loadAdminStats(){
   if(!area)return;
   area.innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,255,255,.5);font-size:12px">⏳ 데이터 불러오는 중...</div>';
   try{
-    // Firebase 데이터 병렬 로드
-    var [snapUsers, snapComm, snapHistory] = await Promise.all([
+    // Firebase 데이터 병렬 로드 (community는 approved/pending 분리 읽기)
+    var [snapUsers, snapApproved, snapPending, snapCookLogs] = await Promise.all([
       fbDB.ref('users').once('value'),
-      fbDB.ref('community').once('value'),
-      fbDB.ref('history').once('value')
+      fbDB.ref('community/approved').once('value'),
+      fbDB.ref('community/pending').once('value'),
+      fbDB.ref('cookLogs').once('value')
     ]);
     var usersRaw = snapUsers.val()||{};
-    var commRaw = snapComm.val()||{};
-    var histRaw = snapHistory.val()||{};
+    var approvedRaw = snapApproved.val()||{};
+    var pendingRaw = snapPending.val()||{};
+    var cookLogsRaw = snapCookLogs.val()||{};
 
     // 유저 통계
     var totalUsers = Object.keys(usersRaw).length;
@@ -3219,23 +3221,22 @@ async function loadAdminStats(){
     }).length;
 
     // 커뮤니티 통계
-    var commList = Object.values(commRaw).filter(Boolean);
-    var approvedComm = commList.filter(function(p){return p.status==='approved'||!p.status;});
-    var pendingComm = commList.filter(function(p){return p.status==='pending';});
+    var approvedComm = Object.values(approvedRaw).filter(Boolean);
+    var pendingComm = Object.values(pendingRaw).filter(Boolean);
     var totalLikes = approvedComm.reduce(function(s,p){return s+(p.likes||0);},0);
     var ratingsArr = approvedComm.filter(function(p){return p.rating>0;}).map(function(p){return p.rating;});
     var avgRating = ratingsArr.length>0 ? Math.round(ratingsArr.reduce(function(s,r){return s+r;},0)/ratingsArr.length*10)/10 : '-';
 
-    // 레시피 통계 (history 기반)
+    // 레시피 통계 (cookLogs 기반: cookLogs/{uid}/{recipeId} = count)
     var recipeMap = {};
-    Object.values(histRaw).forEach(function(userHist){
-      if(typeof userHist!=='object')return;
-      Object.values(userHist).forEach(function(entry){
-        if(!entry||!entry.recipeId)return;
-        var rid = entry.recipeId;
-        var rname = entry.recipeName||entry.recipe||rid;
-        if(!recipeMap[rid])recipeMap[rid]={name:rname,count:0};
-        recipeMap[rid].count++;
+    var recipeIdToName = {};
+    RECIPES.forEach(function(r){recipeIdToName[r.id]=r.name;});
+    Object.values(cookLogsRaw).forEach(function(userLogs){
+      if(typeof userLogs!=='object')return;
+      Object.keys(userLogs).forEach(function(rid){
+        var cnt = userLogs[rid]||0;
+        if(!recipeMap[rid])recipeMap[rid]={name:recipeIdToName[rid]||rid,count:0};
+        recipeMap[rid].count+=cnt;
       });
     });
     var recipeList = Object.values(recipeMap).sort(function(a,b){return b.count-a.count;});
@@ -3284,7 +3285,7 @@ async function loadAdminStats(){
     statsHtml += '</div>';
     // 레시피 TOP 10
     statsHtml += '<div style="font-size:11px;font-weight:700;color:#ce93d8;margin-bottom:8px">🍽️ 레시피 TOP '+Math.min(10,top10.length)+'</div>';
-    statsHtml += top10html;
+    statsHtml += top10.length>0 ? top10html : '<div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px 0">아직 요리 기록이 없어요. 앱에서 요리를 완료하면 여기에 표시됩니다!</div>';
     statsHtml += '</div>';
 
     area.innerHTML = statsHtml;
@@ -3965,6 +3966,12 @@ function addCookHistory(id,skipBadge,ratingVal){
   if(cookHistory.length>100)cookHistory=cookHistory.slice(0,100);
   localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   reportRecipeToFirebase(id,r.name);
+  // cookLogs Firebase 저장: cookLogs/{uid}/{recipeId} 카운터 +1
+  try{
+    if(fbUid&&id){
+      fbDB.ref('cookLogs/'+fbUid+'/'+id).transaction(function(c){return(c||0)+1;});
+    }
+  }catch(e){}
   // Google Sheets 레시피카운트 → 관리자 수동 동기화 방식으로 변경 (실시간 전송 제거)
   if(!skipBadge)checkBadges();
   else checkLevelUp();
