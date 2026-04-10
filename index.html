@@ -1825,19 +1825,27 @@ function render(){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
     // 🔥 많이 한 요리 TOP 3
     h+='<div style="background:linear-gradient(135deg,#fff8e1,#fff3cd);border:1px solid #f0e6d2;border-radius:14px;padding:12px">';
-    h+='<div style="font-size:12px;font-weight:700;color:#e65100;margin-bottom:8px">🔥 많이 한 요리 TOP 3</div>';
+    h+='<div style="font-size:12px;font-weight:700;color:#e65100;margin-bottom:4px">🔥 많이 한 요리 TOP 3</div>';
+    h+='<div style="font-size:9px;color:#aaa;margin-bottom:6px">횟수xd7평점 가중 점수순</div>';
     if(recipeRanking.length===0){
       h+='<div style="font-size:11px;color:#aaa;text-align:center;padding:8px 0">집계 중...</div>';
     }else{
       var ckMedals=['🥇','🥈','🥉'];
       var ckColors=['#f9a825','#9e9e9e','#a1590f'];
-      recipeRanking.slice(0,3).forEach(function(r,i){
+      // 평점 가중 점수 계산: 횟수 xd7 (평균평점 or 3)
+      var ckWithScore=recipeRanking.slice(0,5).map(function(r){
+        var ratedH=cookHistory.filter(function(ch){return ch.id===r.id&&ch.rating&&ch.rating>0;});
+        var avgRating=ratedH.length>0?(ratedH.reduce(function(s,h){return s+h.rating;},0)/ratedH.length):3;
+        return Object.assign({},r,{score:r.count*avgRating,avgRating:avgRating,ratedCount:ratedH.length});
+      }).sort(function(a,b){return b.score-a.score;}).slice(0,3);
+      ckWithScore.forEach(function(r,i){
         var recipe=RECIPES.find(function(rr){return rr.id===r.id});
         var emoji=recipe?recipe.emoji:'🍽️';
+        var ratingStr=r.ratedCount>0?(' · ★'+r.avgRating.toFixed(1)):'';
         h+='<div class="top3-item" data-id="'+r.id+'" style="display:flex;align-items:center;gap:6px;padding:5px 0;cursor:pointer'+(i<2?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">'
         h+='<span style="font-size:11px;font-weight:700;min-width:20px;color:'+ckColors[i]+'">'+ckMedals[i]+'</span>';
         h+='<span style="font-size:18px">'+emoji+'</span>';
-        h+='<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.name+'</div><div style="font-size:10px;color:#888">'+r.count+'회</div></div>';
+        h+='<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.name+'</div><div style="font-size:10px;color:#888">'+r.count+'회'+ratingStr+'</div></div>';
         h+='</div>';
       });
     }
@@ -1863,8 +1871,109 @@ function render(){
     h+='</div>';
     h+='</div>';
     h+='</div>';
+    // === 내 Best 요리 TOP3 (평점 기반) ===
+    var favRatedMap={};
+    cookHistory.forEach(function(ch){
+      if(!ch.rating||ch.rating<1)return;
+      if(!favRatedMap[ch.id])favRatedMap[ch.id]={id:ch.id,totalRating:0,count:0,cookCount:0,lastRating:0};
+      favRatedMap[ch.id].totalRating+=ch.rating;
+      favRatedMap[ch.id].count++;
+      favRatedMap[ch.id].lastRating=Math.max(favRatedMap[ch.id].lastRating,ch.rating);
+    });
+    cookHistory.forEach(function(ch){
+      if(!favRatedMap[ch.id])return;
+      favRatedMap[ch.id].cookCount=(favRatedMap[ch.id].cookCount||0)+1;
+    });
+    var bestList=Object.values(favRatedMap).map(function(v){
+      return Object.assign({},v,{avgRating:v.totalRating/v.count});
+    }).sort(function(a,b){
+      // 1순위: 평균 평점 높은 순, 동점 시 요리 횟수 많은 순
+      if(b.avgRating!==a.avgRating)return b.avgRating-a.avgRating;
+      return b.cookCount-a.cookCount;
+    }).slice(0,3);
+    if(bestList.length>0){
+      h+='<div style="padding:0 16px 0">';
+      h+='<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;padding:16px;margin-bottom:14px">';
+      h+='<div style="font-size:13px;font-weight:700;color:#fbc02d;margin-bottom:12px">🏆 내 Best 요리 TOP'+bestList.length+'</div>';
+      h+='<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:-8px;margin-bottom:10px">평점 높은 순 · 동점 시 요리 횟수 많은 순</div>';
+      var bestMedals=['🥇','🥈','🥉'];
+      bestList.forEach(function(b,i){
+        var recipe=RECIPES.find(function(rr){return rr.id===b.id});
+        if(!recipe)return;
+        var stars='';
+        var avgR=Math.round(b.avgRating);
+        for(var si=1;si<=5;si++)stars+=(si<=avgR?'★':'☆');
+        h+='<div onclick="openDetail(\''+b.id+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer'+(i<bestList.length-1?';border-bottom:1px solid rgba(255,255,255,.08)':'')+'">'
+        h+='<span style="font-size:16px;min-width:22px">'+bestMedals[i]+'</span>';
+        h+='<span style="font-size:24px">'+recipe.emoji+'</span>';
+        h+='<div style="flex:1;min-width:0">';
+        h+='<div style="font-size:12px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+recipe.name+'</div>';
+        h+='<div style="font-size:11px;color:#fbc02d;margin-top:2px">'+stars+' <span style="color:rgba(255,255,255,.5);font-size:10px">('+b.avgRating.toFixed(1)+'점 · '+b.cookCount+'회)</span></div>';
+        h+='</div>';
+        h+='</div>';
+      });
+      h+='</div>';
+      h+='</div>';
+    }
     // === 내 즐겨찾기 목록 ===
-    h+='<div class="recipe-section"><h2 style="color:var(--text)">❤️ 내 즐겨찾기</h2>';var fr=RECIPES.filter(function(r){return favs.has(r.id)});if(!fr.length)h+='<div class="empty"><div class="em">💝</div><div class="empty-title">즐겨찾기한 레시피가 없어요</div><div class="empty-sub">마음에 드는 레시피에 ❤️를 눌러보세요!<br>나만의 레시피 목록을 만들 수 있어요.</div><button class="empty-cta" onclick="tab=\'cook\';render()">🍳 레시피 둘러보기</button></div>';fr.forEach(function(r){h+=renderCard(Object.assign({},r,{match:sel.size>0?matchRecipe(r,selArr):{pct:0}}))});h+='</div>';
+    var fr=RECIPES.filter(function(r){return favs.has(r.id)});
+    // 즐겨찾기 정렬 상태 (localStorage)
+    var favSort=localStorage.getItem('nt_fav_sort')||'default';
+    // 즐겨찾기 레시피별 평점 계산
+    var favRatingMap={};
+    cookHistory.forEach(function(ch){
+      if(!ch.rating||ch.rating<1)return;
+      if(!favRatingMap[ch.id])favRatingMap[ch.id]={total:0,count:0,cookCount:0};
+      favRatingMap[ch.id].total+=ch.rating;
+      favRatingMap[ch.id].count++;
+    });
+    cookHistory.forEach(function(ch){
+      if(!favRatingMap[ch.id])return;
+      favRatingMap[ch.id].cookCount=(favRatingMap[ch.id].cookCount||0)+1;
+    });
+    // 정렬 적용
+    var frSorted=fr.slice();
+    if(favSort==='rating'){
+      frSorted.sort(function(a,b){
+        var ra=favRatingMap[a.id]?favRatingMap[a.id].total/favRatingMap[a.id].count:0;
+        var rb=favRatingMap[b.id]?favRatingMap[b.id].total/favRatingMap[b.id].count:0;
+        if(rb!==ra)return rb-ra;
+        var ca=favRatingMap[a.id]?favRatingMap[a.id].cookCount:0;
+        var cb=favRatingMap[b.id]?favRatingMap[b.id].cookCount:0;
+        return cb-ca;
+      });
+    }
+    // 평점 없는 즐겨찾기 알림
+    var noRatingFavs=fr.filter(function(r){return !favRatingMap[r.id]||favRatingMap[r.id].count===0});
+    h+='<div class="recipe-section">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+    h+='<h2 style="color:var(--text);margin:0">❤️ 내 즐겨찾기</h2>';
+    if(fr.length>0){
+      h+='<div style="display:flex;gap:6px">';
+      h+='<button onclick="localStorage.setItem(\'nt_fav_sort\',\'default\');render()" style="padding:4px 10px;border:1px solid '+(favSort==='default'?'var(--primary)':'var(--border)')+';border-radius:8px;background:'+(favSort==='default'?'var(--primary)':'var(--bg)')+';color:'+(favSort==='default'?'#fff':'var(--sub)')+';font-size:11px;cursor:pointer;font-family:inherit">기본</button>';
+      h+='<button onclick="localStorage.setItem(\'nt_fav_sort\',\'rating\');render()" style="padding:4px 10px;border:1px solid '+(favSort==='rating'?'#fbc02d':'var(--border)')+';border-radius:8px;background:'+(favSort==='rating'?'#fbc02d':'var(--bg)')+';color:'+(favSort==='rating'?'#333':'var(--sub)')+';font-size:11px;cursor:pointer;font-family:inherit">⭐ 평점순</button>';
+      h+='</div>';
+    }
+    h+='</div>';
+    if(noRatingFavs.length>0&&fr.length>0){
+      h+='<div style="background:#fff8e1;border-left:3px solid #fbc02d;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#795548">';
+      h+='⭐ 아직 평점을 남기지 않은 즐겨찾기가 <b>'+noRatingFavs.length+'개</b> 있어요! 요리 후 별점을 남겨보세요.';
+      h+='</div>';
+    }
+    if(!fr.length)h+='<div class="empty"><div class="em">💝</div><div class="empty-title">즐겨찾기한 레시피가 없어요</div><div class="empty-sub">마음에 드는 레시피에 ❤️를 눈러보세요!<br>나만의 레시피 목록을 만들 수 있어요.</div><button class="empty-cta" onclick="tab=\'cook\';render()">🍳 레시피 둘러보기</button></div>';
+    frSorted.forEach(function(r){
+      // 평점 표시를 위해 카드에 평점 정보 추가
+      var rInfo=favRatingMap[r.id];
+      var ratingHtml='';
+      if(rInfo&&rInfo.count>0){
+        var avgR2=rInfo.total/rInfo.count;
+        var stars2='';
+        for(var si2=1;si2<=5;si2++)stars2+=(si2<=Math.round(avgR2)?'★':'☆');
+        ratingHtml='<div style="font-size:11px;color:#fbc02d;margin-top:2px">'+stars2+' <span style="font-size:10px;color:var(--sub)">'+avgR2.toFixed(1)+'점</span></div>';
+      }
+      h+=renderCard(Object.assign({},r,{match:sel.size>0?matchRecipe(r,selArr):{pct:0},_ratingHtml:ratingHtml}));
+    });
+    h+='</div>';
   }else if(tab==='comm'){
     h+=renderCommunity();
     // 관리자 모드 활성화 버튼 (숫겨진 영역)
@@ -1929,6 +2038,7 @@ function renderCard(r){
   h+='<div class="rc-info" style="padding:12px 12px 10px;flex:1;min-width:0;position:relative">';
  h+='<button class="rc-fav" style="top:8px;right:8px;font-size:18px" onclick="event.stopPropagation();toggleFav(\''+r.id+'\');render()">'+(favs.has(r.id)?'❤️':'🤍')+'</button>';
   h+='<div class="rc-name" style="font-size:14px;margin-bottom:4px;padding-right:28px">'+r.name+' '+(getRecipeMedal(r.id)?'<span style="font-size:12px">'+getRecipeMedal(r.id)+'</span>':'')+'</div>';
+  if(r._ratingHtml)h+=r._ratingHtml;
   h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
   h+='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:'+catBg+';color:'+catColor+';font-weight:700">'+catLabel+'</span>';
   h+='<span style="font-size:10px;padding:2px 8px;border-radius:8px;background:'+dfBg+';color:'+dfColor+';font-weight:700">'+dfLabel+'</span>';
@@ -1954,7 +2064,11 @@ function renderDetail(){
   h+='<div class="desc">'+r.desc+'</div>';
   var dTags=RECIPE_TAGS[r.id]||[];if(dTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;justify-content:center">';var dtC=TAG_COLORS;dTags.forEach(function(t){var c=dtC[t]||['#555','#eee'];h+='<span onclick="closeDetail();activeTag=\''+t+'\';tab=\'cook\';render()" style="font-size:11px;padding:3px 10px;border-radius:12px;background:'+c[1]+';color:'+c[0]+';font-weight:600;cursor:pointer">#'+t+'</span>';});h+='</div>';}
   h+='</div>';
-  h+='<div class="det-info-cards"><div class="info-card"><div class="val">'+r.serving+'인분</div><div class="lbl">기준</div></div><div class="info-card"><div class="val">'+r.time+'분</div><div class="lbl">조리시간</div></div><div class="info-card"><div class="val">'+r.kcal+'</div><div class="lbl">칼로리</div></div></div>';
+  // 커뮤니티 평균 별점 계산
+  var _commRated=communityPosts.filter(function(c){return c.recipeId===r.id&&c.rating&&c.rating>0;});
+  var _commAvgRating=_commRated.length>0?(_commRated.reduce(function(s,c){return s+Number(c.rating);},0)/_commRated.length):0;
+  var _commRatingCard=_commRated.length>0?('<div class="info-card" style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1px solid #ffe082"><div class="val" style="color:#f57f17">'+(function(){var s='';var avg=Math.round(_commAvgRating);for(var i=1;i<=5;i++)s+=(i<=avg?'★':'☆');return s;})()+'</div><div class="lbl">커뮤니티 '+_commRated.length+'명</div></div>'):'';
+  h+='<div class="det-info-cards"><div class="info-card"><div class="val">'+r.serving+'인분</div><div class="lbl">기준</div></div><div class="info-card"><div class="val">'+r.time+'분</div><div class="lbl">조리시간</div></div><div class="info-card"><div class="val">'+r.kcal+'</div><div class="lbl">칼로리</div></div>'+_commRatingCard+'</div>';
   // 보관법 표시 제거됨
   h+='<div class="serving-ctrl"><button class="sv-btn" onclick="if(servMul>1){servMul--;renderDetail()}">−</button><span class="sv-val">'+Math.round(r.serving*servMul)+'인분</span><button class="sv-btn" onclick="if(servMul<10){servMul++;renderDetail()}">＋</button></div>';
   h+='<div class="det-section"><h3>📝 재료</h3><div class="det-legend">● 필수 / ○ 선택' + (sel.size>0 ? ' · <span style="color:var(--green)">✔ 보유</span> / <span style="color:#d84315">✘ 부족</span>' : '') + '</div>';
@@ -2722,6 +2836,37 @@ function renderCommunity(){
       h+='</div>';
     });
   }
+  // 레시피별 커뮤니티 평균 별점 계산
+  var commRatingMap={};
+  communityPosts.forEach(function(c){
+    if(!c.rating||c.rating<1||!c.recipeId)return;
+    if(!commRatingMap[c.recipeId])commRatingMap[c.recipeId]={total:0,count:0,name:c.recipe||'',emoji:c.emoji||'🍳'};
+    commRatingMap[c.recipeId].total+=Number(c.rating);
+    commRatingMap[c.recipeId].count++;
+  });
+  var commRatingList=Object.keys(commRatingMap).map(function(rid){
+    var d=commRatingMap[rid];
+    return{id:rid,name:d.name,emoji:d.emoji,avg:d.total/d.count,count:d.count};
+  }).sort(function(a,b){return b.avg-a.avg||(b.count-a.count)}).slice(0,5);
+  // 커뮤니티 평균 별점 TOP5 섹션
+  if(commRatingList.length>0){
+    h+='<div style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1px solid #ffe082;border-radius:14px;padding:14px;margin-bottom:16px">';
+    h+='<div style="font-size:12px;font-weight:700;color:#f57f17;margin-bottom:10px">⭐ 커뮤니티 평균 별점 TOP'+commRatingList.length+'</div>';
+    h+='<div style="font-size:10px;color:#a1887f;margin-top:-6px;margin-bottom:8px">커뮤니티에 별점을 남긴 후기 기준</div>';
+    commRatingList.forEach(function(r,i){
+      var stars='';
+      var avgR=Math.round(r.avg);
+      for(var si=1;si<=5;si++)stars+=(si<=avgR?'★':'☆');
+      h+='<div onclick="openDetail(\''+r.id+'\')" style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer'+(i<commRatingList.length-1?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">'
+      h+='<span style="font-size:20px">'+r.emoji+'</span>';
+      h+='<div style="flex:1;min-width:0">';
+      h+='<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.name+'</div>';
+      h+='<div style="font-size:11px;color:#fbc02d">'+stars+' <span style="font-size:10px;color:#888">'+r.avg.toFixed(1)+'점 ('+r.count+'명)</span></div>';
+      h+='</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
   // 커뮤니티에 올린 실제 유저 글 (관리자 승인된 글만 표시)
   var isAdmin=localStorage.getItem('nt_admin')==='1';
   // communityPosts는 Firebase 실시간 로드 (전역 변수)
@@ -2729,7 +2874,7 @@ function renderCommunity(){
     h+='<div class="comm-card"><div class="comm-top"><div class="comm-avatar">'+(c.emoji||'👤')+'</div><div style="flex:1"><div class="comm-user">'+(c.user||'익명')+'</div><div class="comm-date">'+(c.date||'')+'</div></div>';
     if(isAdmin)h+='<button onclick="deleteCommunityPost('+idx+')" style="background:none;border:1px solid #d84315;border-radius:6px;color:#d84315;font-size:11px;padding:2px 8px;cursor:pointer;font-family:inherit">삭제</button>';
     h+='</div>';
-    h+='<div class="comm-recipe">🍳 '+(c.recipe||'')+'</div>';
+    h+='<div class="comm-recipe">🍳 '+(c.recipe||'')+(c.rating&&c.rating>0?' <span style="font-size:11px;color:#fbc02d">'+(function(){var s='';for(var i=1;i<=5;i++)s+=(i<=c.rating?'★':'☆');return s;})()+'</span>':'')+'</div>';
     if(c.text)h+='<div class="comm-txt">'+c.text+'</div>';
     if(c.photo){
       var _isBest=c.recipeId&&RECIPE_BEST_PHOTOS[c.recipeId]&&RECIPE_BEST_PHOTOS[c.recipeId].photo===c.photo;
@@ -3388,6 +3533,16 @@ function submitHistoryShare(modal){
   var recipeId = modal._recipeId;
   var recipeEmoji = modal._recipeEmoji;
   
+  // 해당 레시피의 최근 평점 자동 포함
+  var autoRating = 0;
+  if(recipeId){
+    var ratedHistory = cookHistory.filter(function(h){return h.id===recipeId&&h.rating&&h.rating>0;});
+    if(ratedHistory.length>0){
+      // 가장 최근 평점 사용
+      autoRating = ratedHistory[0].rating;
+    }
+  }
+  
   modal.remove();
   
   var newPost = {
@@ -3403,6 +3558,7 @@ function submitHistoryShare(modal){
     status: 'pending',
     submittedAt: new Date().toISOString()
   };
+  if(autoRating>0)newPost.rating=autoRating;
   fbDB.ref('community/pending').push(newPost).then(function(){
     // 자랑완료 플래그 저장 (중복 자랑 방지)
     cookHistory = cookHistory.map(function(h){
