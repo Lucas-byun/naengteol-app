@@ -87,7 +87,7 @@ function syncUsers(ss, users) {
   }
 
   // 헤더 설정
-  var headers = ['UID', '닉네임', '가입일시', '게시글수', '동기화시각'];
+  var headers = ['UID', '닉네임', '가입일시', '게시글수', '닉네임이력', '동기화시각'];
   sheet.clearContents();
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#fbc02d');
@@ -96,7 +96,15 @@ function syncUsers(ss, users) {
 
   var now = new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'});
   var rows = users.map(function(u) {
-    return [u.uid || '', u.nickname || '', u.timestamp || '', u.posts || 0, now];
+    // 닉네임 이력을 "닉네임(날짜)" 형식으로 변환
+    var histStr = '';
+    if (u.nicknameHistory && u.nicknameHistory.length > 0) {
+      histStr = u.nicknameHistory.map(function(h) {
+        var d = h.changedAt ? h.changedAt.substring(0, 10) : '';
+        return h.nickname + '(' + d + ')';
+      }).join(' → ');
+    }
+    return [u.uid || '', u.nickname || '', u.timestamp || '', u.posts || 0, histStr, now];
   });
 
   sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);

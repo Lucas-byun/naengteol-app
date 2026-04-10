@@ -693,12 +693,22 @@ function registerUserToFirebase(nickname){
   if(!nickname)return;
   var now=new Date().toISOString();
   var userData={uid:fbUid,nickname:nickname,updatedAt:now};
-  // Firebase users/{uid} 에 저장
+  // Firebase users/{uid} 에 저장 (닉네임 이력도 함께 기록)
   fbDB.ref('users/'+fbUid).transaction(function(existing){
     if(existing){
-      return Object.assign({},existing,{nickname:nickname,updatedAt:now});
+      // 이전 닉네임이 다를 경우에만 이력에 추가
+      var prevNick=existing.nickname||'';
+      var updated=Object.assign({},existing,{nickname:nickname,updatedAt:now});
+      if(prevNick && prevNick!==nickname){
+        var history=existing.nicknameHistory||[];
+        history.push({nickname:prevNick,changedAt:now});
+        // 최대 20개까지만 보관
+        if(history.length>20)history=history.slice(history.length-20);
+        updated.nicknameHistory=history;
+      }
+      return updated;
     } else {
-      return Object.assign({},userData,{registeredAt:now});
+      return Object.assign({},userData,{registeredAt:now,nicknameHistory:[]});
     }
   }).catch(function(){});
   // Google Sheets 유저목록 시트에도 기록 (백그라운드, 실패 무시)
@@ -3094,8 +3104,9 @@ async function syncToSheets(){
       users.push({
         uid:uid,
         nickname:u.nickname||'',
-        timestamp:u.timestamp||u.joinedAt||'',
-        posts:(u.posts||0)
+        timestamp:u.timestamp||u.registeredAt||u.joinedAt||'',
+        posts:(u.posts||0),
+        nicknameHistory:u.nicknameHistory||[]
       });
     });
 
