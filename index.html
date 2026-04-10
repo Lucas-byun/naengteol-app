@@ -1526,7 +1526,7 @@ function render(){
       recipeRanking.slice(0,3).forEach(function(r,i){
         var recipe=RECIPES.find(function(rr){return rr.id===r.id});
         var emoji=recipe?recipe.emoji:'🍽️';
-        h+='<div onclick="'+(recipe?'openDetail(\''+r.id+'\')':'')+ '" style="display:flex;align-items:center;gap:6px;padding:5px 0;cursor:pointer'+(i<2?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">';
+        h+='<div class="top3-item" data-id="'+r.id+'" style="display:flex;align-items:center;gap:6px;padding:5px 0;cursor:pointer'+(i<2?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">'
         h+='<span style="font-size:11px;font-weight:700;min-width:20px;color:'+ckColors[i]+'">'+ckMedals[i]+'</span>';
         h+='<span style="font-size:18px">'+emoji+'</span>';
         h+='<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.name+'</div><div style="font-size:10px;color:#888">'+r.count+'회</div></div>';
@@ -1545,7 +1545,7 @@ function render(){
       favRanking.forEach(function(r,i){
         var recipe=RECIPES.find(function(rr){return rr.id===r.id});
         var emoji=recipe?recipe.emoji:'🍽️';
-        h+='<div onclick="'+(recipe?'openDetail(\''+r.id+'\')':'')+ '" style="display:flex;align-items:center;gap:6px;padding:5px 0;cursor:pointer'+(i<favRanking.length-1?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">';
+        h+='<div class="top3-item" data-id="'+r.id+'" style="display:flex;align-items:center;gap:6px;padding:5px 0;cursor:pointer'+(i<favRanking.length-1?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">'
         h+='<span style="font-size:11px;font-weight:700;min-width:20px;color:'+fvColors[i]+'">'+fvMedals[i]+'</span>';
         h+='<span style="font-size:18px">'+emoji+'</span>';
         h+='<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.name+'</div><div style="font-size:10px;color:#888">'+r.count+'명</div></div>';
@@ -1586,6 +1586,13 @@ h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " oncl
       }
     });
   }
+  // TOP3 항목 클릭 이벤트 바인딩 (data-id 방식)
+  document.querySelectorAll('.top3-item[data-id]').forEach(function(el){
+    el.addEventListener('click',function(){
+      var id=this.getAttribute('data-id');
+      if(id)openDetail(id);
+    });
+  });
 }
 
 function renderCard(r){
