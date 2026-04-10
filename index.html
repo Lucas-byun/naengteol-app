@@ -1059,8 +1059,7 @@ function sharePhotoToCommunity(idx){
 }
 function showAllPhotosModal(photoOnly){
   var allPosts=cookHistory.filter(function(ch){return ch.photo||(ch.comment&&!photoOnly)});
-  if(allPosts.length===0){showCartPopup('📷 사진이 없어요','아직 요리 사진이 없습니다.
-요리를 완료하고 사진을 남겨보세요!');return;}
+  if(allPosts.length===0){showCartPopup('📷 사진이 없어요','아직 요리 사진이 없습니다. 요리를 완료하고 사진을 남겨보세요!');return;}
   // 전체화면 뷰어용 사진 배열
   var allViewerPhotos=allPosts.filter(function(ch){return ch.photo}).map(function(ch){
     var r=RECIPES.find(function(x){return x.id===ch.id});
