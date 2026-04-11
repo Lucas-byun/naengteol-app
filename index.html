@@ -657,24 +657,28 @@ function submitNickname(){
   if(v.length<1||v.length>15){showCartPopup('⚠️ 닉네임 오류','닉네임은 1자 이상 15자 이하로 입력해주세요!');return;}
   // 내 현재 닉네임과 같으면 바로 저장 (중복 체크 불필요)
   if(v===userNickname){showCartPopup('✅ 저장 완료','닉네임이 ['+v+']으로 유지됩니다!');return;}
-  // Firebase에서 전체 users 조회 후 클라이언트에서 중복 닉네임 체크
+  // Firebase nicknames 인덱스 노드로 빠른 중복 체크
   var btn=document.getElementById('nicknameSaveBtn');
   if(btn){btn.disabled=true;btn.textContent='확인 중...';}
-  fbDB.ref('users').once('value',function(snap){
+  // nicknames/{encoded} = uid 형태로 저장된 인덱스 사용
+  var encodedNick=v.replace(/[.#$\[\]]/g,'_');
+  fbDB.ref('nicknames/'+encodedNick).once('value',function(snap){
     if(btn){btn.disabled=false;btn.textContent='저장';}
-    var isDup=false;
-    if(snap.exists()){
-      snap.forEach(function(child){
-        var data=child.val();
-        if(data&&data.nickname===v&&child.key!==fbUid){isDup=true;}
-      });
-    }
+    var existingUid=snap.val();
+    var isDup=snap.exists()&&existingUid!==fbUid;
     if(isDup){
       showCartPopup('⚠️ 중복 닉네임','이미 사용 중인 닉네임입니다.\n다른 닉네임을 입력해주세요!');
     } else {
+      // 이전 닉네임 인덱스 제거
+      if(userNickname&&userNickname!==v){
+        var oldEncoded=userNickname.replace(/[.#$\[\]]/g,'_');
+        fbDB.ref('nicknames/'+oldEncoded).remove().catch(function(){});
+      }
+      // 새 닉네임 인덱스 저장
+      fbDB.ref('nicknames/'+encodedNick).set(fbUid).catch(function(){});
       saveNickname(v);
       render();
-        cancelNicknameEdit();
+      cancelNicknameEdit();
       showCartPopup('✅ 저장 완료','닉네임이 ['+v+']으로 설정되었어요!\n커뮤니티 자랑하기에 반영됩니다 🎉');
     }
   },function(err){
@@ -2848,12 +2852,31 @@ function renderCommunity(){
     });
     h+='</div>';
   }
-  // ===== 인스타그램 그리드 (2열) =====
+  // ===== 검색창 + 필터 =====
   var isAdmin=localStorage.getItem('nt_admin')==='1';
-  if(communityPosts.length>0){
-    h+='<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📸 후기 사진 ('+communityPosts.length+'개)</div>';
+  var commSearchVal=window._commSearch||'';
+  var commSort=window._commSort||'latest';
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">';
+  h+='<input id="commSearchInput" type="text" placeholder="요리명 검색..." value="'+commSearchVal+'" oninput="window._commSearch=this.value;render()" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit">';
+  h+='<select onchange="window._commSort=this.value;render()" style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit">';
+  h+='<option value="latest"'+(commSort==='latest'?' selected':'')+'>최신순</option>';
+  h+='<option value="likes"'+(commSort==='likes'?' selected':'')+'>좋아요순</option>';
+  h+='</select>';
+  h+='</div>';
+  // ===== 인스타그램 그리드 (2열) =====
+  // 검색 + 정렬 필터
+  var filteredPosts=communityPosts.slice();
+  if(commSearchVal.trim()){
+    var kw=commSearchVal.trim().toLowerCase();
+    filteredPosts=filteredPosts.filter(function(c){return (c.recipe||'').toLowerCase().includes(kw)||(c.text||'').toLowerCase().includes(kw);});
+  }
+  if(commSort==='likes'){
+    filteredPosts.sort(function(a,b){return (b.likes||0)-(a.likes||0);});
+  }
+  if(filteredPosts.length>0){
+    h+='<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📸 후기 사진 ('+filteredPosts.length+'개)</div>';
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:16px">';
-    communityPosts.forEach(function(c,idx){
+    filteredPosts.forEach(function(c,idx){
       var _liked=localStorage.getItem('nt_liked_'+(c.id||c._fbKey||('idx_'+idx)))==='1';
       var _isBest=c.recipeId&&RECIPE_BEST_PHOTOS[c.recipeId]&&RECIPE_BEST_PHOTOS[c.recipeId].photo===c.photo;
       h+='<div onclick="openCommDetail('+idx+')" style="position:relative;cursor:pointer;background:#f5f5f5;aspect-ratio:1/1;overflow:hidden;border-radius:4px">';
@@ -2880,9 +2903,14 @@ function renderCommunity(){
   } else if(!isAdmin){
     h+='<div style="text-align:center;padding:40px 20px;color:var(--sub)">';
     h+='<div style="font-size:56px;margin-bottom:16px">📸</div>';
-    h+='<div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">아직 등록된 후기가 없어요</div>';
-    h+='<div style="font-size:13px;line-height:1.5;margin-bottom:16px">요리를 완성하고 사진을 찍어보세요!<br>다른 사용자들과 요리 경험을 공유할 수 있어요.</div>';
-    h+='<button class="empty-cta" onclick="tab=\\\'cook\\\';render()">🍳 요리 시작하기</button>';
+    if(commSearchVal.trim()){
+      h+='<div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">"'+commSearchVal+'" 검색 결과가 없어요</div>';
+      h+='<div style="font-size:13px;line-height:1.5;margin-bottom:16px">다른 요리명으로 검색해보세요!</div>';
+    } else {
+      h+='<div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">아직 등록된 후기가 없어요</div>';
+      h+='<div style="font-size:13px;line-height:1.5;margin-bottom:16px">요리를 완성하고 사진을 찍어보세요!<br>다른 사용자들과 요리 경험을 공유할 수 있어요.</div>';
+      h+='<button class="empty-cta" onclick="tab=&apos;cook&apos;;render()">🍳 요리 시작하기</button>';
+    }
     h+='</div>';
   }
   // 관리자 전용: 승인 대기 섹션
@@ -3645,9 +3673,42 @@ window.addEventListener('popstate',function(e){
 // === COOKING HISTORY & BADGES ===
 var cookHistory=[];try{var ch=localStorage.getItem('nt_history');if(ch)cookHistory=JSON.parse(ch);}catch(e){}
 var userPosts=[];try{var up=localStorage.getItem('nt_posts');if(up)userPosts=JSON.parse(up);}catch(e){}
+// Firebase cookHistory 백업 및 복원
+function backupHistoryToFirebase(){
+  if(!fbUid||!cookHistory.length)return;
+  // 사진(base64) 제외하고 텍스트 데이터만 저장
+  var slim=cookHistory.slice(0,100).map(function(h){
+    var o={id:h.id,name:h.name,emoji:h.emoji||'',cat:h.cat||'',date:h.date||'',rating:h.rating||0,comment:h.comment||'',shared:h.shared||false};
+    // ImgBB URL이면 저장, base64는 제외
+    if(h.photo&&h.photo.startsWith('http'))o.photo=h.photo;
+    return o;
+  });
+  fbDB.ref('userHistory/'+fbUid+'/entries').set(slim).catch(function(){});
+  fbDB.ref('userHistory/'+fbUid+'/updatedAt').set(new Date().toISOString()).catch(function(){});
+}
+function restoreHistoryFromFirebase(){
+  if(!fbUid)return;
+  fbDB.ref('userHistory/'+fbUid+'/entries').once('value').then(function(snap){
+    var fbData=snap.val();
+    if(!fbData||!Array.isArray(fbData)||fbData.length===0)return;
+    // 로컈 데이터와 Firebase 데이터 병합 (날짜 기준 중복 제거)
+    var localDates=new Set(cookHistory.map(function(h){return h.id+'_'+h.date;}));
+    var merged=cookHistory.slice();
+    fbData.forEach(function(h){
+      if(!localDates.has(h.id+'_'+h.date))merged.push(h);
+    });
+    merged.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+    if(merged.length>cookHistory.length){
+      cookHistory=merged.slice(0,100);
+      localStorage.setItem('nt_history',JSON.stringify(cookHistory));
+    }
+  }).catch(function(){});
+}
+// 앱 시작 시 Firebase에서 기록 복원 시도
+setTimeout(function(){restoreHistoryFromFirebase();},2000);
 var communityPosts=[];
 // Firebase에서 승인된 커뮤니티 글 실시간 로드
-fbDB.ref('community/approved').orderByChild('date').limitToLast(50).on('value',function(snap){
+fbDB.ref('community/approved').orderByChild('date').limitToLast(200).on('value',function(snap){
   communityPosts=[];
   snap.forEach(function(child){
     communityPosts.unshift(Object.assign({_fbKey:child.key},child.val()));
@@ -3748,27 +3809,48 @@ function savePhotoComment(recipeId,share){
     if(rating>0)entry.rating=rating;
     localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   }
-  // Share to community - base64 직접 pending에 저장
+  // Share to community - ImgBB 업로드 후 URL만 Firebase에 저장
   if(share&&tempPhoto){
     var r=RECIPES.find(function(x){return x.id===recipeId});
-    var postId='p_'+Date.now();
-    var newPost={
-      id:postId,
-      recipe:r?r.name:'',
-      recipeId:recipeId,
-      emoji:r?r.emoji:'🍳',
-      user:getDisplayName(),
-      nickname:getDisplayName(),
-      uid:fbUid||'',
-      date:new Date().toISOString().split('T')[0],
-      text:commentText,
-      photo:tempPhoto,
-      rating:rating||0,
-      likes:0,
-      status:'pending',
-      submittedAt:new Date().toISOString()
-    };
-    fbDB.ref('community/pending').push(newPost).then(function(){
+    // 업로드 중 안내 팝업
+    var uploadingId='uploading_'+Date.now();
+    var uploadingHtml='<div id="'+uploadingId+'" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center">';
+    uploadingHtml+='<div style="background:var(--bg);border-radius:16px;padding:24px;text-align:center;max-width:280px">';
+    uploadingHtml+='<div style="font-size:40px;margin-bottom:12px">📤</div>';
+    uploadingHtml+='<div style="font-size:15px;font-weight:700;margin-bottom:6px">사진 업로드 중...</div>';
+    uploadingHtml+='<div style="font-size:12px;color:var(--sub)">잠시만 기다려주세요</div>';
+    uploadingHtml+='</div></div>';
+    document.body.insertAdjacentHTML('beforeend',uploadingHtml);
+    // ImgBB 업로드
+    var base64Data=tempPhoto.indexOf(',')>-1?tempPhoto.split(',')[1]:tempPhoto;
+    var fd=new FormData();
+    fd.append('image',base64Data);
+    fd.append('key','814e88f508d6b254bbfc68da9c342619');
+    fetch('https://api.imgbb.com/1/upload',{method:'POST',body:fd})
+    .then(function(res){return res.json();})
+    .then(function(imgData){
+      // 업로드 팝업 제거
+      var up=document.getElementById(uploadingId);if(up)up.remove();
+      var photoUrl=(imgData.success&&imgData.data&&imgData.data.display_url)?imgData.data.display_url:tempPhoto;
+      var postId='p_'+Date.now();
+      var newPost={
+        id:postId,
+        recipe:r?r.name:'',
+        recipeId:recipeId,
+        emoji:r?r.emoji:'🍳',
+        user:getDisplayName(),
+        nickname:getDisplayName(),
+        uid:fbUid||'',
+        date:new Date().toISOString().split('T')[0],
+        text:commentText,
+        photo:photoUrl,
+        rating:rating||0,
+        likes:0,
+        status:'pending',
+        submittedAt:new Date().toISOString()
+      };
+      return fbDB.ref('community/pending').push(newPost);
+    }).then(function(){
       // shared 플래그 저장 - 내기록 탭에서 자랑완료 버튼으로 표시
       var sharedEntry=cookHistory.find(function(ch){return ch.id===recipeId});
       if(sharedEntry){
@@ -3786,6 +3868,7 @@ function savePhotoComment(recipeId,share){
       document.body.insertAdjacentHTML('beforeend',popup);
       setTimeout(function(){var p=document.getElementById(popupId);if(p)p.remove();},3000);
     }).catch(function(){
+      var up=document.getElementById(uploadingId);if(up)up.remove();
       showCartPopup('❌ 오류','게시글 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
     });
   } else {
@@ -4032,6 +4115,8 @@ function addCookHistory(id,skipBadge,ratingVal){
   if(cookHistory.length>100)cookHistory=cookHistory.slice(0,100);
   localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   reportRecipeToFirebase(id,r.name);
+  // Firebase 백업 (비동기)
+  setTimeout(function(){backupHistoryToFirebase();},500);
   // cookLogs Firebase 저장: cookLogs/{uid}/{recipeId} 카운터 +1
   try{
     if(fbUid&&id){
