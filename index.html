@@ -1530,6 +1530,36 @@ function selectAC(val){
   searchQ=val;
   render();
 }
+// 커뮤니티 검색 자동완성
+function updateCommAC(val){
+  var ac=document.getElementById('commAcList');
+  if(!ac)return;
+  var q=(val||'').trim();
+  if(!q){ac.style.display='none';return;}
+  var ql=q.toLowerCase();
+  // communityPosts에서 요리명 추출 (중복 제거)
+  var names=[];
+  communityPosts.forEach(function(c){
+    var n=c.recipe||'';
+    if(n&&n.toLowerCase().includes(ql)&&!names.includes(n))names.push(n);
+  });
+  names=names.slice(0,8);
+  if(names.length===0){ac.style.display='none';return;}
+  var h='';
+  names.forEach(function(s,idx){
+    h+='<div onclick="selectCommAC(\''+s.replace(/'/g,"\\'")+'\')" style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:'+(idx<names.length-1?'1px solid var(--border)':'none')+';display:flex;align-items:center" onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'\'">🔍 '+s+'</div>';
+  });
+  ac.innerHTML=h;
+  ac.style.display='block';
+}
+function selectCommAC(val){
+  var si=document.getElementById('commSearchInput');
+  if(si)si.value=val;
+  var ac=document.getElementById('commAcList');
+  if(ac)ac.style.display='none';
+  window._commSearch=val;
+  render();
+}
 
 // === SUBSTITUTE INGREDIENTS ===
 var SUBS_MAP={
@@ -1989,6 +2019,19 @@ h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " oncl
       if(e.key==='Enter'){
         e.preventDefault();
         searchQ=si.value;
+        render();
+      }
+    });
+  }
+  // 커뮤니티 검색: Enter 키로 검색 (한글 조합 문제 방지)
+  var csi=document.getElementById('commSearchInput');
+  if(csi){
+    csi.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){
+        e.preventDefault();
+        var ac=document.getElementById('commAcList');
+        if(ac)ac.style.display='none';
+        window._commSearch=csi.value;
         render();
       }
     });
@@ -2857,7 +2900,12 @@ function renderCommunity(){
   var commSearchVal=window._commSearch||'';
   var commSort=window._commSort||'latest';
   h+='<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">';
-  h+='<input id="commSearchInput" type="text" placeholder="요리명 검색..." value="'+commSearchVal+'" oninput="window._commSearch=this.value;render()" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit">';
+  h+='<div style="position:relative;flex:1">';
+  h+='<input id="commSearchInput" type="text" placeholder="요리명 검색..." value="'+esc(commSearchVal)+'" autocomplete="off" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit" oninput="updateCommAC(this.value)" onfocus="updateCommAC(this.value)" onblur="setTimeout(function(){var ac=document.getElementById(\'commAcList\');if(ac)ac.style.display=\'none\'},200)">';
+  h+='<div id="commAcList" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1.5px solid var(--primary);border-radius:12px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);margin-top:4px"></div>';
+  h+='</div>';
+  h+='<button onclick="var inp=document.getElementById(\'commSearchInput\');window._commSearch=(inp?inp.value:\'\');render()" style="padding:8px 14px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">검색</button>';
+  if(commSearchVal)h+='<button onclick="window._commSearch=\'\';render()" style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">✕</button>';
   h+='<select onchange="window._commSort=this.value;render()" style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit">';
   h+='<option value="latest"'+(commSort==='latest'?' selected':'')+'>최신순</option>';
   h+='<option value="likes"'+(commSort==='likes'?' selected':'')+'>좋아요순</option>';
