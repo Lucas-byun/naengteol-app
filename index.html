@@ -1506,6 +1506,75 @@ function scaleVal(txt,mul,isStep){
   });
 }
 
+// === g 단위 → 일상 단위 자동 변환 ===
+// 변환표는 Google Sheets "개량단위변환표" 탭과 동기화됨
+var G_CONVERT_TABLE = [
+  // 고기류
+  ['돼지고기',100,30,'약 1인분'],['돼지고기',150,30,'약 1~2인분'],['돼지고기',200,30,'약 2인분'],['돼지고기',300,30,'약 3인분'],
+  ['소고기',100,30,'약 1인분'],['소고기',150,30,'약 1~2인분'],['소고기',200,30,'약 2인분'],['소고기',300,30,'약 3인분'],
+  ['닭가슴살',100,30,'약 1조각'],['닭가슴살',150,30,'약 1~2조각'],['닭가슴살',200,30,'약 2조각'],['닭가슴살',300,30,'약 3조각'],
+  ['닭고기',400,50,'약 반 마리'],['닭고기',800,50,'약 1마리'],
+  // 두부
+  ['두부',100,20,'1/4모'],['두부',200,20,'1/2모'],['두부',400,20,'1모'],
+  // 김치
+  ['김치',50,20,'약 1/4컵'],['김치',100,20,'약 1/2컵'],['김치',200,20,'약 1컵'],['김치',300,20,'약 1컵 반'],
+  // 채소류
+  ['콩나물',100,30,'반 봉지'],['콩나물',200,30,'반 봉지'],['콩나물',300,30,'3/4 봉지'],
+  ['버섯',150,30,'한 팩 1/2'],['버섯',200,30,'한 팩'],
+  ['양배추',100,20,'1/8통'],['양배추',150,20,'1/4통'],['양배추',200,20,'1/4통'],['양배추',300,20,'1/3통'],
+  ['무',100,20,'두께 2cm 1토막'],['무',200,20,'두께 2cm 2토막'],['무',300,20,'1/4개'],
+  ['고구마',300,30,'중간 크기 2개'],['고구마',400,30,'중간 크기 2~3개'],
+  ['당근',30,15,'1/4개'],['당근',50,15,'1/3개'],['당근',100,20,'1/2개'],['당근',200,20,'1개'],
+  ['쪽파',50,15,'5~6대'],['쪽파',100,20,'10대'],
+  ['시금치',100,20,'반 봉지'],['시금치',150,20,'반 봉지'],
+  // 면류/어묵
+  ['어묵',50,20,'1~2장'],['어묵',150,20,'2~3장'],['어묵',200,20,'3~4장'],
+  ['당면',100,20,'1인분'],['당면',150,20,'1~2인분'],['당면',200,20,'2인분'],
+  ['파스타면',150,20,'1인분'],['파스타면',200,20,'2인분'],
+  ['소면',100,20,'1인분'],['소면',200,20,'2인분'],
+  // 가공식품
+  ['스팸',100,20,'1/2캔'],['스팸',200,20,'1캔'],
+  ['햄',50,15,'2~3장'],['햄',100,20,'4~5장'],['햄',150,20,'반 덩이'],
+  ['소시지',100,20,'3~4개'],['소시지',150,20,'4~5개'],['소시지',200,20,'6~7개'],
+  ['베이컨',100,20,'4~5장'],
+  // 기타
+  ['버터',10,5,'1작은술'],['버터',30,10,'2큰술'],
+  ['치즈',30,10,'1~2장'],['치즈',100,20,'3~4장'],
+  ['미역',10,5,'한 줌'],
+  ['떡',100,20,'한 줌'],['떡',150,20,'한 줌 반'],['떡',200,20,'2인분'],
+  ['카레가루',100,10,'1봉지'],
+  ['해물믹스',50,20,'한 줌'],
+  ['마요네즈',10,5,'1작은술']
+];
+function convertGUnit(txt) {
+  // 숫자g 패턴 감지: "재료명 200g" 형태
+  return txt.replace(/(\d+)\s*g\b/g, function(match, amtStr, offset) {
+    var amt = parseInt(amtStr);
+    // 재료명 추출: g 앞 텍스트에서 마지막 단어(한글)
+    var before = txt.substring(0, offset);
+    var ingMatch = before.match(/([가-힣a-zA-Z()]+(?:\s*[가-힣a-zA-Z()]+)*)\s*$/);
+    if (!ingMatch) return match;
+    var ingName = ingMatch[1].trim();
+    // 변환표에서 가장 가까운 항목 찾기
+    var best = null, bestDiff = 9999;
+    for (var i = 0; i < G_CONVERT_TABLE.length; i++) {
+      var row = G_CONVERT_TABLE[i];
+      var keyword = row[0], gVal = row[1], tolerance = row[2], label = row[3];
+      if (ingName.indexOf(keyword) >= 0) {
+        var diff = Math.abs(amt - gVal);
+        if (diff <= tolerance && diff < bestDiff) {
+          best = label;
+          bestDiff = diff;
+        }
+      }
+    }
+    if (best) {
+      return '<span style="color:#888;font-size:0.9em">' + amt + 'g</span> <span style="color:var(--primary);font-weight:600;font-size:0.9em">(' + best + ')</span>';
+    }
+    return match;
+  });
+}
+
 // === AUTOCOMPLETE ===
 function updateAC(val){
   var ac=document.getElementById('acList');
@@ -2132,7 +2201,7 @@ function renderDetail(){
     else if(have)txtStyle=' style="color:var(--green)"';
     h+='<div class="det-ing-item">';
     h+='<span class="det-ing-dot '+dotCls+'"></span>';
-    h+='<span'+txtStyle+'>'+scaleVal(i.v,servMul)+'</span>';
+    h+='<span'+txtStyle+'>'+convertGUnit(scaleVal(i.v,servMul))+'</span>';
     if(miss&&isReq)h+='<span style="margin-left:auto;font-size:11px;color:#b85450;background:#fdf5f5;padding:1px 6px;border-radius:8px">부족</span>';
     else if(have)h+='<span style="margin-left:auto;font-size:11px;color:var(--green);background:#e8f5e9;padding:1px 6px;border-radius:8px">보유</span>';
     h+='</div>';
@@ -2291,7 +2360,7 @@ function renderFS(){
     h+='<span class="fs-check">'+(checked?'☑️':'⬜')+'</span>';
     h+='<span class="fs-ing-dot-'+(miss?'miss':'req')+'"></span>';
     var txtStyle=checked?' style="text-decoration:line-through;color:#aaa"':miss?' style="color:#d84315"':have?' style="color:var(--green)"':'';
-    h+='<span'+txtStyle+'>'+scaleVal(x.i.v,fsServMul)+'</span>';
+    h+='<span'+txtStyle+'>'+convertGUnit(scaleVal(x.i.v,fsServMul))+'</span>';
     if(!checked&&miss)h+='<span style="margin-left:auto;font-size:10px;color:#b85450;background:#fdf5f5;padding:1px 6px;border-radius:8px">부족</span>';
     else if(!checked&&have)h+='<span style="margin-left:auto;font-size:10px;color:var(--green);background:#e8f5e9;padding:1px 6px;border-radius:8px">보유</span>';
     h+='</div>';
@@ -2306,7 +2375,7 @@ function renderFS(){
       h+='<span class="fs-check">'+(checked?'☑️':'⬜')+'</span>';
       h+='<span class="fs-ing-dot-'+(have?'opt-have':'opt')+'"></span>';
       var txtStyle=checked?' style="text-decoration:line-through;color:#aaa"':have?' style="color:var(--green)"':'style="color:var(--sub)"';
-      h+='<span '+txtStyle+'>'+scaleVal(x.i.v,fsServMul)+'</span>';
+      h+='<span '+txtStyle+'>'+convertGUnit(scaleVal(x.i.v,fsServMul))+'</span>';
       if(!checked&&have)h+='<span style="margin-left:auto;font-size:10px;color:var(--green);background:#e8f5e9;padding:1px 6px;border-radius:8px">보유</span>';
       h+='</div>';
     });
