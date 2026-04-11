@@ -2374,7 +2374,7 @@ function renderFS(){
       if(getStepText(s).includes('센불')||getStepText(s).includes('강불')){extras.push({t:'🔥🔥🔥 센불',bg:'#fafafa',c:'#d84315',b:'#ef9a9a'});fireLevel='high';}
       else if(getStepText(s).includes('중불')||getStepText(s).includes('중간불')||getStepText(s).includes('중약불')){extras.push({t:'🔥🔥 중불',bg:'#f5f5f5',c:'#ff6f00',b:'#ffcc80'});fireLevel='mid';}
       else if(getStepText(s).includes('약불')||getStepText(s).includes('약한불')){extras.push({t:'🔥 약불',bg:'#e3f2fd',c:'#1976d2',b:'#90caf9'});fireLevel='low';}
-      else if(getStepText(s).includes('불을 끄')||getStepText(s).includes('불 끄')){extras.push({t:'⬛ 불 끄기',bg:'#f5f5f5',c:'#616161',b:'#bdbdbd'});}
+
       var timeM=getStepText(s).match(/(\d+)분/);if(timeM)extras.push({t:'⏱ '+timeM[1]+'분',bg:'var(--card)',c:'var(--text)',b:'var(--border)'});
       var secM=getStepText(s).match(/(\d+)초/);if(secM)extras.push({t:'⏱ '+secM[1]+'초',bg:'var(--card)',c:'var(--text)',b:'var(--border)'});
       if(extras.length>0){
