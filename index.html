@@ -2806,6 +2806,16 @@ function showAboutPage(){
   h+='개인정보 관련 문의: rookiesmart1031@gmail.com';
   h+='</div></div>';
   
+  // 데이터 저장 안내
+  h+='<div style="background:#fff8e1;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #ffe082">';
+  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:#f57f17">📦 데이터 저장 안내</div>';
+  h+='<div style="font-size:12px;color:#795548;line-height:1.8">';
+  h+='요리 기록(텍스트, 날짜, 별점)은 서버에 자동 백업됩니다.<br>';
+  h+='단, <b>요리 사진은 이 기기에만 저장</b>되어 앱 삭제 시 사라질 수 있어요.<br><br>';
+  h+='<span style="color:#1976d2;font-weight:600">🔜 추후 업데이트 예정</span><br>';
+  h+='구글 계정 연동 기능이 추가되면 사진 포함 전체 기록을 안전하게 보관할 수 있습니다.';
+  h+='</div></div>';
+
   // 오픈소스 / 크레딧
   h+='<div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:24px;border:1px solid var(--border)">';
   h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text)">📝 크레딧</div>';
@@ -4899,6 +4909,15 @@ function renderMyPage(){
   
   h+='</div>';
   h+='</div>';
+  // 데이터 저장 안내문
+  h+='<div style="margin:0 16px 16px;padding:14px 16px;background:#fff8e1;border-radius:12px;border:1px solid #ffe082">';
+  h+='<div style="font-size:12px;font-weight:700;color:#f57f17;margin-bottom:6px">📦 내 기록 저장 안내</div>';
+  h+='<div style="font-size:12px;color:#795548;line-height:1.8">';
+  h+='요리 기록(텍스트)은 서버에 자동 백업됩니다.<br>';
+  h+='단, 요리 사진은 이 기기에만 저장되어 <b>앱 삭제 시 사라질 수 있어요.</b><br>';
+  h+='<span style="color:#1976d2">🔜 추후 구글 계정 연동 시 사진 포함 전체 기록 보관 기능이 추가될 예정입니다.</span>';
+  h+='</div></div>';
+
   h+='<div style="text-align:center;padding:16px 0 32px"><button onclick="showAboutPage()" style="padding:10px 24px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--sub);font-size:13px;cursor:pointer;font-family:inherit">ℹ️ 앱 정보 · 개인정보처리방침</button></div>';
   return h;
 }
