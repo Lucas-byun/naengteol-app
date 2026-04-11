@@ -1064,8 +1064,8 @@ function sharePhotoToCommunity(idx){
     showCartPopup('❌ 오류','자랑 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
   });
 }
-function showAllPhotosModal(photoOnly){
-  var allPosts=cookHistory.filter(function(ch){return ch.photo||(ch.comment&&!photoOnly)});
+function showAllPhotosModal(){
+  var allPosts=cookHistory.filter(function(ch){return ch.photo||ch.comment});
   if(allPosts.length===0){showCartPopup('📷 사진이 없어요','아직 요리 사진이 없습니다. 요리를 완료하고 사진을 남겨보세요!');return;}
   // 전체화면 뷰어용 사진 배열 (전역 변수에 저장하여 onclick에서 안전하게 참조)
   window._albumViewerPhotos=allPosts.filter(function(ch){return ch.photo}).map(function(ch){
@@ -1081,7 +1081,6 @@ function showAllPhotosModal(photoOnly){
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:sticky;top:0;background:#000;padding:8px 0;z-index:1">';
   h+='<div style="color:#fff;font-size:16px;font-weight:700">🖼️ 내 사진첩</div>';
   h+='<div style="display:flex;align-items:center;gap:8px">';
-  h+='<button onclick="var m=document.getElementById(\'allPhotosModal\');if(m)m.remove();showAllPhotosModal('+(photoOnly?'false':'true')+')" style="background:none;border:1px solid rgba(255,255,255,.3);color:#ccc;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit">'+(photoOnly?'💬 코멘트도 보기':'📸 사진만 보기')+'</button>';
   h+='<button onclick="document.getElementById(\'allPhotosModal\').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">✕</button>';
   h+='</div></div>';
   h+='<div style="color:#aaa;font-size:11px;margin-bottom:12px">사진 '+allViewerPhotos.length+'장 · 전체 기록 '+allPosts.length+'개 · 사진 탭 시 전체화면</div>';
@@ -1112,7 +1111,7 @@ function showAllPhotosModal(photoOnly){
     h+='</div>';
   }
   // 코멘트만 있는 항목 (사진만 보기 필터 시 숨김)
-  if(!photoOnly&&withoutPhoto.length>0){
+  if(withoutPhoto.length>0){
     h+='<div style="margin-bottom:8px;font-size:12px;color:#888;font-weight:700">💬 코멘트만 있는 기록 ('+withoutPhoto.length+')</div>';
     withoutPhoto.forEach(function(ch){
       h+='<div style="background:#111;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer" onclick="showRecipePhotos(\''+esc(ch.id)+'\')">'; 
@@ -1125,7 +1124,7 @@ function showAllPhotosModal(photoOnly){
       h+='</div>';
     });
   }
-  if(withPhoto.length===0&&!photoOnly){
+  if(withPhoto.length===0){
     h+='<div style="text-align:center;padding:40px 0">';
     h+='<div style="font-size:48px;margin-bottom:12px">📷</div>';
     h+='<div style="color:#aaa;font-size:14px">아직 사진이 없어요<br>요리 완료 후 사진을 남겨보세요!</div>';
