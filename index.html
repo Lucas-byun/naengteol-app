@@ -334,6 +334,22 @@ function reportCommunityApprovalToSheet(post){
 var fbUid=localStorage.getItem('nt_uid');
 if(!fbUid){fbUid='u_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);localStorage.setItem('nt_uid',fbUid);}
 
+// 일일 접속 기록 (날짜별 고유 접속자 수 집계용)
+function recordDailyAccess(){
+  try{
+    var today=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\. /g,'-').replace('.','')
+    // 오늘 이미 기록했는지 확인 (불필요한 Firebase 쓰기 방지)
+    var lastAccessDate=localStorage.getItem('nt_last_access');
+    if(lastAccessDate===today)return;
+    // 오늘 처음 접속 → Firebase에 기록
+    fbDB.ref('accessLogs/'+today+'/'+fbUid).set(true).then(function(){
+      localStorage.setItem('nt_last_access',today);
+    }).catch(function(){});
+  }catch(e){}
+}
+// 앱 로드 시 접속 기록
+recordDailyAccess();
+
 // 요리 완성 시 → 매번 카운트 +1 (Google Sheets와 동일 기준: 요리 횟수 기반)
 function reportRecipeToFirebase(recipeId,recipeName){
   try{
@@ -3360,20 +3376,35 @@ async function loadAdminStats(){
   area.innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,255,255,.5);font-size:12px">⏳ 데이터 불러오는 중...</div>';
   try{
     // Firebase 데이터 병렬 로드 (community는 approved/pending 분리 읽기)
-    var [snapUsers, snapApproved, snapPending, snapCookLogs] = await Promise.all([
+    var [snapUsers, snapApproved, snapPending, snapCookLogs, snapAccessLogs] = await Promise.all([
       fbDB.ref('users').once('value'),
       fbDB.ref('community/approved').once('value'),
       fbDB.ref('community/pending').once('value'),
-      fbDB.ref('cookLogs').once('value')
+      fbDB.ref('cookLogs').once('value'),
+      fbDB.ref('accessLogs').once('value')
     ]);
     var usersRaw = snapUsers.val()||{};
     var approvedRaw = snapApproved.val()||{};
     var pendingRaw = snapPending.val()||{};
     var cookLogsRaw = snapCookLogs.val()||{};
+    var accessLogsRaw = snapAccessLogs.val()||{};
+
+    // 최근 7일 일일 접속자 수 집계
+    var now = new Date();
+    var dailyStats = [];
+    for(var d=6;d>=0;d--){
+      var dt = new Date(now);
+      dt.setDate(dt.getDate()-d);
+      var dateKey = dt.toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\. /g,'-').replace('.','');
+      var dayLabel = (d===0)?'오늘':(d===1)?'어제':(dt.getMonth()+1)+'/'+(dt.getDate());
+      var cnt = accessLogsRaw[dateKey] ? Object.keys(accessLogsRaw[dateKey]).length : 0;
+      dailyStats.push({label:dayLabel, count:cnt});
+    }
+    var todayCount = dailyStats[6].count;
+    var maxDaily = Math.max.apply(null, dailyStats.map(function(d){return d.count;})) || 1;
 
     // 유저 통계
     var totalUsers = Object.keys(usersRaw).length;
-    var now = new Date();
     var thisMonth = now.getFullYear()+'-'+(String(now.getMonth()+1).padStart(2,'0'));
     var newUsersThisMonth = Object.values(usersRaw).filter(function(u){
       return u.timestamp && u.timestamp.startsWith(thisMonth);
@@ -3441,6 +3472,21 @@ async function loadAdminStats(){
     statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
     statsHtml += '<div style="font-size:22px;font-weight:700;color:#ffb74d">'+avgRating+'</div>';
     statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">평균 평점</div></div>';
+    statsHtml += '</div>';
+    // 일일 접속자 수 섹션
+    statsHtml += '<div style="font-size:11px;font-weight:700;color:#ce93d8;margin-bottom:8px">📅 일일 접속자 수 (최근 7일)</div>';
+    statsHtml += '<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;margin-bottom:12px">';
+    dailyStats.forEach(function(ds){
+      var barW = Math.round(ds.count/maxDaily*100);
+      var isToday = ds.label==='오늘';
+      statsHtml += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">';
+      statsHtml += '<div style="width:28px;font-size:10px;color:rgba(255,255,255,'+(isToday?'.9':'.5')+')'+(isToday?';font-weight:700':'')+'">'+ds.label+'</div>';
+      statsHtml += '<div style="flex:1;background:rgba(255,255,255,.08);border-radius:3px;height:14px;position:relative">';
+      statsHtml += '<div style="background:'+(isToday?'linear-gradient(90deg,#42a5f5,#1565c0)':'linear-gradient(90deg,#546e7a,#37474f)')+';width:'+barW+'%;height:100%;border-radius:3px"></div>';
+      statsHtml += '</div>';
+      statsHtml += '<div style="width:22px;font-size:10px;text-align:right;color:'+(isToday?'#64b5f6':'rgba(255,255,255,.5)')+'">'+(ds.count||'-')+'</div>';
+      statsHtml += '</div>';
+    });
     statsHtml += '</div>';
     // 레시피 TOP 10
     statsHtml += '<div style="font-size:11px;font-weight:700;color:#ce93d8;margin-bottom:8px">🍽️ 레시피 TOP '+Math.min(10,top10.length)+'</div>';
