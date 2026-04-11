@@ -1756,16 +1756,7 @@ function render(){
         var perfect=countPerfect(m);var partial=m.length-perfect;
         h+='<div class="recipe-section">';
         h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:8px 12px;background:linear-gradient(135deg,var(--primary-light),transparent);border-radius:12px"><h2 style="margin:0;color:var(--text);font-size:16px">🍽️ 만들 수 있는 요리 <span style="color:var(--primary);font-size:18px;font-weight:800">'+m.length+'</span><span style="font-size:13px;color:var(--sub)">개</span></h2></div>';
-        // 태그 필터 (전자레인지 버튼)
-        h+='<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">';
-        var quickTags=['전자레인지','초간단','다이어트','야식'];
-        quickTags.forEach(function(t){
-          var isActive=activeTag===t;
-          var tc=TAG_COLORS[t]||['#555','#f5f5f5'];
-          var te=TAG_EMOJIS[t]||'#';
-          h+='<button onclick="toggleTag(\''+t+'\')" style="padding:5px 12px;border-radius:16px;font-size:12px;font-weight:'+(isActive?'700':'500')+';border:'+(isActive?'2px solid '+tc[0]:'1.5px solid '+tc[0])+';background:'+(isActive?tc[0]:''+tc[1]+'');+';color:'+(isActive?'#fff':tc[0])+';cursor:pointer;font-family:inherit">'+te+' '+t+'</button>';
-        });
-        h+='</div>';
+        // 태그 필터 (해시태그 클릭 방식)
         if(activeTag){h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:6px 10px;background:var(--primary-light);border-radius:10px"><span style="font-size:12px;color:var(--primary);font-weight:700">#'+activeTag+' 필터 적용 중</span><button onclick="activeTag=\'\';render()" style="font-size:11px;padding:2px 8px;border-radius:8px;border:1px solid var(--primary);background:none;color:var(--primary);cursor:pointer;font-family:inherit">✕ 해제</button></div>';}
         h+='<div style="display:flex;gap:6px;margin-bottom:10px">';
         ['전체','한끼','반찬','간식'].forEach(function(f){
@@ -1861,16 +1852,7 @@ function render(){
         h+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:4px 12px;border-radius:16px;font-size:12px;font-weight:'+(actF?'700':'500')+';border:'+(actF?'2px solid '+colF[0]:'1px solid var(--border)')+';background:'+(actF?colF[1]:'var(--bg)')+';color:'+(actF?colF[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';
       });
       h+='</div>';
-      // 태그 필터 (전자레인지 버튼)
-      h+='<div style="display:flex;gap:6px;padding:4px 16px 6px;flex-wrap:wrap">';
-      var quickTags2=['전자레인지','초간단','다이어트','야식'];
-      quickTags2.forEach(function(t){
-        var isActive=activeTag===t;
-        var tc=TAG_COLORS[t]||['#555','#f5f5f5'];
-        var te=TAG_EMOJIS[t]||'#';
-        h+='<button onclick="toggleTag(\''+t+'\')" style="padding:4px 10px;border-radius:16px;font-size:11px;font-weight:'+(isActive?'700':'500')+';border:'+(isActive?'2px solid '+tc[0]:'1.5px solid '+tc[0])+';background:'+(isActive?tc[0]:tc[1])+';color:'+(isActive?'#fff':tc[0])+';cursor:pointer;font-family:inherit">'+te+' '+t+'</button>';
-      });
-      h+='</div>';
+      // 태그 필터 (해시태그 클릭 방식)
       if(activeTag){h+='<div style="display:flex;align-items:center;gap:8px;padding:4px 16px 8px;"><span style="font-size:12px;color:var(--primary);font-weight:700">#'+activeTag+' 필터 적용 중</span><button onclick="activeTag=\'\';render()" style="font-size:11px;padding:2px 8px;border-radius:8px;border:1px solid var(--primary);background:none;color:var(--primary);cursor:pointer;font-family:inherit">✕ 해제</button></div>';}
       h+='<div class="recipe-count">'+fl2.length+'개 레시피</div>';
       cs.forEach(function(c){var rs=fl2.filter(function(r){return r.cat===c});h+='<div class="recipe-section" style="background:var(--cook-bg)"><h2 style="color:var(--text)">'+(rs[0]?rs[0].emoji:'')+' '+c+' ('+rs.length+')</h2>';rs.forEach(function(r){h+=renderCard(Object.assign({},r,{match:sel.size>0?matchRecipe(r,selArr):{pct:0}}))});h+='</div>';});
