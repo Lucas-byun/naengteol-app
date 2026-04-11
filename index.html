@@ -3883,8 +3883,8 @@ function savePhotoComment(recipeId,share){
     var base64Data=tempPhoto.indexOf(',')>-1?tempPhoto.split(',')[1]:tempPhoto;
     var fd=new FormData();
     fd.append('image',base64Data);
-    fd.append('key','814e88f508d6b254bbfc68da9c342619');
-    fetch('https://api.imgbb.com/1/upload',{method:'POST',body:fd})
+    // API 키는 Cloudflare Worker 내부에서 처리 (코드에 노출되지 않음)
+    fetch('https://imgbb-proxy.rookiesmart1031.workers.dev',{method:'POST',body:fd})
     .then(function(res){return res.json();})
     .then(function(imgData){
       // 업로드 팝업 제거
