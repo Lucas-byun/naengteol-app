@@ -2375,8 +2375,9 @@ function renderFS(){
       else if(getStepText(s).includes('중불')||getStepText(s).includes('중간불')||getStepText(s).includes('중약불')){extras.push({t:'🔥🔥 중불',bg:'#f5f5f5',c:'#ff6f00',b:'#ffcc80'});fireLevel='mid';}
       else if(getStepText(s).includes('약불')||getStepText(s).includes('약한불')){extras.push({t:'🔥 약불',bg:'#e3f2fd',c:'#1976d2',b:'#90caf9'});fireLevel='low';}
 
-      var timeM=getStepText(s).match(/(\d+)분/);if(timeM)extras.push({t:'⏱ '+timeM[1]+'분',bg:'var(--card)',c:'var(--text)',b:'var(--border)'});
-      var secM=getStepText(s).match(/(\d+)초/);if(secM)extras.push({t:'⏱ '+secM[1]+'초',bg:'var(--card)',c:'var(--text)',b:'var(--border)'});
+      var isMicrowaveStep=r.sheetTags&&r.sheetTags.some(function(t){return t==='전자레인지';});
+      var timeM=getStepText(s).match(/(\d+)분/);if(timeM&&!isMicrowaveStep)extras.push({t:'⏱ '+timeM[1]+'분',bg:'var(--card)',c:'var(--text)',b:'var(--border)'});
+      var secM=getStepText(s).match(/(\d+)초/);if(secM&&!isMicrowaveStep)extras.push({t:'⏱ '+secM[1]+'초',bg:'var(--card)',c:'var(--text)',b:'var(--border)'});
       if(extras.length>0){
         h+='<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">';
         extras.forEach(function(ex){h+='<span style="font-size:13px;padding:6px 12px;border-radius:10px;background:'+ex.bg+';border:1.5px solid '+ex.b+';font-weight:700;color:'+ex.c+'">'+ex.t+'</span>';});
@@ -2384,7 +2385,7 @@ function renderFS(){
       }
       // Timer: detect time mentions like "3분", "5분" etc
       var timeMatch=getStepText(s).match(/(\d+)분/);
-      var isMicrowave=r.sheetTags&&r.sheetTags.some(function(t){return t==='전자레인지';});
+      var isMicrowave=isMicrowaveStep;
       if(timeMatch&&!isMicrowave){
         var mins=parseInt(timeMatch[1]);
         h+='<button onclick="startTimer('+mins+',this)" style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:2px solid var(--primary);border-radius:10px;background:#f5f5f5;cursor:pointer;font-size:14px;font-weight:700;color:var(--primary);width:100%;justify-content:center;font-family:inherit">⏱ '+mins+'분 타이머 시작</button>';
