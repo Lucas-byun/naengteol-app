@@ -3268,11 +3268,18 @@ async function exportUsersCSV(){
   try{
     var snap=await fbDB.ref('users').once('value');
     var usersRaw=snap.val()||{};
-    var snapComm=await fbDB.ref('community').once('value');
-    var commRaw=snapComm.val()||{};
-    // 게시글수 집계
+    // 게시글수 집계 (approved + pending 각각 읽기)
     var postCount={};
-    Object.values(commRaw).forEach(function(p){if(p&&p.uid)postCount[p.uid]=(postCount[p.uid]||0)+1;});
+    try{
+      var snapApproved=await fbDB.ref('community/approved').once('value');
+      var approvedRaw=snapApproved.val()||{};
+      Object.values(approvedRaw).forEach(function(p){if(p&&p.uid)postCount[p.uid]=(postCount[p.uid]||0)+1;});
+    }catch(e2){/* 읽기 실패 시 무시 */}
+    try{
+      var snapPending=await fbDB.ref('community/pending').once('value');
+      var pendingRaw=snapPending.val()||{};
+      Object.values(pendingRaw).forEach(function(p){if(p&&p.uid)postCount[p.uid]=(postCount[p.uid]||0)+1;});
+    }catch(e3){/* 읽기 실패 시 무시 */}
     var now=new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
     var rows=[['UID','닉네임','가입일시','게시글수','닉네임이력','내보내기시각']];
     Object.keys(usersRaw).forEach(function(uid){
