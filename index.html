@@ -5048,27 +5048,10 @@ function renderMyPage(){
 }
 function showSplash(){
   document.getElementById('app').innerHTML=
-    '<div class="splash">' +
-      '<div class="splash-inner">' +
-        '<img src="icons/ui_009.png" style="width:72px;height:72px;border-radius:18px;margin-bottom:12px;box-shadow:0 4px 16px rgba(0,0,0,.2)">' +
-        '<svg width="120" height="140" viewBox="0 0 120 140" style="margin-bottom:8px">' +
-          '<rect x="15" y="10" width="90" height="120" rx="8" fill="#e0e0e0" stroke="#bbb" stroke-width="2"/>' +
-          '<rect x="20" y="15" width="80" height="35" rx="4" fill="#bbdefb"/>' +
-          '<rect x="20" y="55" width="80" height="70" rx="4" fill="#fff"/>' +
-          '<rect x="75" y="20" width="4" height="25" rx="2" fill="#999"/>' +
-          '<rect x="75" y="60" width="4" height="25" rx="2" fill="#999"/>' +
-          '<text x="38" y="37" font-size="14">🥬🧀</text>' +
-          '<text x="30" y="75" font-size="12">🥚🧅🥕</text>' +
-          '<text x="30" y="95" font-size="12">🍖🧄🍄</text>' +
-          '<text x="35" y="115" font-size="12">🫗🌶️</text>' +
-        '</svg>' +
-        '<div class="splash-name">냉장고를 털자!</div>' +
-        '<div class="splash-sub">냉털</div>' +
-        '<div class="splash-tagline">냉장고 재료로 만드는<br>초보자 맞춤 레시피</div>' +
-        '<div class="splash-dots"><span></span><span></span><span></span></div>' +
+    '<div class="splash" style="background-image: url(icons/splash_screen.png); background-size: cover; background-position: center;">' +
+      '<div class="splash-inner" style="display: none;">' +
       '</div>' +
-      '<div class="splash-footer">'+RECIPES.length+'개 레시피 · 초보자 친화 · 무료</div>' +
-    '</div>';
+    '</div>'
   setTimeout(function(){loadData();},1000);
 }
 document.addEventListener('DOMContentLoaded',function(){
