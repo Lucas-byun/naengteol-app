@@ -2923,6 +2923,50 @@ function showAboutPage(){
   document.body.insertAdjacentHTML('beforeend',h);
 }
 
+// === PWA 설치 제어 ===
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();
+  deferredPrompt=e;
+  updateInstallButtonVisibility();
+});
+window.addEventListener('appinstalled',function(){
+  console.log('[PWA] 앱이 설치되었습니다.');
+  deferredPrompt=null;
+  updateInstallButtonVisibility();
+});
+function updateInstallButtonVisibility(){
+  var btn=document.getElementById('myPageInstallBtn');
+  if(!btn)return;
+  if(deferredPrompt&&!isAppInstalled()){
+    btn.style.display='block';
+  }else{
+    btn.style.display='none';
+  }
+}
+function isAppInstalled(){
+  if(window.matchMedia('(display-mode: standalone)').matches)return true;
+  if(navigator.standalone===true)return true;
+  return false;
+}
+function triggerInstallPrompt(){
+  if(!deferredPrompt){
+    showCartPopup('⚠️ 설치 불가','이 브라우저에서는 설치가 지원되지 않습니다.\n\n브라우저 메뉴에서 "홈 화면에 추가" 옵션을 찾아주세요.');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function(choiceResult){
+    if(choiceResult.outcome==='accepted'){
+      console.log('[PWA] 사용자가 설치를 수락했습니다.');
+      showCartPopup('✅ 설치 완료!','냉털이 홈 화면에 추가되었어요!\n\n언제든 쉽게 앱을 실행할 수 있습니다. 🍳');
+    }else{
+      console.log('[PWA] 사용자가 설치를 거절했습니다.');
+    }
+    deferredPrompt=null;
+    updateInstallButtonVisibility();
+  });
+}
+
 // === INGREDIENT SUGGEST ===
 // Pairs: ingredient -> commonly used together
 var ING_PAIRS={'달걀':['양파','대파','간장','식용유','소금'],'양파':['달걀','마늘','간장','당근','식용유'],'마늘':['양파','간장','대파','식용유','참기름'],'밥':['달걀','간장','참기름','김','김치'],'참치캔':['양파','마요네즈','달걀','김치','간장'],'돼지고기':['양파','대파','고추장','마늘','간장'],'버섯':['양파','마늘','간장','대파','두부'],'간장':['마늘','참기름','설탕','대파','양파'],'김치':['돼지고기','두부','참치캔','대파','달걀'],'두부':['된장','대파','마늘','김치','양파'],'감자':['양파','당근','간장','식용유','소금'],'대파':['마늘','간장','달걀','된장','참기름']};
@@ -5044,6 +5088,7 @@ function renderMyPage(){
   h+='</div></div>';
 
   h+='<div style="text-align:center;padding:16px 0 32px"><button onclick="showAboutPage()" style="padding:10px 24px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--sub);font-size:13px;cursor:pointer;font-family:inherit">ℹ️ 앱 정보 · 개인정보처리방침</button></div>';
+  h+='<div id="myPageInstallBtn" style="display:none;text-align:center;padding:0 16px 32px"><button onclick="triggerInstallPrompt()" style="width:100%;padding:12px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--primary),#ff9800);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(232,101,42,.3)">📱 홈 화면에 냉털 추가</button><div style="font-size:11px;color:var(--sub);margin-top:8px">언제든 쉽게 앱을 실행할 수 있어요!</div></div>';
   return h;
 }
 function showSplash(){
@@ -5328,4 +5373,37 @@ if('serviceWorker' in navigator){
 }
 // ===== END Service Worker 등록 =====
 
-</script></body></html>
+</script>
+  <button id="installButton" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:10px 20px; background-color:#E8652A; color:white; border:none; border-radius:5px; z-index:1000;">홈 화면에 냉털 추가</button>
+
+  <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installButton = document.getElementById('installButton');
+      console.log("beforeinstallprompt event fired!");
+      if (installButton) {
+        installButton.style.display = 'block';
+      }
+    });
+
+    const installButton = document.getElementById('installButton');
+    if (installButton) {
+      installButton.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to the install prompt: ${outcome}`);
+          if (outcome === 'accepted') {
+            console.log('User accepted the A2HS prompt');
+          } else {
+            console.log('User dismissed the A2HS prompt');
+          }
+          deferredPrompt = null;
+          installButton.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body></html>
