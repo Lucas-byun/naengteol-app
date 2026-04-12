@@ -2095,9 +2095,11 @@ function render(){
     h+=renderMyPage();
   }
   h+='<div class="data-src">'+(dataSource==="sheets"?'<span class="dot"></span> Google Sheets 연동':'⚠️ 내장 데이터')+' · '+RECIPES.length+'개 레시피</div>';
-h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="bnavTap(this,function(){tab=\'cook\';render()})"><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'fav\';render()})"><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'my\';mode=\'ing\';render()})"><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'comm\';render()})"><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
+h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="bnavTap(this,function(){tab=\'cook\';render()})><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'fav\';render()})><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'my\';mode=\'ing\';render()})><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'comm\';render()})><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
   // Restore scroll position after re-render
   window.scrollTo(0,savedScroll);
+  // PWA 설치 버튼 가시성 업데이트
+  setTimeout(function(){updateInstallButtonVisibility();},100);
   // Search: Enter key to search (no live render = no Korean input issues)
   var si=document.getElementById('searchInput');
   if(si){
