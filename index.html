@@ -3210,7 +3210,7 @@ function likePostFromDetail(idx){
       var _liked=localStorage.getItem('nt_liked_'+(c.id||c._fbKey||('idx_'+idx)))==='1';
       btn.style.background=_liked?'#fce4ec':'var(--bg)';
       btn.style.color=_liked?'#e53935':'var(--sub)';
-      btn.innerHTML=(_liked?'❤️':'🤍')+' <span id="commDetailLikeCount">'+String(c.likes||0)+'</span>';}
+      btn.innerHTML=(_liked?'❤️':'🤍')+' <span id="commDetailLikeCount">'+String(c.likes||0)+'</span>';
     }
   },500);
 }
@@ -5378,34 +5378,4 @@ if('serviceWorker' in navigator){
 </script>
   <button id="installButton" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:10px 20px; background-color:#E8652A; color:white; border:none; border-radius:5px; z-index:1000;">홈 화면에 냉털 추가</button>
 
-  <script>
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const installButton = document.getElementById('installButton');
-      console.log("beforeinstallprompt event fired!");
-      if (installButton) {
-        installButton.style.display = 'block';
-      }
-    });
-
-    const installButton = document.getElementById('installButton');
-    if (installButton) {
-      installButton.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`User response to the install prompt: ${outcome}`);
-          if (outcome === 'accepted') {
-            console.log('User accepted the A2HS prompt');
-          } else {
-            console.log('User dismissed the A2HS prompt');
-          }
-          deferredPrompt = null;
-          installButton.style.display = 'none';
-        }
-      });
-    }
-  </script>
 </body></html>
