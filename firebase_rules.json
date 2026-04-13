@@ -1,0 +1,43 @@
+{
+  "rules": {
+    ".read": true,
+    "recipeRanking": {
+      ".write": true
+    },
+    "recipes": {
+      ".write": true
+    },
+    "favs": {
+      ".write": true
+    },
+    "community": {
+      "approved": {
+        ".write": true
+      },
+      "pending": {
+        ".write": true
+      },
+      "likes": {
+        ".write": true
+      }
+    },
+    "users": {
+      ".write": true
+    },
+    "history": {
+      ".write": true
+    },
+    "cookLogs": {
+      ".write": true
+    },
+    "accessLogs": {
+      ".write": true
+    },
+    "userHistory": {
+      ".write": true
+    },
+    "nicknames": {
+      ".write": true
+    }
+  }
+}

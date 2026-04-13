@@ -75,8 +75,13 @@ self.addEventListener('fetch', function(event) {
           }
           return response;
         }).catch(function() {
-          // 이미지 오프라인 시 빈 응답 (오류 방지)
-          return new Response('', { status: 408 });
+          // 이미지 오프라인 시 캐시된 fallback 이미지 반환
+          return caches.match('/icons/app_icon_192.png').then(function(cached) {
+            if (cached) return cached;
+            // Fallback: 1x1 투명 PNG (base64)
+            var transparentPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+            return new Response(transparentPng, { headers: { 'Content-Type': 'image/png' } });
+          });
         });
       })
     );

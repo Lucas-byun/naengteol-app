@@ -1,3 +1,240 @@
+## 냉털 앱 코드 리뷰 요청 (Claude 3.5 Opus)
+
+**요청자**: Lucas (반도체 장비회사 구매담당자, 코딩 초보자)
+**앱 이름**: 냉털 (Naengteol)
+**앱 설명**: 냉장고에 있는 재료만으로 만들 수 있는 요리 레시피를 추천해주는 PWA(Progressive Web App)입니다. 장보기 없이 냉장고 재료만으로 한 끼를 해결할 수 있도록 돕는 것이 목표입니다. 
+
+**현재 상황**: 앱의 핵심 기능들은 잘 작동하며, 출시를 앞두고 있습니다. 하지만 비전문가로서 코드의 잠재적인 문제점(특히 보안, 성능)에 대한 우려가 있어 전문가의 심층적인 코드 리뷰를 요청합니다.
+
+**리뷰 요청 사항**: 아래 제공되는 코드(index.html, sw.js, manifest.json, firebase_rules.json)를 기반으로 다음 질문들에 대해 심층적인 분석과 개선 권고를 부탁드립니다.
+
+1.  **보안**: 
+    *   Firebase API 키가 `index.html`에 직접 노출되어 있습니다. 이로 인한 잠재적인 보안 취약점은 없는지, 있다면 어떤 위험이 있으며 어떻게 완화할 수 있을까요?
+    *   로그인 기능이 없는 공개 앱이며, Firebase Realtime Database 보안 규칙은 최근에 제가 직접 수정하여 최소한의 쓰기 권한(커뮤니티 게시, 닉네임 저장 등)만 허용하고 나머지는 읽기 전용으로 설정했습니다. 이 규칙이 충분히 안전한지, 추가적인 개선 사항은 없는지 검토 부탁드립니다.
+    *   사용자 입력값(예: 커뮤니티 게시글)을 `innerHTML`로 렌더링하는 부분이 있는데, XSS(크로스 사이트 스크립팅) 공격에 취약하지는 않은지, 안전하게 처리하려면 어떻게 해야 할까요?
+    *   관리자 비밀번호 인증 로직(SHA-256 해시 사용)의 보안 강도는 충분한가요?
+
+2.  **성능**: 
+    *   모든 프론트엔드 로직이 단일 `index.html` 파일에 포함되어 있습니다. 이 구조가 앱의 로딩 속도나 런타임 성능에 미치는 영향은 무엇이며, 개선을 위한 코드 분할(Code Splitting)이나 모듈화 전략이 필요할까요?
+    *   불필요한 렌더링이나 메모리 누수 가능성이 있는 부분은 없는지, 특히 대량의 레시피 데이터나 사용자 기록을 처리하는 부분에서 효율성을 높일 방법이 있을까요?
+
+3.  **PWA (Progressive Web App)**:
+    *   `sw.js` (서비스 워커)와 `manifest.json` 파일의 설정이 iOS Safari 및 Android Chrome 환경에서 PWA의 \'홈 화면 추가\' 기능이 매끄럽게 작동하고, 오프라인 지원 및 캐싱 전략이 최적화되어 있는지 검토 부탁드립니다.
+    *   PWA 설치 유도 UI(버튼)를 \'내 기록\' 페이지 하단에 수동으로 추가했는데, 이 구현 방식이 PWA 설치 경험을 저해하지 않는지, 더 나은 사용자 유도 방안이 있을까요?
+
+4.  **코드 품질 및 유지보수**: 
+    *   전반적인 코드 가독성, 구조, 에러 처리 방식에 대해 피드백 부탁드립니다. 비전문가가 향후 유지보수하기에 용이한 방향으로 개선할 점이 있을까요?
+    *   변수명, 함수명 등 컨벤션 측면에서 개선할 부분이 있을까요?
+
+5.  **UX/UI**: 
+    *   비전문가가 만든 코드 관점에서 사용자 경험을 해치는 치명적인 실수는 없는지, 특히 모바일 환경에서의 터치 영역, 버튼 크기, 반응성 등에 대한 의견 부탁드립니다.
+
+---
+
+### 앱 데이터 관리 방식에 대한 추가 정보:
+
+*   **레시피 데이터**: Google Sheets에 저장되어 있으며, 앱은 이 Sheets에서 데이터를 가져와 사용합니다. Google Sheets 수정 시 앱에 자동으로 반영되는 구조를 선호합니다.
+*   **커뮤니티/사용자 데이터**: Firebase Realtime Database를 통해 관리됩니다. 사용자 닉네임, 요리 기록, 커뮤니티 게시글 등이 저장됩니다.
+
+---
+
+### 코드 내용
+
+#### 1. `firebase_rules.json` (현재 적용된 보안 규칙)
+```json
+{
+  "rules": {
+    ".read": true,
+    "recipeRanking": {
+      ".write": true
+    },
+    "recipes": {
+      ".write": true
+    },
+    "favs": {
+      ".write": true
+    },
+    "community": {
+      "approved": {
+        ".write": true
+      },
+      "pending": {
+        ".write": true
+      },
+      "likes": {
+        ".write": true
+      }
+    },
+    "users": {
+      ".write": true
+    },
+    "history": {
+      ".write": true
+    },
+    "cookLogs": {
+      ".write": true
+    },
+    "accessLogs": {
+      ".write": true
+    },
+    "userHistory": {
+      ".write": true
+    },
+    "nicknames": {
+      ".write": true
+    }
+  }
+}
+```
+
+#### 2. `manifest.json`
+```json
+{
+  "name": "냉털 — 냉장고를 털자!",
+  "short_name": "냉털",
+  "description": "냉장고 재료로 뚝딱! 초보 맞춤 레시피 추천",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF6F2",
+  "theme_color": "#E8652A",
+  "icons": [
+    {
+      "src": "icons/icon-48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/app_icon_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/app_icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+```
+
+#### 3. `sw.js`
+```javascript
+// 냉털 Service Worker v1.1
+// 캐시 버전 — 업데이트 시 이 값을 올리면 기존 캐시가 자동 교체됩니다
+const CACHE_VERSION = 'naengteol-v2';
+
+// 앱 셸: 설치 즉시 캐시할 핵심 파일 목록
+const SHELL_ASSETS = [
+  '/',
+  '/index.html',
+  '/offline.html',
+  '/manifest.json',
+  '/icons/app_icon_192.png',
+  '/icons/app_icon_512.png',
+  '/icons/icon-48.png',
+  '/icons/splash_fridge.png',
+];
+
+// ── 설치 이벤트: 앱 셸 사전 캐시 ──────────────────────────────
+self.addEventListener('install', function(event) {
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then(function(cache) {
+      return cache.addAll(SHELL_ASSETS);
+    }).then(function() {
+      // 새 SW가 즉시 활성화되도록 대기 건너뜀
+      return self.skipWaiting();
+    })
+  );
+});
+
+// ── 활성화 이벤트: 구버전 캐시 정리 ──────────────────────────
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(key) {
+          return key !== CACHE_VERSION;
+        }).map(function(key) {
+          return caches.delete(key);
+        })
+      );
+    }).then(function() {
+      // 모든 열린 탭에 즉시 적용
+      return self.clients.claim();
+    })
+  );
+});
+
+// ── Fetch 이벤트: 요청 유형별 캐싱 전략 ─────────────────────
+self.addEventListener('fetch', function(event) {
+  var url = new URL(event.request.url);
+
+  // 1) Firebase / Google API / Apps Script → 항상 네트워크 우선 (캐시 안 함)
+  if (
+    url.hostname.includes('firebase') ||
+    url.hostname.includes('firebaseio') ||
+    url.hostname.includes('googleapis') ||
+    url.hostname.includes('google.com') ||
+    url.hostname.includes('script.google') ||
+    url.hostname.includes('gstatic')
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // 2) 이미지 파일 (icons/ 폴더) → 캐시 우선, 없으면 네트워크
+  if (url.pathname.startsWith('/icons/')) {
+    event.respondWith(
+      caches.match(event.request).then(function(cached) {
+        if (cached) return cached;
+        return fetch(event.request).then(function(response) {
+          if (response && response.status === 200) {
+            var clone = response.clone();
+            caches.open(CACHE_VERSION).then(function(cache) {
+              cache.put(event.request, clone);
+            });
+          }
+          return response;
+        }).catch(function() {
+          // 이미지 오프라인 시 빈 응답 (오류 방지)
+          return new Response('', { status: 408 });
+        });
+      })
+    );
+    return;
+  }
+
+  // 3) 앱 셸 (index.html, manifest.json 등) → 네트워크 우선, 실패 시 캐시
+  //    → 항상 최신 앱 코드를 받아오되, 오프라인이면 캐시 제공
+  //    → 캐시도 없으면 offline.html 표시
+  event.respondWith(
+    fetch(event.request).then(function(response) {
+      if (response && response.status === 200 && event.request.method === 'GET') {
+        var clone = response.clone();
+        caches.open(CACHE_VERSION).then(function(cache) {
+          cache.put(event.request, clone);
+        });
+      }
+      return response;
+    }).catch(function() {
+      return caches.match(event.request).then(function(cached) {
+        if (cached) return cached;
+        // HTML 요청이 오프라인이고 캐시도 없으면 → offline.html 반환
+        if (event.request.headers.get('accept') &&
+            event.request.headers.get('accept').includes('text/html')) {
+          return caches.match('/offline.html');
+        }
+      });
+    })
+  );
+});
+```
+
+#### 4. `index.html`
+```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -3210,7 +3447,7 @@ function likePostFromDetail(idx){
       var _liked=localStorage.getItem('nt_liked_'+(c.id||c._fbKey||('idx_'+idx)))==='1';
       btn.style.background=_liked?'#fce4ec':'var(--bg)';
       btn.style.color=_liked?'#e53935':'var(--sub)';
-      btn.innerHTML=(_liked?'❤️':'🤍')+' <span id="commDetailLikeCount">'+String(c.likes||0)+'</span>';}
+      btn.innerHTML=(_liked?'❤️':'🤍')+' <span id="commDetailLikeCount">'+(c.likes||0)+'</span>';
     }
   },500);
 }
@@ -3613,7 +3850,7 @@ async function loadAdminStats(){
 
     area.innerHTML = statsHtml;
   }catch(e){
-    var errorDiv=document.createElement('div');errorDiv.style.cssText='color:#ef9a9a;font-size:11px;padding:8px';errorDiv.textContent='❌ 오류: '+e.message;area.innerHTML='';area.appendChild(errorDiv);
+    area.innerHTML='<div style="color:#ef9a9a;font-size:11px;padding:8px">❌ 오류: '+e.message+'</div>';
   }
 }
 
