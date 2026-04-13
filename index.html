@@ -5107,6 +5107,14 @@ document.addEventListener('DOMContentLoaded',function(){
   if(app){
     app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100vh;background:#F6EBE0;overflow:hidden;margin:0;padding:0;position:fixed;top:0;left:0;">' +
       '<img src="icons/splash_screen.png" style="width:100%;height:100%;object-fit:cover;" alt="냉털 로딩 화면">' +
+      '<div style="position:absolute;bottom:48px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:10px">' +
+        '<div style="font-size:13px;font-weight:700;color:#E8652A;letter-spacing:2px;font-family:inherit">LOADING...</div>' +
+        '<div style="display:flex;gap:8px">' +
+          '<span style="width:10px;height:10px;border-radius:50%;background:#E8652A;display:inline-block;animation:dotPulse 1.2s ease-in-out infinite"></span>' +
+          '<span style="width:10px;height:10px;border-radius:50%;background:#E8652A;display:inline-block;animation:dotPulse 1.2s ease-in-out infinite;animation-delay:.2s"></span>' +
+          '<span style="width:10px;height:10px;border-radius:50%;background:#E8652A;display:inline-block;animation:dotPulse 1.2s ease-in-out infinite;animation-delay:.4s"></span>' +
+        '</div>' +
+      '</div>' +
     '</div>';
   }
   loadData();
