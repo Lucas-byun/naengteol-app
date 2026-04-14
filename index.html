@@ -1746,15 +1746,7 @@ function render(){
   // Header v14 — 브랜드 로고 바 형태
   h+='<div class="hdr">';
   h+='<div class="hdr-logo" onclick="goHome()"><div class="hdr-logo-icon"><svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="3" width="26" height="30" rx="5" fill="white" opacity="0.95"/><rect x="5" y="3" width="26" height="13" rx="5" fill="#FFE0CC"/><rect x="5" y="14" width="26" height="2" fill="#E8652A" opacity="0.4"/><circle cx="18" cy="10" r="2.5" fill="#E8652A" opacity="0.7"/><rect x="9" y="19" width="6" height="3" rx="1.5" fill="#E8652A" opacity="0.5"/><rect x="9" y="24" width="10" height="3" rx="1.5" fill="#E8652A" opacity="0.3"/><rect x="3" y="12" width="2" height="6" rx="1" fill="#E8652A" opacity="0.6"/></svg></div><div class="hdr-logo-text"><span class="hdr-logo-title">냉털</span><span class="hdr-logo-sub">냉장고를 털자!</span></div></div>';
-  h+='<div class="hdr-btns">
-  <div class="my-ing-count-hdr" onclick="openFridge()" style="background:rgba(255,255,255,0.25);border:none;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.1)">
-    <span style="font-size:16px">🧊</span>
-    <span style="font-size:14px;font-weight:800;color:#fff">' + (sel.size||0) + '</span>
-  </div>
-  <button class="hdr-btn" onclick="toggleSearchBar()" id="searchToggleBtn" style="background:' + (showSearch?'#fff':'rgba(255,255,255,0.25)') + ';color:' + (showSearch?'#E8652A':'#fff') + '">🔍</button>
-  <button class="hdr-btn" onclick="openCartModal()" style="position:relative;background:#fff;color:#E8652A">🛒' + (cartCount>0?'<span style="position:absolute;top:-4px;right:-4px;background:#fff;color:#E8652A;font-size:10px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,0.2)">'+cartCount+'</span>':'') + '</button>
-  <button class="hdr-btn" onclick="resetIngs()" style="background:#fff;color:#E8652A">🗑️</button>
-</div></div>';
+  h+='<div class="hdr-btns"><div class="my-ing-count-hdr" onclick="openFridge()" style="background:rgba(255,255,255,0.25);border:none;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.1)"><span style="font-size:16px">🧊</span><span style="font-size:14px;font-weight:800;color:#fff">'+(sel.size||0)+'</span></div><button class="hdr-btn" onclick="toggleSearchBar()" id="searchToggleBtn" style="background:'+(showSearch?'#fff':'rgba(255,255,255,0.25)')+';color:'+(showSearch?'#E8652A':'#fff')+'">🔍</button><button class="hdr-btn" onclick="openCartModal()" style="position:relative;background:#fff;color:#E8652A">🛒'+(cartCount>0?'<span style="position:absolute;top:-4px;right:-4px;background:#fff;color:#E8652A;font-size:10px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,0.2)">'+cartCount+'</span>':'')+'</button><button class="hdr-btn" onclick="resetIngs()" style="background:#fff;color:#E8652A">🗑️</button></div></div>';
   var searchPlaceholder=mode==='ing'?'재료 이름 검색...':'요리 이름 검색...';
   // Search bar with autocomplete — 토글 방식으로 변경
   h+='<div class="search-bar '+(showSearch?'show':'')+'"><div style="display:flex;gap:8px;position:relative">' + 
