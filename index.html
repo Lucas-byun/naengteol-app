@@ -1742,6 +1742,7 @@ function render(){
   var app=document.getElementById('app');
   if(showOnboard&&!localStorage.getItem('nt_done')){app.innerHTML=renderOnboard();window.scrollTo(0,savedScroll);return;}
   var h='';
+  var cartCount=cart?cart.length:0;
   // Header - clean and simple
   // Header v14 — 브랜드 로고 바 형태
   h+='<div class="hdr">';
