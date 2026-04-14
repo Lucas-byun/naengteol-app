@@ -1924,7 +1924,7 @@ function render(){
       h+='⭐ 아직 평점을 남기지 않은 즐겨찾기가 <b>'+noRatingFavs.length+'개</b> 있어요! 요리 후 별점을 남겨보세요.';
       h+='</div>';
     }
-    if(!fr.length)h+='<div class="empty"><div class="em">💝</div><div class="empty-title">즐겨찾기한 레시피가 없어요</div><div class="empty-sub">마음에 드는 레시피에 ❤️를 눈러보세요!<br>나만의 레시피 목록을 만들 수 있어요.</div><button class="empty-cta" onclick="tab=\'cook\';render()">🍳 레시피 둘러보기</button></div>';
+    if(!fr.length)h+='<div class="empty"><div class="em">💝</div><div class="empty-title">즐겨찾기한 레시피가 없어요</div><div class="empty-sub">마음에 드는 레시피에 ❤️를 눌러보세요!<br>나만의 레시피 목록을 만들 수 있어요.</div><button class="empty-cta" onclick="tab=\'cook\';render()">🍳 레시피 둘러보기</button></div>';
     frSorted.forEach(function(r){
       // 평점 표시를 위해 카드에 평점 정보 추가
       var rInfo=favRatingMap[r.id];
