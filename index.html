@@ -3549,7 +3549,29 @@ async function loadAdminStats(){
     });
     var recipeList = Object.values(recipeMap).sort(function(a,b){return b.count-a.count;});
     var totalCooks = recipeList.reduce(function(s,r){return s+r.count;},0);
+    
+    // 인기 레시피 TOP 3
+    var top3 = recipeList.slice(0,3);
+    
+    // 장바구니 담기 횟수 (favs 기반)
+    var favsRaw = await fbDB.ref('favs').once('value').then(function(snap){return snap.val()||{};})
+    var totalFavs = 0;
+    Object.values(favsRaw).forEach(function(userFavs){
+      if(typeof userFavs==='object')totalFavs += Object.keys(userFavs).length;
+    });
+    
+    // 리뷰 수 (별점 달린 게시글 수)
+    var reviewCount = approvedComm.filter(function(p){return p.rating>0;}).length;
 
+    // TOP 3 레시피 HTML (강조 표시)
+    var top3html = top3.map(function(r,i){
+      var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+      return '<div style="margin-bottom:8px;padding:8px;background:rgba(251,192,45,.1);border-left:3px solid #fbc02d;border-radius:4px">'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700">'
+        +'<span>'+medal+' '+r.name+'</span><span style="color:#fbc02d">'+r.count+'회</span></div>'
+        +'</div>';
+    }).join('');
+    
     // TOP 10 레시피 HTML
     var top10 = recipeList.slice(0,10);
     var maxCount = top10.length>0 ? top10[0].count : 1;
@@ -3585,11 +3607,20 @@ async function loadAdminStats(){
     statsHtml += '<div style="font-size:22px;font-weight:700;color:#fff">'+approvedComm.length+'</div>';
     statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">커뮤니티 게시글</div></div>';
     statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
-    statsHtml += '<div style="font-size:22px;font-weight:700;color:'+(pendingComm.length>0?'#ff8a65':'rgba(255,255,255,.4)')+'">'+pendingComm.length+'</div>';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:'+(pendingComm.length>0?'#ff8a65':'rgba(255,255,255,.4)')+'">'+ pendingComm.length+'</div>';
     statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">승인 대기</div></div>';
     statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
     statsHtml += '<div style="font-size:22px;font-weight:700;color:#ffb74d">'+avgRating+'</div>';
     statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">평균 평점</div></div>';
+    statsHtml += '</div>';
+    // 새로운 통계 카드: 장바구니, 리뷰 수
+    statsHtml += '<div style="display:flex;gap:8px;margin-bottom:12px">';
+    statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:#4db8ff">'+totalFavs+'</div>';
+    statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">장바구니 담기</div></div>';
+    statsHtml += '<div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;text-align:center">';
+    statsHtml += '<div style="font-size:22px;font-weight:700;color:#81c784">'+reviewCount+'</div>';
+    statsHtml += '<div style="font-size:10px;color:rgba(255,255,255,.5)">리뷰 수</div></div>';
     statsHtml += '</div>';
     // 일일 접속자 수 섹션
     statsHtml += '<div style="font-size:11px;font-weight:700;color:#ce93d8;margin-bottom:8px">📅 일일 접속자 수 (최근 7일)</div>';
@@ -3606,6 +3637,10 @@ async function loadAdminStats(){
       statsHtml += '</div>';
     });
     statsHtml += '</div>';
+    // 인기 레시피 TOP 3 (강조)
+    statsHtml += '<div style="font-size:11px;font-weight:700;color:#fbc02d;margin-bottom:8px;margin-top:12px">⭐ 인기 레시피 TOP 3</div>';
+    statsHtml += top3.length>0 ? top3html : '<div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px 0">아직 요리 기록이 없어요.</div>';
+    statsHtml += '<div style="margin-top:12px;margin-bottom:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:12px"></div>';
     // 레시피 TOP 10
     statsHtml += '<div style="font-size:11px;font-weight:700;color:#ce93d8;margin-bottom:8px">🍽️ 레시피 TOP '+Math.min(10,top10.length)+'</div>';
     statsHtml += top10.length>0 ? top10html : '<div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px 0">아직 요리 기록이 없어요. 앱에서 요리를 완료하면 여기에 표시됩니다!</div>';
@@ -3613,7 +3648,11 @@ async function loadAdminStats(){
 
     area.innerHTML = statsHtml;
   }catch(e){
-    var errorDiv=document.createElement('div');errorDiv.style.cssText='color:#ef9a9a;font-size:11px;padding:8px';errorDiv.textContent='❌ 오류: '+e.message;area.innerHTML='';area.appendChild(errorDiv);
+    console.error('Admin stats error:', e);
+    var errorDiv=document.createElement('div');errorDiv.style.cssText='color:#ef9a9a;font-size:11px;padding:8px';
+    errorDiv.textContent='❌ 오류: '+e.message;
+    area.innerHTML='';
+    area.appendChild(errorDiv);
   }
 }
 
