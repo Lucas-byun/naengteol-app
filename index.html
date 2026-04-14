@@ -5145,15 +5145,9 @@ document.addEventListener('DOMContentLoaded',function(){
   var app = document.getElementById('app');
   if(app){
     app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100vh;background:#F6EBE0;overflow:hidden;margin:0;padding:0;position:fixed;top:0;left:0;">' +
-      '<img src="icons/splash_screen.png" style="width:100%;height:100%;object-fit:cover;" alt="냉털 로딩 화면">' +
-      '<div style="position:absolute;bottom:20px;left:0;right:0;display:flex;justify-content:center;gap:8px">' +
-        '<span style="width:8px;height:8px;border-radius:50%;background:#E8652A;display:inline-block;animation:dotPulse 1.2s ease-in-out infinite"></span>' +
-        '<span style="width:8px;height:8px;border-radius:50%;background:#E8652A;display:inline-block;animation:dotPulse 1.2s ease-in-out infinite;animation-delay:.2s"></span>' +
-        '<span style="width:8px;height:8px;border-radius:50%;background:#E8652A;display:inline-block;animation:dotPulse 1.2s ease-in-out infinite;animation-delay:.4s"></span>' +
-      '</div>' +
-    '</div>';
-  }
-  loadData();
+  '<img src="icons/splash_screen.png" style="width:100%;height:100%;object-fit:cover;" alt="냉털 로딩 화면">' +
+            '<div id="dynamic-loading-dots" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:700;color:#E8652A;text-shadow: 1px 1px 2px rgba(0,0,0,0.2);"></div>' +
+            '</div>';  loadData();
 });
 
 
@@ -5423,3 +5417,18 @@ if('serviceWorker' in navigator){
   <button id="installButton" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:10px 20px; background-color:#E8652A; color:white; border:none; border-radius:5px; z-index:1000;">홈 화면에 냉털 추가</button>
 
 </body></html>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const loadingTextElement = document.getElementById('dynamic-loading-dots');
+    if (loadingTextElement) {
+      let dotCount = 0;
+      setInterval(() => {
+        dotCount = (dotCount + 1) % 4;
+        let dots = '.'.repeat(dotCount);
+        loadingTextElement.textContent = 'LOADING' + dots;
+      }, 500);
+    }
+  });
+</script>
