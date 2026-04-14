@@ -2669,27 +2669,13 @@ function bnavTap(btn,cb){
 }
 function toggleSearchBar(){
   showSearch = !showSearch;
+  if(!showSearch){ searchQ=''; }
   render();
   if(showSearch){
     setTimeout(function(){
       var inp = document.getElementById('searchInput');
       if(inp) inp.focus();
     }, 100);
-  }
-}, 100);
-  }
-}
-  }else if(showSearch){
-    var sb2=document.querySelector('.search-bar');
-    if(sb2)sb2.classList.add('show');
-    var btn2=document.getElementById('searchToggleBtn');
-    if(btn2){btn2.style.background='rgba(255,255,255,.95)';btn2.style.color='var(--primary)';}
-    // 자동 포커스
-    setTimeout(function(){var inp=document.getElementById('searchInput');if(inp)inp.focus();},100);
-  }else{
-    // 검색어 있으면 지우고 닫기
-    searchQ='';
-    render();
   }
 }
 function goHome(){
