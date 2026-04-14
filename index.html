@@ -1774,6 +1774,16 @@ function render(){
       if(searchQ){var ql=searchQ.toLowerCase();fl=fl.filter(function(i){return i.n.toLowerCase().includes(ql)});}
       h+='<div class="ing-grid">';fl.forEach(function(i){h+=ingBtn(i.n,sel.has(i.n))});h+='</div>';
       if(sel.size>0){h+=renderSuggest();}
+      // 재료 모드에서 매칭 레시피 표시
+      if(sel.size>0){
+        var selArr2=[...sel];
+        var matched=RECIPES.map(function(r){return Object.assign({},r,{match:matchRecipe(r,selArr2)})}).filter(function(r){return r.match.pct>0}).sort(function(a,b){return b.match.pct-a.match.pct});
+        if(matched.length>0){
+          var cs2=[...new Set(matched.map(function(r){return r.cat}))];
+          h+='<div style="padding:0 16px 4px"><span style="font-size:13px;font-weight:700;color:var(--text)">🍳 추천 레시피 ('+matched.length+'개)</span></div>';
+          cs2.forEach(function(c){var rs=matched.filter(function(r){return r.cat===c});h+='<div class="recipe-section" style="background:var(--cook-bg)"><h2 style="color:var(--text)">'+(rs[0]?rs[0].emoji:'')+' '+c+' ('+rs.length+')</h2>';rs.forEach(function(r){h+=renderCard(r)});h+='</div>';});
+        }
+      }
     }else{
       var q=searchQ.toLowerCase();var fl2=q?RECIPES.filter(function(r){var nm=r.name.toLowerCase();if(nm.includes(q))return true;var sq=SYN_MAP[q];return sq&&nm.includes(sq);}):RECIPES;
       if(activeTag)fl2=fl2.filter(function(r){return RECIPE_TAGS[r.id]&&RECIPE_TAGS[r.id].indexOf(activeTag)!==-1});
