@@ -40,11 +40,12 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .hdr-btn:active{background:rgba(255,255,255,.35)}
 .my-ing-count-hdr{background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;flex-shrink:0;transition:background .15s}
 .my-ing-count-hdr:active{background:rgba(255,255,255,.4)}
-/* 검색바 — 헤더 바로 아래 항상 표시 */
-.search-bar{display:block;padding:8px 16px 10px;background:#E8652A;border-bottom:none}
+/* 검색바 — 접이식 애니메이션 적용 */
+.search-bar{display:none;padding:8px 16px 12px;background:#E8652A;border-bottom:none;animation:slideDown .3s ease-out}
 .search-bar.show{display:block}
-.search-bar input{width:100%;padding:10px 16px 10px 40px;border:1.5px solid var(--border);border-radius:24px;font-size:14px;font-family:inherit;outline:none;background:var(--card);transition:all .2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
-.search-bar input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.search-bar input{width:100%;padding:12px 16px 12px 42px;border:none;border-radius:24px;font-size:14px;font-family:inherit;outline:none;background:var(--card);transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.search-bar input:focus{box-shadow:0 4px 12px rgba(0,0,0,0.15)}
 /* My Ingredients Bar */
 .my-ings-bar{padding:8px 16px;display:flex;gap:6px;flex-wrap:wrap;background:var(--bg);border-bottom:1px solid var(--border)}
 .my-ings-bar:empty{display:none}
@@ -1745,173 +1746,37 @@ function render(){
   // Header v14 — 브랜드 로고 바 형태
   h+='<div class="hdr">';
   h+='<div class="hdr-logo" onclick="goHome()"><div class="hdr-logo-icon"><svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="3" width="26" height="30" rx="5" fill="white" opacity="0.95"/><rect x="5" y="3" width="26" height="13" rx="5" fill="#FFE0CC"/><rect x="5" y="14" width="26" height="2" fill="#E8652A" opacity="0.4"/><circle cx="18" cy="10" r="2.5" fill="#E8652A" opacity="0.7"/><rect x="9" y="19" width="6" height="3" rx="1.5" fill="#E8652A" opacity="0.5"/><rect x="9" y="24" width="10" height="3" rx="1.5" fill="#E8652A" opacity="0.3"/><rect x="3" y="12" width="2" height="6" rx="1" fill="#E8652A" opacity="0.6"/></svg></div><div class="hdr-logo-text"><span class="hdr-logo-title">냉털</span><span class="hdr-logo-sub">냉장고를 털자!</span></div></div>';
-  h+='<div class="hdr-btns">';
-  if(sel.size>0)h+='<span class="my-ing-count-hdr" onclick="openFridge()">🧊 '+sel.size+'</span>';
-  
-  var cartCount=0;cart.forEach(function(c){cartCount+=c.items.filter(function(i){return!i.checked}).length});
-  // 돋보기 버튼 (요리 탭에서만 표시)
-  if(tab==='cook')h+='<button class="hdr-btn" onclick="toggleSearchBar()" id="searchToggleBtn" style="background:'+(showSearch?'rgba(255,255,255,.95)':'rgba(255,255,255,.25)')+';color:'+(showSearch?'var(--primary)':'#fff')+'">\uD83D\uDD0D</button>';
-  h+='<button class="hdr-btn" onclick="openCartModal()" style="position:relative;background:rgba(255,255,255,.95);color:#1565c0">🛒';
-  if(cartCount>0)h+='<span style="position:absolute;top:-2px;right:-2px;background:#fff;color:#d84315;font-size:9px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700">'+cartCount+'</span>';
-  h+='</button>';
-  if(sel.size>0)h+='<button class="hdr-btn" onclick="resetIngs()" style="background:rgba(255,255,255,.95);color:#c62828">🗑️</button>';
-  h+='</div></div>';
+  h+='<div class="hdr-btns">
+  <div class="my-ing-count-hdr" onclick="openFridge()" style="background:rgba(255,255,255,0.25);border:none;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.1)">
+    <span style="font-size:16px">🧊</span>
+    <span style="font-size:14px;font-weight:800;color:#fff">' + (sel.size||0) + '</span>
+  </div>
+  <button class="hdr-btn" onclick="toggleSearchBar()" id="searchToggleBtn" style="background:' + (showSearch?'rgba(255,255,255,0.95)':'rgba(255,255,255,0.25)') + ';color:' + (showSearch?'var(--primary)':'#fff') + '">🔍</button>
+  <button class="hdr-btn" onclick="openCartModal()" style="position:relative;background:#fff;color:#E8652A">🛒' + (cartCount>0?'<span style="position:absolute;top:-4px;right:-4px;background:#fff;color:#E8652A;font-size:10px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,0.2)">'+cartCount+'</span>':'') + '</button>
+  <button class="hdr-btn" onclick="resetIngs()" style="background:#fff;color:#E8652A">🗑️</button>
+</div></div>';
   var searchPlaceholder=mode==='ing'?'재료 이름 검색...':'요리 이름 검색...';
-  // Search bar with autocomplete — 요리 탭에서만 항상 표시
-  if(tab==='cook'){h+='<div class="search-bar show"><div style="display:flex;gap:6px;position:relative">';
-  h+='<div style="position:relative;flex:1">';
-  h+='<input type="text" id="searchInput" placeholder="'+searchPlaceholder+'" value="'+esc(searchQ)+'" autocomplete="off" style="width:100%;box-sizing:border-box" oninput="updateAC(this.value)" onfocus="updateAC(this.value)" onblur="setTimeout(function(){var ac=document.getElementById(\'acList\');if(ac)ac.style.display=\'none\'},200)">';
-  h+='<div id="acList" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1.5px solid var(--primary);border-radius:12px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);margin-top:4px"></div>';
-  h+='</div>';
-  h+='<button onclick="searchQ=document.getElementById(\'searchInput\').value;render()" style="padding:8px 14px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">검색</button>';
-  if(searchQ)h+='<button onclick="searchQ=\'\';render()" style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">✕</button>';
-  h+='</div></div>';}
-
+  // Search bar with autocomplete — 토글 방식으로 변경
+  h+='<div class="search-bar '+(showSearch?'show':'')+'"><div style="display:flex;gap:8px;position:relative">' + 
+                 '<div style="position:relative;flex:1">' + 
+                 '<input type="text" id="searchInput" placeholder="'+searchPlaceholder+'" value="'+esc(searchQ)+'" autocomplete="off" oninput="updateAC(this.value)" onfocus="updateAC(this.value)" onblur="setTimeout(function(){var ac=document.getElementById(\'acList\');if(ac)ac.style.display=\'none\'},200)">' + 
+                 '<div id="acList" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1.5px solid var(--primary);border-radius:12px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);margin-top:4px"></div>' + 
+                 '</div>' + 
+                 '<button onclick="searchQ=document.getElementById(\'searchInput\').value;render()" style="padding:0 18px;border:none;border-radius:24px;background:none;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">검색</button>' + 
+                 (searchQ?'<button onclick="searchQ=\'\';render()" style="position:absolute;right:70px;top:50%;transform:translateY(-50%);background:none;border:none;color:#aaa;font-size:16px;cursor:pointer">✕</button>':'') + 
+                 '</div></div>';
   if(tab==='cook'){
     h+='<div class="mode-tabs"><button class="mode-tab '+(mode==='ing'?'on':'')+'" onclick="mode=\'ing\';render()">🥕 재료 모드</button><button class="mode-tab '+(mode==='cook'?'on':'')+'" onclick="mode=\'cook\';render()">🍽️ 요리 모드</button></div>';
-    
-    // 태그 필터는 요리 목록 영역으로 이동
-    // 오늘의 미션 카드 (완료 후 숨김 처리)
-    var mission=getTodayMission();
-    var missionHidden=localStorage.getItem('nt_mission_hidden_date')===new Date().toISOString().split('T')[0];
-    if(!missionHidden){
-      h+='<div id="missionCard" style="padding:8px 16px 4px;transition:opacity .5s,max-height .5s;overflow:hidden">';
-      h+='<div style="background:linear-gradient(135deg,'+(mission._done?'#e8f5e9,#c8e6c9':'#fff8f3,#f0e6d2')+');border-radius:14px;padding:14px 16px;border:2px solid '+(mission._done?'#66bb6a':'var(--primary)')+'">';
-      h+='<div style="display:flex;align-items:center;justify-content:space-between">';
-      h+='<div style="flex:1">';
-      h+='<div style="font-size:11px;font-weight:700;color:'+(mission._done?'#388e3c':'var(--primary)')+';margin-bottom:4px">🎯 오늘의 미션</div>';
-      h+='<div style="font-size:14px;font-weight:600;color:#333;margin-bottom:6px">'+(mission._done?'✅ '+mission.desc:mission.desc)+'</div>';
-      if(!mission._done){
-        h+='<div style="font-size:11px;color:var(--sub)">요리 완료 시 자동 인정됩니다</div>';
-      }
-      h+='</div>';
-      h+='<div style="text-align:center;margin-left:12px">';
-      if(mission._done){
-        h+='<div style="font-size:28px">🏆</div>';
-        h+='<div style="font-size:11px;font-weight:700;color:#388e3c">완료!</div>';
-      }else{
-        h+='<div style="font-size:28px;opacity:.5">🎯</div>';
-        h+='<div style="font-size:11px;color:var(--sub)">도전 중</div>';
-      }
-      h+='</div>';
-      h+='</div></div></div>';
-    }
     if(mode==='ing'){
-      if(sel.size>0){
-        h+='<div style="padding:10px 16px 0"><span style="font-size:12px;font-weight:700;color:var(--primary);letter-spacing:-.2px">🧊 내 냉장고 <span style="background:var(--primary);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px">'+sel.size+'</span></span></div>';
-        var selArr=[...sel];var maxShow=12;var showAll=localStorage.getItem('nt_show_all_ings')==='1';
-        var displayIngs=showAll?selArr:selArr.slice(0,maxShow);
-        h+='<div class="my-ings-bar">';displayIngs.forEach(function(s){h+=ingTag(s)});
-        if(!showAll&&selArr.length>maxShow){
-          h+='<span onclick="localStorage.setItem(\'nt_show_all_ings\',\'1\');render()" style="display:inline-block;padding:4px 10px;margin:2px;border-radius:20px;background:var(--border);color:var(--sub);font-size:11px;cursor:pointer">+'+(selArr.length-maxShow)+'개 더보기</span>';
-        }else if(showAll&&selArr.length>maxShow){
-          h+='<span onclick="localStorage.removeItem(\'nt_show_all_ings\');render()" style="display:inline-block;padding:4px 10px;margin:2px;border-radius:20px;background:var(--border);color:var(--sub);font-size:11px;cursor:pointer">접기</span>';
-        }
-        h+='</div>';
-      }
-      h+='<div class="cat-tabs">';CATS.forEach(function(c){var label=c==='자주'?'⭐'+c:c;h+='<button class="cat-tab '+(cat===c?'on':'')+'" onclick="cat=\''+esc(c)+'\';render()">'+label+'</button>';});h+='</div>';
-      var fl=cat==='전체'?INGS:cat==='자주'?INGS.filter(function(i){return FAV_INGS.indexOf(i.n)!==-1}):INGS.filter(function(i){return i.c===cat});
-      // Filter by search query in ingredient mode
-      if(searchQ){var sq=searchQ.toLowerCase();fl=INGS.filter(function(i){if(i.n.includes(sq))return true;var sy=SYN_MAP[sq];return sy&&i.n.includes(sy);});}
-      h+='<div class="ing-grid">';fl.forEach(function(i){h+=ingBtn(i.n,sel.has(i.n))});h+='</div>';
-      if(searchQ&&fl.length===0)h+='<div class="empty"><div class="em">🔍</div><div class="empty-title">"'+esc(searchQ)+'" 재료를 찾을 수 없어요</div><div class="empty-sub">다른 이름으로 검색해보세요!<br>예: 달걸, 돼지고기, 밥 등</div></div>';
-      // 하단 구분선 + 오늘 뭐 해먹지 버튼 (재료 그리드 아래, 레시피 결과 위)
-      h+='<div style="padding:8px 16px;background:linear-gradient(to bottom,var(--bg),var(--cook-bg))">';
-      h+='<button onclick="randomRecipe()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🎲 오늘 뭐 해먹지?</button>';
+      h+='<div class="cat-tabs">';
+      CATS.forEach(function(c){h+='<button class="cat-tab '+(cat===c?'on':'')+'" onclick="cat=\''+c+'\';render()">'+c+'</button>'});
       h+='</div>';
-      if(sel.size>0){var m=getMatched();
-        // Apply meal type filter
-        var mealMap=CAT_LABEL_MAP;
-        if(mealFilter!=='전체')m=m.filter(function(r){return mealMap[r.cat]===mealFilter});
-        if(activeTag)m=m.filter(function(r){return RECIPE_TAGS[r.id]&&RECIPE_TAGS[r.id].indexOf(activeTag)!==-1});
-        var perfect=countPerfect(m);var partial=m.length-perfect;
-        h+='<div class="recipe-section">';
-        h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:8px 12px;background:linear-gradient(135deg,var(--primary-light),transparent);border-radius:12px"><h2 style="margin:0;color:var(--text);font-size:16px">🍽️ 만들 수 있는 요리 <span style="color:var(--primary);font-size:18px;font-weight:800">'+m.length+'</span><span style="font-size:13px;color:var(--sub)">개</span></h2></div>';
-        // 태그 필터 (해시태그 클릭 방식)
-        if(activeTag){h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:6px 10px;background:var(--primary-light);border-radius:10px"><span style="font-size:12px;color:var(--primary);font-weight:700">#'+activeTag+' 필터 적용 중</span><button onclick="activeTag=\'\';render()" style="font-size:11px;padding:2px 8px;border-radius:8px;border:1px solid var(--primary);background:none;color:var(--primary);cursor:pointer;font-family:inherit">✕ 해제</button></div>';}
-        h+='<div style="display:flex;gap:6px;margin-bottom:10px">';
-        ['전체','한끼','반찬','간식'].forEach(function(f){
-          var active=mealFilter===f;
-          var colors={'전체':['var(--text)','var(--border)'],'한끼':['#1976d2','#e3f2fd'],'반찬':['#388e3c','#e8f5e9'],'간식':['#ff6f00','#f5f5f5']};
-          var c=colors[f];
-          h+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:4px 12px;border-radius:16px;font-size:12px;font-weight:'+(active?'700':'500')+';border:'+(active?'2px solid '+c[0]:'1px solid var(--border)')+';background:'+(active?c[1]:'var(--bg)')+';color:'+(active?c[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';
-        });
+      if(sel.size>0){
+        h+='<div class="my-ings-bar">';
+        selArr.forEach(function(s){var ig=INGS.find(function(i){return i.n===s});h+='<span class="my-ing-tag">'+(ig?ig.e+' ':'')+s+'<span class="x" onclick="sel.delete(\''+esc(s)+'\');save();render()">✕</span></span>'});
+        h+='<span class="my-ing-count" onclick="openFridge()">🧊 '+sel.size+'</span>';
         h+='</div>';
-        if(perfect>0||partial>0)h+='<div style="display:flex;gap:8px;margin-bottom:12px"><span style="font-size:12px;padding:4px 10px;border-radius:10px;background:#e3f2fd;color:#1976d2;font-weight:700">✅ 바로 가능 '+perfect+'개</span><span style="font-size:12px;padding:4px 10px;border-radius:10px;background:#f5f5f5;color:#ff6f00;font-weight:700">🔸 재료 부족 '+partial+'개</span></div>';
-        if(!m.length)h+='<div class="empty"><div class="em">🤔</div><div class="empty-title">매칭되는 레시피가 없어요</div><div class="empty-sub">재료를 1~2개 더 선택해보세요!<br>다양한 레시피가 나타날 거예요.</div></div>';
-        if(perfect>0){h+='<div style="font-size:13px;font-weight:700;color:#1976d2;padding:4px 0;margin-bottom:4px;border-bottom:2px solid #1976d2">✅ 바로 만들 수 있어요!</div>';m.filter(function(r){return r.match.pct===100}).forEach(function(r){h+=renderCard(r)});}
-        // Shopping button — between perfect and partial
-        if(partial>0){var topIng=getTopUnlock();h+='<div style="padding:12px 0"><button onclick="openShopList()" style="width:100%;padding:12px;border:none;border-radius:12px;background:#1976d2;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🛒 '+(topIng&&topIng.unlocks>0?topIng.name+'만 사면 +'+topIng.unlocks+'가지 요리 추가!':'이거만 사면 요리가 늘어나요!')+'</button></div>';}
-        if(partial>0){h+='<div style="font-size:13px;font-weight:700;color:#ff6f00;padding:4px 0;margin-bottom:4px;border-bottom:2px solid #ff6f00">🔸 재료 조금만 더 있으면!</div>';m.filter(function(r){return r.match.pct<100}).forEach(function(r){h+=renderCard(r)});}
-        h+='</div>';}
-      else{
-        // Empty state — "오늘 뭐 해먹지?" + 인기 레시피
-        h+='<div style="padding:20px 16px">';
-        // Streak motivation banner
-        var stats=getCookStats();
-        if(stats.total>0){
-          var streakIcon,streakTitle,streakSub;
-          if(stats.streak>=7){streakIcon='💎';streakTitle='7일 연속 요리! 갓벽해요!';streakSub='이제 진정한 요리 고수!';}
-          else if(stats.streak>=3){streakIcon='🔥';streakTitle=stats.streak+'일 연속 요리 중!';streakSub='멈추지 마세요, 거의 습관이에요!';}
-          else if(stats.streak>=1){streakIcon='👨‍🍳';streakTitle='어제도 요리했어요!';streakSub='오늘도 이어가면 '+( stats.streak+1)+'일 연속!';}
-          else{streakIcon='💪';streakTitle='총 '+stats.total+'번 요리했어요';streakSub='오늘도 한 끼 도전해볼까요?';}
-          h+='<div style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px">';
-          h+='<div style="font-size:32px">'+streakIcon+'</div>';
-          h+='<div style="flex:1"><div style="font-size:14px;font-weight:700;color:#388e3c">'+streakTitle+'</div>';
-          h+='<div style="font-size:11px;color:#558b2f;margin-top:2px">'+stats.unique+'가지 메뉴 · '+stats.cats+'개 카테고리</div></div>';
-          if(stats.streak>=1)h+='<div style="text-align:center"><div style="font-size:20px;font-weight:700;color:#388e3c">'+stats.streak+'</div><div style="font-size:9px;color:#558b2f">연속</div></div>';
-          h+='</div>';
-        }
-        // Time-based recommendation
-        var hour=new Date().getHours();
-        var mealTime,mealEmoji,mealCats;
-        if(hour>=5&&hour<10){mealTime='아침';mealEmoji='🌅';mealCats=['달걀요리','간식/분식','밥/덮밥'];}
-        else if(hour>=10&&hour<15){mealTime='점심';mealEmoji='☀️';mealCats=['밥/덮밥','면류','찌개/국'];}
-        else if(hour>=15&&hour<18){mealTime='간식';mealEmoji='🍪';mealCats=['간식/분식','달걀요리','전/부침'];}
-        else{mealTime='저녁';mealEmoji='🌙';mealCats=['찌개/국','볶음/구이','밥/덮밥','면류'];}
-        var mealRecipes=RECIPES.filter(function(r){return mealCats.indexOf(r.cat)!==-1});
-        var todayRec=mealRecipes[Math.floor(Date.now()/86400000)%mealRecipes.length];
-        h+='<div style="background:linear-gradient(135deg,#f5f5f5,#f0e6d2);border-radius:16px;padding:20px;margin-bottom:16px;cursor:pointer" onclick="openDetail(\''+todayRec.id+'\')">';
-        h+='<div style="font-size:13px;color:var(--primary);font-weight:700;margin-bottom:8px">'+mealEmoji+' '+mealTime+' 뭐 해먹지?</div>';
-        h+='<div style="display:flex;align-items:center;gap:14px">';
-        h+='<div style="font-size:48px">'+todayRec.emoji+'</div>';
-        h+='<div><div style="font-size:18px;font-weight:700;color:var(--text)">'+todayRec.name+'</div>';
-        h+='<div style="font-size:12px;color:#777;margin-top:3px">'+((['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][todayRec.diff]||'⭐ 쉬움'))+' · ⏱'+todayRec.time+'분</div>';
-        h+='<div style="font-size:12px;color:#666;margin-top:4px">'+todayRec.desc+'</div>';
-        h+='</div></div></div>';
-        // Quick start guide v14 — 비주얼 가이드 강화
-        h+='<div style="background:linear-gradient(135deg,#FEF3EC,#fff8f3);border:2px dashed var(--primary);border-radius:20px;padding:28px 20px;margin-bottom:16px;text-align:center;box-shadow:0 4px 16px rgba(232,101,42,0.08)">';
-        // 귀여운 냉장고 SVG 일러스트
-        h+='<div style="margin-bottom:12px"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="8" width="60" height="74" rx="10" fill="#FFF0E8" stroke="#E8652A" stroke-width="2.5"/><rect x="15" y="8" width="60" height="32" rx="10" fill="#FFE0CC" stroke="#E8652A" stroke-width="2.5"/><rect x="15" y="38" width="60" height="4" fill="#E8652A" opacity="0.3"/><rect x="8" y="28" width="7" height="16" rx="3.5" fill="#E8652A" opacity="0.6"/><circle cx="45" cy="24" r="6" fill="#E8652A" opacity="0.7"/><circle cx="45" cy="24" r="3" fill="white"/><rect x="22" y="48" width="18" height="8" rx="4" fill="#E8652A" opacity="0.4"/><rect x="22" y="60" width="28" height="8" rx="4" fill="#E8652A" opacity="0.25"/><text x="45" y="56" text-anchor="middle" font-size="18" fill="#E8652A" opacity="0.5">🥕</text></svg></div>';
-        h+='<div style="font-size:18px;font-weight:800;color:var(--primary);margin-bottom:6px">냉장고가 비었어요!</div>';
-        h+='<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">재료를 선택해서 채워보세요! 🥕</div>';
-        h+='<div style="font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:16px">위에서 <b style="color:var(--text)">재료를 선택</b>하면<br>만들 수 있는 요리를 추천해드려요!</div>';
-        h+='<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">';
-        // 빠른 시작 재료 버튼들
-        var quickIngs=['달걀','마늘','양파','냉동밥','스팸','치즈'];
-        quickIngs.forEach(function(ing){
-          h+='<button onclick="event.stopPropagation();toggleIngredient(\''+ing+'\')" style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--primary);background:var(--card);color:var(--primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">';
-          var ig=INGS.find(function(i){return i.n===ing;});
-          h+=(ig?ig.e+' ':'')+ing+'</button>';
-        });
-        h+='</div>';
-        h+='<button onclick="cat=\'\u2605자주\';render()" style="padding:12px 28px;border:none;border-radius:14px;background:var(--primary);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(232,101,42,.3)">재료 추가하기</button>';
-        h+='</div>';
-
-        h+='<div style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)">🏆 추천 레시피</div>';
-        var popular=['김치볶음밥','달걀말이','된장찌개','참치마요덮밥','떡볶이','카르보나라'];
-        var popRecipes=popular.map(function(n){return RECIPES.find(function(r){return r.name===n})}).filter(Boolean).slice(0,6);
-        h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
-        popRecipes.forEach(function(r){
-          h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer" onclick="openDetail(\''+r.id+'\')">';
-          h+='<div style="font-size:32px;margin-bottom:4px">'+r.emoji+'</div>';
-          h+='<div style="font-size:12px;font-weight:700;color:var(--text)">'+r.name+'</div>';
-          h+='<div style="font-size:10px;color:var(--sub);margin-top:2px">'+(r.diff===1?'쉬움':'보통')+' · '+r.time+'분</div>';
-          h+='</div>';
-        });
-        h+='</div></div>';
       }
-      // Suggest ingredients
       if(sel.size>0&&sel.size<15){h+=renderSuggest();}
     }else{
       var q=searchQ.toLowerCase();var fl2=q?RECIPES.filter(function(r){var nm=r.name.toLowerCase();if(nm.includes(q))return true;var sq=SYN_MAP[q];return sq&&nm.includes(sq);}):RECIPES;
@@ -2811,14 +2676,17 @@ function bnavTap(btn,cb){
   cb();
 }
 function toggleSearchBar(){
-  showSearch=!showSearch;
-  // 검색바 닫을 때 검색어 유지 (결과가 있는 경우)
-  if(!showSearch&&!searchQ){
-    // 검색어 없으면 그냥 닫기
-    var sb=document.querySelector('.search-bar');
-    if(sb)sb.classList.remove('show');
-    var btn=document.getElementById('searchToggleBtn');
-    if(btn){btn.style.background='rgba(255,255,255,.25)';btn.style.color='#fff';}
+  showSearch = !showSearch;
+  render();
+  if(showSearch){
+    setTimeout(function(){
+      var inp = document.getElementById('searchInput');
+      if(inp) inp.focus();
+    }, 100);
+  }
+}, 100);
+  }
+}
   }else if(showSearch){
     var sb2=document.querySelector('.search-bar');
     if(sb2)sb2.classList.add('show');
