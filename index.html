@@ -1751,7 +1751,7 @@ function render(){
     <span style="font-size:16px">🧊</span>
     <span style="font-size:14px;font-weight:800;color:#fff">' + (sel.size||0) + '</span>
   </div>
-  <button class="hdr-btn" onclick="toggleSearchBar()" id="searchToggleBtn" style="background:' + (showSearch?'rgba(255,255,255,0.95)':'rgba(255,255,255,0.25)') + ';color:' + (showSearch?'var(--primary)':'#fff') + '">🔍</button>
+  <button class="hdr-btn" onclick="toggleSearchBar()" id="searchToggleBtn" style="background:' + (showSearch?'#fff':'rgba(255,255,255,0.25)') + ';color:' + (showSearch?'#E8652A':'#fff') + '">🔍</button>
   <button class="hdr-btn" onclick="openCartModal()" style="position:relative;background:#fff;color:#E8652A">🛒' + (cartCount>0?'<span style="position:absolute;top:-4px;right:-4px;background:#fff;color:#E8652A;font-size:10px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,0.2)">'+cartCount+'</span>':'') + '</button>
   <button class="hdr-btn" onclick="resetIngs()" style="background:#fff;color:#E8652A">🗑️</button>
 </div></div>';
