@@ -1,6 +1,6 @@
-// 냉털 Service Worker v1.1
+// 냉털 Service Worker v1.2
 // 캐시 버전 — 업데이트 시 이 값을 올리면 기존 캐시가 자동 교체됩니다
-const CACHE_VERSION = 'naengteol-v15';
+const CACHE_VERSION = 'naengteol-v16';
 
 // 앱 셸: 설치 즉시 캐시할 핵심 파일 목록
 const SHELL_ASSETS = [
@@ -15,10 +15,18 @@ const SHELL_ASSETS = [
 ];
 
 // ── 설치 이벤트: 앱 셸 사전 캐시 ──────────────────────────────
+// B3 수정: cache.addAll()은 하나라도 실패하면 전체 설치 실패하므로
+//          개별 캐시로 변경 → 일부 실패해도 나머지 파일은 캐시됨
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_VERSION).then(function(cache) {
-      return cache.addAll(SHELL_ASSETS);
+      return Promise.allSettled(
+        SHELL_ASSETS.map(function(url) {
+          return cache.add(url).catch(function(e) {
+            console.warn('[SW] 캐시 실패: ' + url, e);
+          });
+        })
+      );
     }).then(function() {
       // 새 SW가 즉시 활성화되도록 대기 건너뜀
       return self.skipWaiting();
@@ -70,7 +78,10 @@ self.addEventListener('fetch', function(event) {
           if (response && response.status === 200) {
             var clone = response.clone();
             caches.open(CACHE_VERSION).then(function(cache) {
-              cache.put(event.request, clone);
+              // B8 수정: 캐시 저장 실패 시 catch 처리
+              cache.put(event.request, clone).catch(function(e) {
+                console.warn('[SW] 이미지 캐시 저장 실패:', e);
+              });
             });
           }
           return response;
@@ -96,7 +107,10 @@ self.addEventListener('fetch', function(event) {
       if (response && response.status === 200 && event.request.method === 'GET') {
         var clone = response.clone();
         caches.open(CACHE_VERSION).then(function(cache) {
-          cache.put(event.request, clone);
+          // B8 수정: 캐시 저장 실패 시 catch 처리
+          cache.put(event.request, clone).catch(function(e) {
+            console.warn('[SW] 앱 셸 캐시 저장 실패:', e);
+          });
         });
       }
       return response;

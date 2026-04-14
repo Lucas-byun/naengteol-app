@@ -356,9 +356,11 @@ recordDailyAccess();
 // 요리 완성 시 → 매번 카운트 +1 (Google Sheets와 동일 기준: 요리 횟수 기반)
 function reportRecipeToFirebase(recipeId,recipeName){
   try{
-    fbDB.ref('recipes/'+recipeId+'/count').transaction(function(c){return(c||0)+1;});
-    fbDB.ref('recipes/'+recipeId+'/name').set(recipeName);
-  }catch(e){}
+    fbDB.ref('recipes/'+recipeId+'/count').transaction(function(c){return(c||0)+1;})
+      .catch(function(e){console.warn('[Firebase] 레시피 카운트 실패:',e);});
+    fbDB.ref('recipes/'+recipeId+'/name').set(recipeName)
+      .catch(function(e){console.warn('[Firebase] 레시피 이름 저장 실패:',e);});
+  }catch(e){console.warn('[Firebase] reportRecipeToFirebase 오류:',e);}
 }
 
 // 레시피 랭킹 Top 3 실시간 리스닝
@@ -751,7 +753,7 @@ function addPhotoToHistory(idx,input){
     // 크롭 모달 열기 (드래그/핀치로 원하는 부분 선택 가능)
     openCropModal(e.target.result, function(croppedDataUrl){
       cookHistory[idx].photo=croppedDataUrl;
-      cookHistory[idx].photoDate=new Date().toISOString().split('T')[0];
+      cookHistory[idx].photoDate=getLocalDateStr();
       localStorage.setItem('nt_history',JSON.stringify(cookHistory));
       render();
       showCartPopup('📸 사진 추가 완료!',cookHistory[idx].name+' ('+cookHistory[idx].date+' 요리) 사진 저장됨');
@@ -881,7 +883,7 @@ function changeExistingPhoto(idx,input,recipeId){
     // 크롭 모달 열기 (드래그/핀치로 원하는 부분 선택 가능)
     openCropModal(e.target.result, function(croppedDataUrl){
       cookHistory[idx].photo=croppedDataUrl;
-      cookHistory[idx].photoDate=new Date().toISOString().split('T')[0];
+      cookHistory[idx].photoDate=getLocalDateStr();
       localStorage.setItem('nt_history',JSON.stringify(cookHistory));
       var popup=document.getElementById('galleryPopup');
       if(popup)popup.remove();
@@ -1051,7 +1053,7 @@ function sharePhotoToCommunity(idx){
     user:getDisplayName(),
     nickname:getDisplayName(),
     uid:fbUid||'',
-    date:new Date().toISOString().split('T')[0],
+    date:getLocalDateStr(),
     text:ch.comment||'',
     photo:ch.photo,
     rating:ch.rating||0,
@@ -1168,7 +1170,7 @@ function savePhotoWithComment(idx){
   var commentInput=document.getElementById('galleryCommentInput');
   var comment=commentInput?commentInput.value.trim():'';
   cookHistory[idx].photo=_pendingPhotoData;
-  cookHistory[idx].photoDate=new Date().toISOString().split('T')[0];
+  cookHistory[idx].photoDate=getLocalDateStr();
   if(comment)cookHistory[idx].comment=comment;
   localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   _pendingPhotoData=null;_pendingPhotoIdx=-1;
@@ -1197,7 +1199,7 @@ function addToCart(recipeId){
   }
   // Remove existing entry for same recipe
   cart=cart.filter(function(c){return c.recipeId!==recipeId});
-  cart.push({recipeId:recipeId,name:r.name,emoji:r.emoji,items:missing,date:new Date().toISOString().split('T')[0]});
+  cart.push({recipeId:recipeId,name:r.name,emoji:r.emoji,items:missing,date:getLocalDateStr()});
   saveCart();
   showCartPopup('🛒 장바구니에 담았어요!',r.name+'의 부족 재료 '+missing.length+'개');
 }
@@ -1289,7 +1291,7 @@ function addIngToCart(ingName){
   var existing=cart.find(function(c){return c.recipeId==='shop_'+ingName});
   if(!existing){
     var recipeNames=recipes.map(function(r){return r.name}).join(', ');
-    cart.push({recipeId:'shop_'+ingName,name:'장보기: '+ingName,emoji:'🛒',items:[{v:ingName,name:ingName,checked:false}],date:new Date().toISOString().split('T')[0]});
+    cart.push({recipeId:'shop_'+ingName,name:'장보기: '+ingName,emoji:'🛒',items:[{v:ingName,name:ingName,checked:false}],date:getLocalDateStr()});
     saveCart();
   }
   // Refresh shop list
@@ -1367,7 +1369,7 @@ function ingMatch(v,s){
   if(syn&&(syn===nm||v.startsWith(syn+' ')||v.startsWith(syn+'(')))return true;
   return false;
 }
-function matchRecipe(r,selArr){var req=r.ings.filter(function(i){return i.t==='req'});var hv=req.filter(function(i){return selArr.some(function(s){return ingMatch(i.v,s)})});var pct=req.length?Math.round(hv.length/req.length*100):0;return{pct:Math.min(pct,100),have:hv.length,total:req.length};}
+function matchRecipe(r,selArr){var req=r.ings.filter(function(i){return i.t==='req'});var hv=req.filter(function(i){return selArr.some(function(s){return ingMatch(i.v,s)})});var pct=req.length?Math.round(hv.length/req.length*100):100;return{pct:Math.min(pct,100),have:hv.length,total:req.length};}
 function getMatched(){
   // sel을 배열로 미리 변환하여 matchRecipe 내 [...sel] 반복 스프레드 제거
   var selArr=[...sel];
@@ -1402,6 +1404,8 @@ function getTopUnlock(){
 
 // === HELPERS ===
 function esc(s){return s.replace(/'/g,"\\'");}
+// 로컬 날짜 문자열 반환 (toISOString은 UTC 기준이라 한국 자정 전후 오류 발생)
+function getLocalDateStr(d){var dt=d||new Date();return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
 function toggleIngredient(n){
   sel.has(n)?sel.delete(n):sel.add(n);
   save();
@@ -2635,7 +2639,7 @@ function saveDetPhoto(id,share){
           user:getDisplayName(),
           nickname:getDisplayName(),
           uid:fbUid||'',
-          date:new Date().toISOString().split('T')[0],
+          date:getLocalDateStr(),
           text:comment,
           photo:detPhotoData,
           rating:entry?entry.rating||0:0,
@@ -4004,7 +4008,7 @@ function completeCookSave(recipeId,share){
       recipeId:recipeId,
       emoji:r?r.emoji:'🍳',
       user:getDisplayName(),
-      date:new Date().toISOString().split('T')[0],
+      date:getLocalDateStr(),
       text:commentText,
       photo:photo,
       rating:rating>0?rating:0,
@@ -4075,7 +4079,7 @@ function savePhotoComment(recipeId,share){
         user:getDisplayName(),
         nickname:getDisplayName(),
         uid:fbUid||'',
-        date:new Date().toISOString().split('T')[0],
+        date:getLocalDateStr(),
         text:commentText,
         photo:photoUrl,
         rating:rating||0,
@@ -4283,7 +4287,8 @@ function submitHistoryShare(modal){
   var comment = document.getElementById('shareComment');
   var commentText = comment ? comment.value.trim() : '';
   var preview = document.getElementById('sharePreview');
-  var photoData = (preview && preview.src && preview.src.startsWith('data:')) ? preview.src : (modal._existPhoto || null);
+  var previewSrc=(preview&&typeof preview.src==='string')?preview.src:'';
+  var photoData = previewSrc.startsWith('data:') ? previewSrc : (modal._existPhoto || null);
   
   if(!photoData){
     showCartPopup('📸 사진이 없어요!','커뮤니티에 자랑하려면 사진이 필수입니다.\n사진을 추가해주세요!');
@@ -4313,7 +4318,7 @@ function submitHistoryShare(modal){
     recipeId: recipeId,
     emoji: recipeEmoji,
     user: getDisplayName(),
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateStr(),
     text: commentText,
     photo: photoData,
     likes: 0,
@@ -4345,7 +4350,7 @@ function submitHistoryShare(modal){
 
 function addCookHistory(id,skipBadge,ratingVal){
   var r=RECIPES.find(function(x){return x.id===id});if(!r)return;
-  cookHistory.unshift({id:id,name:r.name,emoji:r.emoji,cat:r.cat,date:new Date().toISOString().split('T')[0]});
+  cookHistory.unshift({id:id,name:r.name,emoji:r.emoji,cat:r.cat,date:getLocalDateStr()});
   if(cookHistory.length>100)cookHistory=cookHistory.slice(0,100);
   localStorage.setItem('nt_history',JSON.stringify(cookHistory));
   reportRecipeToFirebase(id,r.name);
@@ -4379,7 +4384,7 @@ function getCookStats(){
   var thisWeek=cookHistory.filter(function(h){var d=new Date(h.date);var now=new Date();var diff=(now-d)/(1000*60*60*24);return diff<=7}).length;
   var streak=0;
   var days=new Set(cookHistory.map(function(h){return h.date}));
-  for(var i=0;i<30;i++){var d=new Date();d.setDate(d.getDate()-i);var ds=d.toISOString().split('T')[0];if(days.has(ds))streak++;else break;}
+  for(var i=0;i<30;i++){var d=new Date();d.setDate(d.getDate()-i);var ds=getLocalDateStr(d);if(days.has(ds))streak++;else break;}
   var photos=cookHistory.filter(function(h){return h.photo}).length;
   var comments=cookHistory.filter(function(h){return h.comment}).length;
   var shares=userPosts.length;
@@ -4532,13 +4537,13 @@ var MISSION_POOL=[
 
 var todayMission=null;
 function getTodayMission(){
-  var today=new Date().toISOString().split('T')[0];
+  var today=getLocalDateStr();
   var saved=localStorage.getItem('nt_mission_date');
   var savedId=localStorage.getItem('nt_mission_id');
   var done=localStorage.getItem('nt_mission_done')==='true';
   
   // 날짜 바뀌면 미션 완료 상태 리셋
-  if(saved!==today){localStorage.removeItem('nt_random_hide');localStorage.removeItem('nt_mission_hidden_date');}
+  if(saved!==today){localStorage.removeItem('nt_random_hide');localStorage.removeItem('nt_mission_hidden_date');localStorage.removeItem('nt_mission_hide');}
   if(saved===today&&savedId){
     todayMission=MISSION_POOL.find(function(m){return m.id===savedId})||MISSION_POOL[0];
     todayMission._done=done;
@@ -4582,7 +4587,7 @@ function completeMission(){
         card.style.padding='0';
         // 애니메이션 완료 후 localStorage에 숨김 날짜 저장
         setTimeout(function(){
-          var today=new Date().toISOString().split('T')[0];
+          var today=getLocalDateStr();
           localStorage.setItem('nt_mission_hidden_date',today);
           if(card)card.remove();
         },650);
@@ -4595,10 +4600,10 @@ var loginStreak=0;var lastLoginDate='';
 try{loginStreak=parseInt(localStorage.getItem('nt_login_streak'))||0;lastLoginDate=localStorage.getItem('nt_last_login')||'';}catch(e){}
 
 function checkLoginBonus(){
-  var today=new Date().toISOString().split('T')[0];
+  var today=getLocalDateStr();
   if(lastLoginDate===today)return; // 오늘 이미 체크함
   
-  var yesterday=new Date(Date.now()-86400000).toISOString().split('T')[0];
+  var yesterday=getLocalDateStr(new Date(Date.now()-86400000));
   if(lastLoginDate===yesterday){
     loginStreak++;
   }else if(lastLoginDate!==today){
