@@ -1774,14 +1774,31 @@ function render(){
       if(searchQ){var ql=searchQ.toLowerCase();fl=fl.filter(function(i){return i.n.toLowerCase().includes(ql)});}
       h+='<div class="ing-grid">';fl.forEach(function(i){h+=ingBtn(i.n,sel.has(i.n))});h+='</div>';
       if(sel.size>0){h+=renderSuggest();}
-      // 재료 모드에서 매칭 레시피 표시
+      // 재료 모드에서 매칭 레시피 표시 (바로 가능 / 재료 추가 필요 섹션 구분)
       if(sel.size>0){
         var selArr2=[...sel];
-        var matched=RECIPES.map(function(r){return Object.assign({},r,{match:matchRecipe(r,selArr2)})}).filter(function(r){return r.match.pct>0}).sort(function(a,b){return b.match.pct-a.match.pct});
-        if(matched.length>0){
-          var cs2=[...new Set(matched.map(function(r){return r.cat}))];
-          h+='<div style="padding:0 16px 4px"><span style="font-size:13px;font-weight:700;color:var(--text)">🍳 추천 레시피 ('+matched.length+'개)</span></div>';
-          cs2.forEach(function(c){var rs=matched.filter(function(r){return r.cat===c});h+='<div class="recipe-section" style="background:var(--cook-bg)"><h2 style="color:var(--text)">'+(rs[0]?rs[0].emoji:'')+' '+c+' ('+rs.length+')</h2>';rs.forEach(function(r){h+=renderCard(r)});h+='</div>';});
+        var allMatched=RECIPES.map(function(r){return Object.assign({},r,{match:matchRecipe(r,selArr2)})}).filter(function(r){return r.match.pct>=20}).sort(function(a,b){if(a.match.pct===100&&b.match.pct!==100)return -1;if(b.match.pct===100&&a.match.pct!==100)return 1;return b.match.pct-a.match.pct;});
+        var perfectList=allMatched.filter(function(r){return r.match.pct===100});
+        var partialList=allMatched.filter(function(r){return r.match.pct<100});
+        if(allMatched.length>0){
+          // 상단 요약 배너
+          var topUnlock2=getTopUnlock();
+          h+='<div style="margin:8px 16px;padding:10px 14px;background:linear-gradient(135deg,#fff8e1,#fff3e0);border-left:4px solid #FF9800;border-radius:10px;font-size:12px">';
+          h+='<span style="font-weight:700;color:#e65100">✅ 바로 가능: '+perfectList.length+'개</span>';
+          if(topUnlock2&&topUnlock2.unlocks>0)h+=' &nbsp;|&nbsp; <span style="color:#888">'+topUnlock2.name+' 추가 시 <b style="color:#FF9800">+'+topUnlock2.unlocks+'개</b> 더 가능</span>';
+          h+='</div>';
+          // ✅ 바로 가능 섹션
+          if(perfectList.length>0){
+            var cs2=[...new Set(perfectList.map(function(r){return r.cat}))];
+            h+='<div style="padding:4px 16px 2px"><span style="font-size:13px;font-weight:700;color:#2e7d32">✅ 이 재료만 있으면 바로 가능 ('+perfectList.length+'개)</span></div>';
+            cs2.forEach(function(c){var rs=perfectList.filter(function(r){return r.cat===c});h+='<div class="recipe-section" style="background:#f1f8e9;border-left:3px solid #4CAF50"><h2 style="color:var(--text)">'+(rs[0]?rs[0].emoji:'')+' '+c+' ('+rs.length+')</h2>';rs.forEach(function(r){h+=renderCard(r)});h+='</div>';});
+          }
+          // 🛒 재료 추가 필요 섹션
+          if(partialList.length>0){
+            var cs3=[...new Set(partialList.map(function(r){return r.cat}))];
+            h+='<div style="padding:4px 16px 2px;margin-top:8px"><span style="font-size:13px;font-weight:700;color:#888">🛒 재료 추가 시 가능한 요리 ('+partialList.length+'개)</span></div>';
+            cs3.forEach(function(c){var rs=partialList.filter(function(r){return r.cat===c});h+='<div class="recipe-section" style="background:var(--cook-bg);opacity:.9"><h2 style="color:var(--text)">'+(rs[0]?rs[0].emoji:'')+' '+c+' ('+rs.length+')</h2>';rs.forEach(function(r){h+=renderCard(r)});h+='</div>';});
+          }
         }
       }
     }else{
