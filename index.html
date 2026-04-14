@@ -1774,6 +1774,18 @@ function render(){
       if(searchQ){var ql=searchQ.toLowerCase();fl=fl.filter(function(i){return i.n.toLowerCase().includes(ql)});}
       h+='<div class="ing-grid">';fl.forEach(function(i){h+=ingBtn(i.n,sel.has(i.n))});h+='</div>';
       if(sel.size>0){h+=renderSuggest();}
+      // 오늘의 미션 카드 (재료 선택 여부 무관하게 항상 표시)
+      var mission2=getTodayMission();
+      if(!localStorage.getItem('nt_mission_hide')){
+        h+='<div style="margin:8px 16px">';
+        h+='<div style="background:linear-gradient(135deg,'+(mission2._done?'#e8f5e9,#c8e6c9':'#f5f5f5,#f0e6d2')+');border-radius:14px;padding:12px 16px;border:2px solid '+(mission2._done?'#66bb6a':'var(--primary)')+';position:relative">';
+        h+='<button onclick="event.stopPropagation();localStorage.setItem(\'nt_mission_hide\',\'1\');render()" style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.15);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>';
+        h+='<div style="font-size:11px;font-weight:700;color:'+(mission2._done?'#388e3c':'var(--primary)')+';margin-bottom:4px">🎯 오늘의 미션</div>';
+        h+='<div style="font-size:14px;font-weight:600;color:#333">'+(mission2._done?'✅ '+mission2.desc:mission2.desc)+'</div>';
+        h+='</div></div>';
+      }
+      // 랜덤 레시피 버튼 (항상 표시)
+      h+='<div style="padding:0 16px 8px"><button onclick="randomRecipe()" style="width:100%;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🎲 오늘 뭐 해먹지?</button></div>';
       // 재료 모드에서 매칭 레시피 표시 (바로 가능 / 재료 추가 필요 섹션 구분)
       if(sel.size>0){
         var selArr2=[...sel];
@@ -1832,13 +1844,13 @@ function render(){
           h+='<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px">해당 필터에 맞는 레시피가 없어요.<br>필터를 변경해보세요!</div>';
         }
       }else{
-        // 재료 없을 때 빈 화면 — 오늘의 미션 + 시간대 추천 + 인기 레시피
+        // 재료 없을 때 빈 화면 — 스트릭 배너 + 시간대 추천 + 빠른 시작 가이드 + 인기 레시피
         var stats=getCookStats();
         if(stats.total>0){
           var streakIcon,streakTitle,streakSub;
           if(stats.streak>=7){streakIcon='💎';streakTitle='7일 연속 요리! 갓벽해요!';streakSub='이제 진정한 요리 고수!';}
           else if(stats.streak>=3){streakIcon='🔥';streakTitle=stats.streak+'일 연속 요리 중!';streakSub='멈추지 마세요, 거의 습관이에요!';}
-          else if(stats.streak>=1){streakIcon='👨\u200d🍳';streakTitle='어제도 요리했어요!';streakSub='오늘도 이어가면 '+(stats.streak+1)+'일 연속!';}
+          else if(stats.streak>=1){streakIcon='👨‍🍳';streakTitle='어제도 요리했어요!';streakSub='오늘도 이어가면 '+(stats.streak+1)+'일 연속!';}
           else{streakIcon='💪';streakTitle='총 '+stats.total+'번 요리했어요';streakSub='오늘도 한 끼 도전해볼까요?';}
           h+='<div style="margin:8px 16px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px">';
           h+='<div style="font-size:32px">'+streakIcon+'</div>';
@@ -1846,16 +1858,6 @@ function render(){
           h+='<div style="font-size:11px;color:#558b2f;margin-top:2px">'+stats.unique+'가지 메뉴 · '+stats.cats+'개 카테고리</div></div>';
           if(stats.streak>=1)h+='<div style="text-align:center"><div style="font-size:20px;font-weight:700;color:#388e3c">'+stats.streak+'</div><div style="font-size:9px;color:#558b2f">연속</div></div>';
           h+='</div>';
-        }
-        // 오늘의 미션 카드
-        var mission=getTodayMission();
-        if(!localStorage.getItem('nt_mission_hide')){
-          h+='<div style="margin:8px 16px">';
-          h+='<div style="background:linear-gradient(135deg,'+(mission._done?'#e8f5e9,#c8e6c9':'#f5f5f5,#f0e6d2')+');border-radius:14px;padding:14px 16px;border:2px solid '+(mission._done?'#66bb6a':'var(--primary)')+';position:relative">';
-          h+='<button onclick="event.stopPropagation();localStorage.setItem(\'nt_mission_hide\',\'1\');render()" style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.15);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>';
-          h+='<div style="font-size:11px;font-weight:700;color:'+(mission._done?'#388e3c':'var(--primary)')+';margin-bottom:4px">🎯 오늘의 미션</div>';
-          h+='<div style="font-size:14px;font-weight:600;color:#333">'+(mission._done?'✅ '+mission.desc:mission.desc)+'</div>';
-          h+='</div></div>';
         }
         // 시간대별 추천
         var hour=new Date().getHours();
@@ -1865,7 +1867,7 @@ function render(){
         else if(hour>=15&&hour<18){mealTime='간식';mealEmoji='🍪';mealCats=['간식/분식','달걀요리','전/부침'];}
         else{mealTime='저녁';mealEmoji='🌙';mealCats=['찌개/국','볶음/구이','밥/덮밥','면류'];}
         var mealRecipes=RECIPES.filter(function(r){return mealCats.indexOf(r.cat)!==-1});
-        if(mealRecipes.length>0){var todayRec=mealRecipes[Math.floor(Date.now()/86400000)%mealRecipes.length];h+='<div style="margin:8px 16px;background:linear-gradient(135deg,#f5f5f5,#f0e6d2);border-radius:16px;padding:16px;cursor:pointer" onclick="openDetail(\''+todayRec.id+'\')"><div style="font-size:12px;color:var(--primary);font-weight:700;margin-bottom:6px">'+mealEmoji+' '+mealTime+' 뭐 해먹지?</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:40px">'+todayRec.emoji+'</div><div><div style="font-size:16px;font-weight:700;color:var(--text)">'+todayRec.name+'</div><div style="font-size:11px;color:#777;margin-top:2px">'+((['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][todayRec.diff]||'⭐ 쉬움'))+' · ⏱'+todayRec.time+'분</div></div></div></div>';}
+        if(mealRecipes.length>0){var todayRec=mealRecipes[Math.floor(Date.now()/86400000)%mealRecipes.length];h+='<div style="margin:8px 16px;background:linear-gradient(135deg,#f5f5f5,#f0e6d2);border-radius:16px;padding:16px;cursor:pointer" onclick="openDetail(\''+todayRec.id+'\')">'+'<div style="font-size:12px;color:var(--primary);font-weight:700;margin-bottom:6px">'+mealEmoji+' '+mealTime+' 뭐 해먹지?</div>'+'<div style="display:flex;align-items:center;gap:12px">'+'<div style="font-size:40px">'+todayRec.emoji+'</div>'+'<div>'+'<div style="font-size:16px;font-weight:700;color:var(--text)">'+todayRec.name+'</div>'+'<div style="font-size:11px;color:#777;margin-top:2px">'+((['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][todayRec.diff]||'⭐ 쉬움'))+' · ⏱'+todayRec.time+'분</div></div></div></div>';}
         // 빠른 시작 가이드
         h+='<div style="margin:8px 16px;background:linear-gradient(135deg,#FEF3EC,#fff8f3);border:2px dashed var(--primary);border-radius:16px;padding:16px;text-align:center">';
         h+='<div style="font-size:40px;margin-bottom:6px">🧊</div>';
@@ -1881,8 +1883,6 @@ function render(){
         h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
         popRecipes.forEach(function(r){h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer" onclick="openDetail(\''+r.id+'\')">'+'<div style="font-size:28px;margin-bottom:3px">'+r.emoji+'</div>'+'<div style="font-size:11px;font-weight:700;color:var(--text)">'+r.name+'</div>'+'<div style="font-size:9px;color:var(--sub);margin-top:1px">'+(r.diff===1?'쉬움':'보통')+' · '+r.time+'분</div></div>';});
         h+='</div></div>';
-        // 랜덤 레시피 버튼
-        h+='<div style="padding:0 16px 16px"><button onclick="randomRecipe()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🎲 오늘 뭐 해먹지?</button></div>';
       }
     }else{
       var q=searchQ.toLowerCase();var fl2=q?RECIPES.filter(function(r){var nm=r.name.toLowerCase();if(nm.includes(q))return true;var sq=SYN_MAP[q];return sq&&nm.includes(sq);}):RECIPES;
