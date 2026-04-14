@@ -1773,7 +1773,7 @@ function render(){
       var fl=cat==='전체'?INGS:cat==='자주'?INGS.filter(function(i){return FAV_INGS.indexOf(i.n)!==-1}):INGS.filter(function(i){return i.c===cat});
       if(searchQ){var ql=searchQ.toLowerCase();fl=fl.filter(function(i){return i.n.toLowerCase().includes(ql)});}
       h+='<div class="ing-grid">';fl.forEach(function(i){h+=ingBtn(i.n,sel.has(i.n))});h+='</div>';
-      if(sel.size>0&&sel.size<15){h+=renderSuggest();}
+      if(sel.size>0){h+=renderSuggest();}
     }else{
       var q=searchQ.toLowerCase();var fl2=q?RECIPES.filter(function(r){var nm=r.name.toLowerCase();if(nm.includes(q))return true;var sq=SYN_MAP[q];return sq&&nm.includes(sq);}):RECIPES;
       if(activeTag)fl2=fl2.filter(function(r){return RECIPE_TAGS[r.id]&&RECIPE_TAGS[r.id].indexOf(activeTag)!==-1});
