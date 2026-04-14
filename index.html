@@ -554,7 +554,7 @@ function updateBestPhotos(){
   posts.forEach(function(p){
     var id=p.recipeId;
     if(!best[id]||((p.likes||0)>(best[id].likes||0))){
-      best[id]={photo:p.photo,likes:p.likes||0,emoji:p.emoji||'',author:p.author||''};
+      best[id]={photo:p.photo,likes:p.likes||0,emoji:p.emoji||'',author:p.nickname||p.user||p.author||''};
     }
   });
   RECIPE_BEST_PHOTOS=best;
