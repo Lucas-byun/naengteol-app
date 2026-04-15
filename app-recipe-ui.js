@@ -554,3 +554,47 @@ function toggleFav(id){
     }
   }catch(e){}
 }
+
+// === RENDER CARD: moved from index.html ===
+function renderCard(r){
+  var m=r.match||{pct:0},cl=m.pct>=80?'high':m.pct>=50?'mid':'low';
+  var dfLabel=['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움';
+  var dfColor=['#E8652A','#E8652A','#e07b39','#b85450'][r.diff]||'#E8652A';
+  var dfBg=['#FFF0E8','#FFF0E8','#fdf3ec','#fdf5f5'][r.diff]||'#FFF0E8';
+  var catLabel=CAT_LABEL_MAP[r.cat]||'';
+  var catColor=CAT_COLOR_MAP[catLabel]||'var(--sub)';
+  var catBg=CAT_BG_MAP[catLabel]||'var(--card)';
+  var borderCol=m.pct===100?'#4CAF50':m.pct>=50?'#FF9800':'#BDBDBD';
+  // v14: 16:9 썬네일 + 콴텐츠 영역 분리
+  var _bestPhoto=getRecipeBestPhoto(r.id);
+  var h='<div class="recipe-card" onclick="openDetail(\''+r.id+'\')" style="border-left:4px solid '+borderCol+'">';
+  h+='<div class="rc-top">';
+  // 1:1 정사각형 비율 썸네일
+  h+='<div class="rc-thumb-wrap" style="background:'+catBg+'">';
+  h+='<div class="rc-thumb-inner">';
+  var catImgMap={'찌개/국':'icons/cat_찌개국.png','달걀요리':'icons/cat_달걀요리.png','면류':'icons/cat_면류.png','밥/덮밥':'icons/cat_밥덮밥.png','전/부침':'icons/cat_전부침.png','나물/반찬':'icons/cat_나물반찬.png','간식/분식':'icons/cat_간식분식.png','조림':'icons/cat_조림.png','볶음/구이':'icons/cat_볶음구이.png'};
+  var catImg=catImgMap[r.cat]||null;
+  if(_bestPhoto){
+    var _bestPhotoUrl=safeUrl(_bestPhoto.photo||_bestPhoto);
+    if(_bestPhotoUrl)h+='<img src="'+eattr(_bestPhotoUrl)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" style="width:100%;height:100%;object-fit:cover"><span style="display:none;font-size:36px;width:100%;height:100%;align-items:center;justify-content:center">'+r.emoji+'</span>';
+    else h+='<span>'+r.emoji+'</span>';
+  }
+  else if(catImg){h+='<img src="'+catImg+'" style="width:80%;height:80%;object-fit:contain;opacity:0.9;display:block;margin:auto;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">';}
+  else{h+='<span>'+r.emoji+'</span>';}
+  h+='</div></div>';
+  // 콘텐츠 영역
+  h+='<div class="rc-info" style="padding:12px 12px 10px;flex:1;min-width:0;position:relative">';
+ h+='<button class="rc-fav" style="top:8px;right:8px;font-size:18px" onclick="event.stopPropagation();toggleFav(\''+r.id+'\');render()">'+(favs.has(r.id)?'❤️':'🤍')+'</button>';
+  h+='<div class="rc-name" style="font-size:14px;margin-bottom:4px;padding-right:28px">'+r.name+' '+(getRecipeMedal(r.id)?'<span style="font-size:12px">'+getRecipeMedal(r.id)+'</span>':'')+'</div>';
+  if(r._ratingHtml)h+=r._ratingHtml;
+  h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
+  h+='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:'+catBg+';color:'+catColor+';font-weight:700">'+catLabel+'</span>';
+  h+='<span style="font-size:10px;padding:2px 8px;border-radius:8px;background:'+dfBg+';color:'+dfColor+';font-weight:700">'+dfLabel+'</span>';
+  h+='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:#f5f5f5;color:var(--sub)">⏱ '+r.time+'분</span>';
+  h+='</div>';
+  var rTags=RECIPE_TAGS[r.id]||[];if(rTags.length>0){var tagC=TAG_COLORS;var showAll=expandedTags&&expandedTags[r.id];var visibleTags=showAll?rTags:rTags.slice(0,3);h+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px;align-items:center">';visibleTags.forEach(function(t){var c=tagC[t]||['#555','#eee'];h+='<span onclick="event.stopPropagation();activeTag=(activeTag===&quot;'+t+'&quot;)?&quot;&quot;:&quot;'+t+'&quot;;render()" style="font-size:10px;padding:1px 6px;border-radius:8px;background:'+c[1]+';color:'+c[0]+';font-weight:600;cursor:pointer">#'+t+'</span>';});if(rTags.length>3){if(showAll){h+='<span onclick="event.stopPropagation();if(!expandedTags)expandedTags={};expandedTags[&quot;'+r.id+'&quot;]=false;render()" style="font-size:10px;padding:1px 6px;border-radius:8px;background:#e8e8e8;color:#666;cursor:pointer">접기</span>';}else{h+='<span onclick="event.stopPropagation();if(!expandedTags)expandedTags={};expandedTags[&quot;'+r.id+'&quot;]=true;render()" style="font-size:10px;padding:1px 6px;border-radius:8px;background:#e8e8e8;color:#666;cursor:pointer">+'+( rTags.length-3)+'</span>';}}h+='</div>';}
+  if(m.pct===100)h+='<span class="rc-match perfect" style="font-size:11px">✅ 바로 가능</span>';
+  h+='</div></div>';
+  if(sel.size>0){h+='<div class="rc-ings" style="padding:0 12px 10px;margin-top:0;border-top:1px solid var(--border)">';h+='<div style="padding-top:8px;display:flex;flex-wrap:wrap;gap:4px">';r.ings.filter(function(i){return i.t==='req'}).forEach(function(i){var nm=i.v.split(/\s/)[0].replace(/[()]/g,'');var hv=[...sel].some(function(s){return ingMatch(i.v,s)});h+='<span class="rc-ing '+(hv?'have':'miss')+'">'+nm+'</span>';});h+='</div></div>';}
+  return h+'</div>';
+}

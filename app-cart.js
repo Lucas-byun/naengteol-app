@@ -179,3 +179,53 @@ function copyShopList(){
   else{var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('장보기 리스트가 복사되었어요! 📋');}
 }
 
+
+// === MY FRIDGE MODAL: moved from index.html ===
+function openFridge(){
+  var h='<div class="shop-overlay show" onclick="closeFridge()"></div>';
+  h+='<div class="shop-modal show" style="max-height:75vh">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h3 style="font-size:16px">🧊 내 냉장고</h3><button onclick="closeFridge()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text)">✕</button></div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:12px;color:var(--sub)">현재 '+sel.size+'개 재료 보유 중</span><span style="font-size:11px;color:#d84315;cursor:pointer" onclick="closeFridge();resetIngs()">전체 비우기</span></div>';
+  // Group by category
+  var cats={};
+  [...sel].forEach(function(s){
+    var ig=INGS.find(function(i){return i.n===s});
+    var cat=ig?ig.c:'기타';
+    if(!cats[cat])cats[cat]=[];
+    // Count recipes this ingredient is used in
+    var recipeCount=RECIPES.filter(function(r){return r.ings.some(function(i){return ingMatch(i.v,s)})}).length;
+    cats[cat].push({name:s,emoji:ig?ig.e:'',ic:ig?ig.ic:'',count:recipeCount});
+  });
+  Object.keys(cats).forEach(function(cat){
+    h+='<div style="font-size:12px;font-weight:700;color:var(--primary);padding:8px 0 4px;border-bottom:1px solid var(--border)">'+cat+' ('+cats[cat].length+')</div>';
+    cats[cat].forEach(function(item){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">';
+      if(item.ic)h+='<img src="'+item.ic+'" width="24" height="24" onerror="this.outerHTML=\'<span style=font-size:20px>'+item.emoji+'</span>\'">';
+      else h+='<span style="font-size:20px">'+item.emoji+'</span>';
+      h+='<span style="flex:1;font-size:14px;font-weight:500">'+item.name+'</span>';
+      h+='<span style="font-size:11px;color:var(--sub);background:var(--card);padding:2px 8px;border-radius:8px">'+item.count+'개 요리</span>';
+      h+='<span style="font-size:16px;cursor:pointer;color:#d84315;padding:0 4px" onclick="sel.delete(\''+esc(item.name)+'\');save();closeFridge();openFridge()">✕</span>';
+      h+='</div>';
+    });
+  });
+  // Smart quick add — suggest ingredients that unlock the most recipes
+  h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:8px">💡 추가하면 좋은 재료</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:4px">';
+  var topSuggestions=INGS.filter(function(i){return!sel.has(i.n)}).map(function(ig){
+    var cnt=RECIPES.filter(function(r){return r.ings.some(function(i2){return ingMatch(i2.v,ig.n)})}).length;
+    return{n:ig.n,e:ig.e,cnt:cnt};
+  }).sort(function(a,b){return b.cnt-a.cnt}).slice(0,8);
+  topSuggestions.forEach(function(ig){
+    h+='<span style="display:inline-flex;align-items:center;gap:2px;border:1px dashed #90caf9;border-radius:16px;padding:3px 8px;font-size:11px;cursor:pointer;color:#1976d2;background:#e3f2fd" onclick="sel.add(\''+esc(ig.n)+'\');save();closeFridge();openFridge()">+ '+ig.e+' '+ig.n+' <span style="font-size:9px;color:#666">('+ig.cnt+')</span></span>';
+  });
+  h+='</div></div>';
+  h+='<button onclick="closeFridge();tab=\'cook\';mode=\'ing\';render()" style="display:block;width:100%;margin-top:12px;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">재료 더 추가하기</button>';
+  h+='</div>';
+  document.getElementById('app').insertAdjacentHTML('beforeend',h);
+  pushState('fridge');
+}
+function closeFridge(){
+  var o=document.querySelector('.shop-overlay');if(o)o.remove();
+  var m=document.querySelector('.shop-modal');if(m)m.remove();
+}
