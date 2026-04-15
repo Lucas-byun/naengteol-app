@@ -224,6 +224,9 @@ function renderFS(){
     h+='</div>';
   }
   h+='<div class="det-section"><h3>👨‍🍳 요리 순서</h3>';
+  if(visibleSteps.length===0){
+    h+='<div style="padding:24px 0;text-align:center;color:var(--sub);font-size:13px">위에서 선택재료를 체크하면 해당 단계가 나타납니다 🥕</div>';
+  }
   if(checkedOptNames.length>0){
     h+='<div style="font-size:11px;color:var(--primary);background:#f0f7ff;padding:6px 10px;border-radius:8px;margin-bottom:10px">✨ 선택 재료 반영: '+checkedOptNames.join(', ')+'</div>';
   } else if(optIngs.length>0){
@@ -514,6 +517,7 @@ function saveDetPhoto(id,share){
   document.body.insertAdjacentHTML('beforeend',dpopup);
 }
 function fsNextStep(stepIdx){
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
   window._fsRendering=true;
   fsChecked.add('step'+stepIdx);
   renderFS();
