@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#E8652A">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -139,6 +139,11 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .mode-tabs{display:flex;border-bottom:none;margin:0 16px;gap:4px;padding-top:8px}
 .mode-tab{flex:1;padding:10px 12px;text-align:center;font-size:14px;font-weight:600;cursor:pointer;border:none;background:var(--card);font-family:inherit;color:#999;border-radius:12px;transition:all .2s;border:1.5px solid var(--border)}
 .mode-tab.on{color:#fff;background:var(--primary);border-color:var(--primary);box-shadow:0 4px 12px rgba(232,101,42,.25);font-weight:700}
+/* 키보드 접근성: 포커스가 보이도록 */
+button:focus-visible,.cat-tab:focus-visible,.ing-btn:focus-visible,.mode-tab:focus-visible,.bnav-item:focus-visible,.sv-btn:focus-visible,.det-back:focus-visible,input:focus-visible,select:focus-visible{
+  outline:3px solid rgba(232,101,42,.45);
+  outline-offset:2px;
+}
 /* Onboarding */
 .onboard{position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;background:var(--bg);max-width:480px;margin:0 auto;display:flex;flex-direction:column}
 .onboard.hide{display:none}
@@ -196,6 +201,11 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .comm-actions{display:flex;gap:16px;font-size:13px;color:var(--sub);padding-top:8px;border-top:1px solid var(--border)}
 .comm-actions span{cursor:pointer;padding:4px 8px;border-radius:8px;transition:background .15s}
 .comm-actions span:active{background:var(--primary-light)}
+/* 관리자/커뮤니티 공용 버튼 */
+.btn-admin-sm{flex:1;min-width:50px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit}
+.btn-admin-crop{flex:1;min-width:70px;padding:5px;border:1px solid #ff6b35;border-radius:6px;background:#fff3e0;color:#e65100;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-admin-ok{flex:1;padding:7px;border:none;border-radius:8px;background:#4caf50;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-admin-no{flex:1;padding:7px;border:none;border-radius:8px;background:#f44336;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
 /* Shopping list modal */
 .shop-modal{display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;max-width:480px;margin:0 auto;background:var(--bg);border-top-left-radius:20px;border-top-right-radius:20px;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:20px 16px;max-height:60vh;overflow-y:auto}
 .shop-modal.show{display:block}
@@ -234,6 +244,9 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 @keyframes confettiFall{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .loading-txt{font-size:14px;color:var(--sub)}
 .loading-sub{font-size:12px;color:var(--border)}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
+}
 /* 데이터 소스 배지 개선 */
 .data-src{font-size:11px;color:var(--sub);text-align:center;padding:6px 16px;display:flex;align-items:center;justify-content:center;gap:4px}
 .data-src .dot{width:6px;height:6px;border-radius:50%;background:var(--primary);display:inline-block;animation:dotPulse 2s ease-in-out infinite}
@@ -4310,6 +4323,45 @@ function cropConfirm(){
   });
 })();
 // ===== END 크롭 모달 로직 =====
+
+// 접근성 보강: onclick만 있는 div/span도 키보드(Enter/Space)로 동작하게 처리
+function enhanceKeyboardClickables(root){
+  var scope=root||document;
+  var nodes=scope.querySelectorAll('[onclick]:not(button):not(a):not(input):not(select):not(textarea)');
+  nodes.forEach(function(el){
+    if(el.getAttribute('tabindex')===null)el.setAttribute('tabindex','0');
+    if(!el.getAttribute('role'))el.setAttribute('role','button');
+    if(!el.getAttribute('aria-label')){
+      var label=(el.textContent||'').trim().replace(/\s+/g,' ');
+      if(label.length>24)label=label.slice(0,24)+'...';
+      if(label)el.setAttribute('aria-label',label+' 버튼');
+    }
+    if(el.dataset.kbdBound==='1')return;
+    el.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){
+        e.preventDefault();
+        el.click();
+      }
+    });
+    el.dataset.kbdBound='1';
+  });
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  enhanceKeyboardClickables(document);
+  var appRoot=document.getElementById('app')||document.body;
+  var obs=new MutationObserver(function(mutations){
+    mutations.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n&&n.nodeType===1){
+          if(n.matches&&n.matches('[onclick]'))enhanceKeyboardClickables(n.parentElement||document);
+          else if(n.querySelectorAll)enhanceKeyboardClickables(n);
+        }
+      });
+    });
+  });
+  obs.observe(appRoot,{childList:true,subtree:true});
+});
 
 // ===== Service Worker 등록 =====
 if('serviceWorker' in navigator){
