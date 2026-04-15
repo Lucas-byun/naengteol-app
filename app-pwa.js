@@ -42,3 +42,54 @@ function triggerInstallPrompt(){
     updateInstallButtonVisibility();
   });
 }
+
+// === PWA UI HELPERS: moved from index.html ===
+function launchConfetti(){
+  var colors=['#E8652A','#FF8C42','#FFD700','#4CAF50','#2196F3','#E91E63','#9C27B0','#FF5722'];
+  var container=document.createElement('div');
+  container.id='confetti-container';
+  container.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:9999;overflow:hidden';
+  document.body.appendChild(container);
+  for(var i=0;i<80;i++){
+    (function(idx){
+      var piece=document.createElement('div');
+      var size=Math.random()*10+6;
+      var color=colors[Math.floor(Math.random()*colors.length)];
+      var left=Math.random()*100;
+      var delay=Math.random()*0.8;
+      var duration=Math.random()*1.5+1.5;
+      var shape=Math.random()>0.5?'50%':'2px';
+      piece.style.cssText='position:absolute;width:'+size+'px;height:'+size+'px;background:'+color+';border-radius:'+shape+';left:'+left+'%;top:-20px;animation:confettiFall '+duration+'s '+delay+'s ease-in forwards;opacity:1';
+      container.appendChild(piece);
+    })(i);
+  }
+  setTimeout(function(){var c=document.getElementById('confetti-container');if(c)c.remove();},3500);
+}
+// === 탭 아이콘 통통 튀기기 ===
+function bnavTap(btn,cb){
+  var ico=btn.querySelector('.ico');
+  if(ico){
+    ico.style.animation='none';
+    // reflow 강제 발생 (애니메이션 재시작)
+    void ico.offsetWidth;
+    ico.style.animation='tabBounce .45s cubic-bezier(.34,1.56,.64,1)';
+    setTimeout(function(){ico.style.animation='';},500);
+  }
+  cb();
+}
+function toggleSearchBar(){
+  showSearch = !showSearch;
+  if(!showSearch){ searchQ=''; }
+  render();
+  if(showSearch){
+    setTimeout(function(){
+      var inp = document.getElementById('searchInput');
+      if(inp) inp.focus();
+    }, 100);
+  }
+}
+function goHome(){
+  tab='cook';mode='ing';showSearch=false;searchQ='';
+  window.scrollTo(0,0);
+  render();
+}
