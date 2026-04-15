@@ -58,7 +58,7 @@ function renderCommunity(){
       h+='<div class="comm-top"><div class="comm-avatar" style="overflow:hidden;padding:0">'+getProfilePhotoHtml(36)+'</div><div style="flex:1"><div class="comm-user">나 <span style="font-size:10px;background:#ff9800;color:#fff;padding:1px 6px;border-radius:4px">⏳ 관리자 승인 대기중</span></div><div class="comm-date">'+ehtml(p.date||'')+'</div></div></div>';
       h+='<div class="comm-recipe">🍳 '+ehtml(p.recipe||'')+'</div>';
       if(p.text)h+='<div class="comm-txt">'+ehtml(p.text)+'</div>';
-      if(p.photo){var pp=safeUrl(p.photo);if(pp)h+='<img class="comm-img" src="'+eattr(pp)+'" alt="'+eattr((p.recipe||'요리')+' 후기 사진')+'" onerror="this.style.display=\'none\'">';}
+      if(p.photo){var pp=safeUrl(p.photo);if(pp)h+='<img class="comm-img" src="'+eattr(pp)+'" alt="'+eattr((p.recipe||'요리')+' 후기 사진')+'" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">';}
       h+='<div class="comm-actions" style="color:#ff9800;font-size:12px">⏳ 승인 대기중입니다. 관리자가 확인 후 게시됩니다.</div>';
       h+='</div>';
     });
@@ -84,7 +84,7 @@ function renderCommunity(){
       var stars='';
       var avgR=Math.round(r.avg);
       for(var si=1;si<=5;si++)stars+=(si<=avgR?'★':'☆');
-      h+='<div onclick="openDetail(\''+r.id+'\')" style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer'+(i<commRatingList.length-1?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">'
+      h+='<div role="button" tabindex="0" aria-label="'+eattr((r.name||'레시피')+' 상세 보기')+'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openDetail(\''+r.id+'\')}" onclick="openDetail(\''+r.id+'\')" style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer'+(i<commRatingList.length-1?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">'
       h+='<span style="font-size:20px">'+ehtml(r.emoji||'🍳')+'</span>';
       h+='<div style="flex:1;min-width:0">';
       h+='<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ehtml(r.name||'')+'</div>';
@@ -126,10 +126,10 @@ function renderCommunity(){
     filteredPosts.forEach(function(c,idx){
       var _liked=localStorage.getItem('nt_liked_'+(c.id||c._fbKey||('idx_'+idx)))==='1';
       var _isBest=c.recipeId&&RECIPE_BEST_PHOTOS[c.recipeId]&&RECIPE_BEST_PHOTOS[c.recipeId].photo===c.photo;
-      h+='<div onclick="openCommDetail('+idx+')" style="position:relative;cursor:pointer;background:#f5f5f5;aspect-ratio:1/1;overflow:hidden;border-radius:4px">';
+      h+='<div role="button" tabindex="0" aria-label="'+eattr((c.recipe||'요리')+' 후기 상세 보기')+'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openCommDetail('+idx+')}" onclick="openCommDetail('+idx+')" style="position:relative;cursor:pointer;background:#f5f5f5;aspect-ratio:1/1;overflow:hidden;border-radius:4px">';
       if(c.photo){
         var _thumb=safeUrl(c.photo);
-        if(_thumb)h+='<img src="'+eattr(_thumb)+'" alt="'+eattr((c.recipe||'요리')+' 후기 썸네일')+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.style.background=\'#eee\';this.style.display=\'none\'">';
+        if(_thumb)h+='<img src="'+eattr(_thumb)+'" alt="'+eattr((c.recipe||'요리')+' 후기 썸네일')+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.style.background=\'#eee\';this.style.display=\'none\'">';
       } else {
         h+='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px">'+ehtml(c.emoji||'🍳')+'</div>';
       }
@@ -177,19 +177,19 @@ function renderCommunity(){
         if(p.photo){
           h+='<div style="position:relative;margin-bottom:8px">';
           h+='<div id="imgWrap_'+pidx+'" style="overflow:hidden;border-radius:8px;background:#f5f5f5;text-align:center">';
-          var _adminPhotoSrc=safeUrl(p.photo);if(_adminPhotoSrc)h+='<img id="adminImg_'+pidx+'" src="'+eattr(_adminPhotoSrc)+'" alt="'+eattr((p.recipe||'요리')+' 관리자 검토 사진')+'" style="max-width:100%;height:auto;display:block;margin:0 auto;transform-origin:center;transition:transform .2s" onerror="this.style.display=\'none\'">';
+          var _adminPhotoSrc=safeUrl(p.photo);if(_adminPhotoSrc)h+='<img id="adminImg_'+pidx+'" src="'+eattr(_adminPhotoSrc)+'" alt="'+eattr((p.recipe||'요리')+' 관리자 검토 사진')+'" loading="lazy" decoding="async" style="max-width:100%;height:auto;display:block;margin:0 auto;transform-origin:center;transition:transform .2s" onerror="this.style.display=\'none\'">';
           h+='</div>';
           h+='<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">';
-          h+='<button onclick="adminRotateImg('+pidx+',-90)" style="flex:1;min-width:50px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↺ 왼쪽</button>';
-          h+='<button onclick="adminRotateImg('+pidx+',90)" style="flex:1;min-width:50px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↻ 오른쪽</button>';
-          h+='<button onclick="adminCropModal('+pidx+')" style="flex:1;min-width:70px;padding:5px;border:1px solid #ff6b35;border-radius:6px;background:#fff3e0;color:#e65100;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✂️ 크롭</button>';
-          h+='<button onclick="adminResetImg('+pidx+',\''+esc(p.photo||'')+'\')" style="flex:1;min-width:50px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↩ 원본</button>';
+          h+='<button onclick="adminRotateImg('+pidx+',-90)" class="btn-admin-sm">↺ 왼쪽</button>';
+          h+='<button onclick="adminRotateImg('+pidx+',90)" class="btn-admin-sm">↻ 오른쪽</button>';
+          h+='<button onclick="adminCropModal('+pidx+')" class="btn-admin-crop">✂️ 크롭</button>';
+          h+='<button onclick="adminResetImg('+pidx+',\''+esc(p.photo||'')+'\')" class="btn-admin-sm">↩ 원본</button>';
           h+='</div>';
           h+='</div>';
         }
         h+='<div style="display:flex;gap:6px;margin-top:6px">';
-        h+='<button onclick="approvePendingPost('+pidx+')" style="flex:1;padding:7px;border:none;border-radius:8px;background:#4caf50;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ 승인</button>';
-        h+='<button onclick="rejectPendingPost('+pidx+')" style="flex:1;padding:7px;border:none;border-radius:8px;background:#f44336;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">❌ 거절</button>';
+        h+='<button onclick="approvePendingPost('+pidx+')" class="btn-admin-ok">✅ 승인</button>';
+        h+='<button onclick="rejectPendingPost('+pidx+')" class="btn-admin-no">❌ 거절</button>';
         h+='</div>';
         h+='</div>';
       });
