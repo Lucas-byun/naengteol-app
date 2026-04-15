@@ -24,7 +24,6 @@ function safeUrl(u){
 }
 
 // Admin re-auth helpers (global)
-var ADMIN_PW_HASH='be43e68df297ba8d0500c65de953a3b74d6254525096fbc6a6b552bc66bfdf7e';
 var ADMIN_REAUTH_TTL_MS=10*60*1000;
 var _adminReauthUntil=0;
 var _adminUidVerified=false;
@@ -46,24 +45,21 @@ async function refreshAdminUidFlag(){
 }
 
 async function verifyAdminPassword(forcePrompt){
-  if(!await refreshAdminUidFlag())return false;
-  if(!forcePrompt&&Date.now()<_adminReauthUntil)return true;
-  var pw=prompt('관리자 비밀번호를 입력하세요:');
-  if(!pw)return false;
-  try{
-    var enc=new TextEncoder();
-    var hashBuf=await crypto.subtle.digest('SHA-256',enc.encode(pw));
-    var hashArr=Array.from(new Uint8Array(hashBuf));
-    var hashHex=hashArr.map(function(b){return b.toString(16).padStart(2,'0');}).join('');
-    if(hashHex===ADMIN_PW_HASH){
-      _adminReauthUntil=Date.now()+ADMIN_REAUTH_TTL_MS;
-      return true;
+  var okAdminUid=await refreshAdminUidFlag();
+  if(!okAdminUid){
+    if(typeof showCartPopup==='function'){
+      showCartPopup('🚫 권한 없음','관리자 UID 계정에서만 이 작업을 할 수 있어요.');
+    }else{
+      alert('🚫 관리자 권한이 없습니다.');
     }
-  }catch(e){}
-  if(typeof showCartPopup==='function'){
-    showCartPopup('❌ 인증 실패','관리자 비밀번호가 일치하지 않습니다.');
-  }else{
-    alert('❌ 관리자 인증 실패');
+    return false;
   }
+  if(!forcePrompt&&Date.now()<_adminReauthUntil)return true;
+  var ok=confirm('관리자 작업을 진행할까요?');
+  if(ok){
+    _adminReauthUntil=Date.now()+ADMIN_REAUTH_TTL_MS;
+    return true;
+  }
+  if(typeof showCartPopup==='function')showCartPopup('취소됨','관리자 작업이 취소되었습니다.');
   return false;
 }
