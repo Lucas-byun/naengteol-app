@@ -58,7 +58,7 @@ function renderCommunity(){
       h+='<div class="comm-top"><div class="comm-avatar" style="overflow:hidden;padding:0">'+getProfilePhotoHtml(36)+'</div><div style="flex:1"><div class="comm-user">나 <span style="font-size:10px;background:#ff9800;color:#fff;padding:1px 6px;border-radius:4px">⏳ 관리자 승인 대기중</span></div><div class="comm-date">'+ehtml(p.date||'')+'</div></div></div>';
       h+='<div class="comm-recipe">🍳 '+ehtml(p.recipe||'')+'</div>';
       if(p.text)h+='<div class="comm-txt">'+ehtml(p.text)+'</div>';
-      if(p.photo){var pp=safeUrl(p.photo);if(pp)h+='<img class="comm-img" src="'+eattr(pp)+'" onerror="this.style.display=\'none\'">';}
+      if(p.photo){var pp=safeUrl(p.photo);if(pp)h+='<img class="comm-img" src="'+eattr(pp)+'" alt="'+eattr((p.recipe||'요리')+' 후기 사진')+'" onerror="this.style.display=\'none\'">';}
       h+='<div class="comm-actions" style="color:#ff9800;font-size:12px">⏳ 승인 대기중입니다. 관리자가 확인 후 게시됩니다.</div>';
       h+='</div>';
     });
@@ -129,7 +129,7 @@ function renderCommunity(){
       h+='<div onclick="openCommDetail('+idx+')" style="position:relative;cursor:pointer;background:#f5f5f5;aspect-ratio:1/1;overflow:hidden;border-radius:4px">';
       if(c.photo){
         var _thumb=safeUrl(c.photo);
-        if(_thumb)h+='<img src="'+eattr(_thumb)+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.style.background=\'#eee\';this.style.display=\'none\'">';
+        if(_thumb)h+='<img src="'+eattr(_thumb)+'" alt="'+eattr((c.recipe||'요리')+' 후기 썸네일')+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.style.background=\'#eee\';this.style.display=\'none\'">';
       } else {
         h+='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px">'+ehtml(c.emoji||'🍳')+'</div>';
       }
@@ -177,7 +177,7 @@ function renderCommunity(){
         if(p.photo){
           h+='<div style="position:relative;margin-bottom:8px">';
           h+='<div id="imgWrap_'+pidx+'" style="overflow:hidden;border-radius:8px;background:#f5f5f5;text-align:center">';
-          var _adminPhotoSrc=safeUrl(p.photo);if(_adminPhotoSrc)h+='<img id="adminImg_'+pidx+'" src="'+eattr(_adminPhotoSrc)+'" style="max-width:100%;height:auto;display:block;margin:0 auto;transform-origin:center;transition:transform .2s" onerror="this.style.display=\'none\'">';
+          var _adminPhotoSrc=safeUrl(p.photo);if(_adminPhotoSrc)h+='<img id="adminImg_'+pidx+'" src="'+eattr(_adminPhotoSrc)+'" alt="'+eattr((p.recipe||'요리')+' 관리자 검토 사진')+'" style="max-width:100%;height:auto;display:block;margin:0 auto;transform-origin:center;transition:transform .2s" onerror="this.style.display=\'none\'">';
           h+='</div>';
           h+='<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">';
           h+='<button onclick="adminRotateImg('+pidx+',-90)" style="flex:1;min-width:50px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↺ 왼쪽</button>';

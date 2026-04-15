@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#E8652A">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -49,7 +49,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 /* My Ingredients Bar */
 .my-ings-bar{padding:8px 16px;display:flex;gap:6px;flex-wrap:wrap;background:var(--bg);border-bottom:1px solid var(--border)}
 .my-ings-bar:empty{display:none}
-.my-ing-tag{display:flex;align-items:center;gap:3px;background:#F5F5F5;border:1px solid #E0E0E0;border-radius:20px;padding:4px 10px;font-size:11px;white-space:nowrap;color:#555;font-weight:500}
+.my-ing-tag{display:flex;align-items:center;gap:3px;background:#F5F5F5;border:1px solid #E0E0E0;border-radius:20px;padding:4px 10px;font-size:12px;white-space:nowrap;color:#555;font-weight:500}
 .my-ing-tag .x{cursor:pointer;color:var(--sub);margin-left:2px}
 .my-ing-count{background:var(--primary);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;flex-shrink:0}
 /* Category Tabs */
@@ -128,7 +128,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .tip-card{background:linear-gradient(135deg,#f0f7f5,#f5f5f5);border-radius:12px;padding:12px 14px;margin-bottom:8px;font-size:13px;line-height:1.5;border-left:3px solid var(--primary)}
 /* Bottom Nav */
 .bnav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:rgba(250,248,245,.92);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-top:1px solid rgba(0,0,0,.06);display:flex;z-index:300;padding:4px 0 env(safe-area-inset-bottom,0)}
-.bnav-item{flex:1;padding:6px 0 4px;text-align:center;font-size:12px;color:#999;cursor:pointer;border:none;background:none;font-family:inherit;transition:all .2s;position:relative}
+.bnav-item{flex:1;padding:6px 0 4px;text-align:center;font-size:13px;color:#666;cursor:pointer;border:none;background:none;font-family:inherit;transition:all .2s;position:relative}
 .bnav-item.on{color:var(--primary);font-weight:700}
 .bnav-item.on .ico{transform:scale(1.3) translateY(-6px);color:var(--primary);filter:drop-shadow(0 4px 8px rgba(232,101,42,0.4))}
 .bnav-item .ico{font-size:20px;display:block;margin-bottom:2px;transition:all .4s cubic-bezier(.34,1.56,.64,1)}
@@ -137,7 +137,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 @keyframes dotAppear{from{opacity:0;transform:translateX(-50%) scale(0)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 /* Mode tabs */
 .mode-tabs{display:flex;border-bottom:none;margin:0 16px;gap:4px;padding-top:8px}
-.mode-tab{flex:1;padding:10px 12px;text-align:center;font-size:14px;font-weight:600;cursor:pointer;border:none;background:var(--card);font-family:inherit;color:#999;border-radius:12px;transition:all .2s;border:1.5px solid var(--border)}
+.mode-tab{flex:1;padding:10px 12px;text-align:center;font-size:14px;font-weight:600;cursor:pointer;border:none;background:var(--card);font-family:inherit;color:#666;border-radius:12px;transition:all .2s;border:1.5px solid var(--border)}
 .mode-tab.on{color:#fff;background:var(--primary);border-color:var(--primary);box-shadow:0 4px 12px rgba(232,101,42,.25);font-weight:700}
 /* Onboarding */
 .onboard{position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;background:var(--bg);max-width:480px;margin:0 auto;display:flex;flex-direction:column}
@@ -234,6 +234,9 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 @keyframes confettiFall{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .loading-txt{font-size:14px;color:var(--sub)}
 .loading-sub{font-size:12px;color:var(--border)}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+}
 /* 데이터 소스 배지 개선 */
 .data-src{font-size:11px;color:var(--sub);text-align:center;padding:6px 16px;display:flex;align-items:center;justify-content:center;gap:4px}
 .data-src .dot{width:6px;height:6px;border-radius:50%;background:var(--primary);display:inline-block;animation:dotPulse 2s ease-in-out infinite}
