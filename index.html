@@ -2130,7 +2130,11 @@ function render(){
   }else if(tab==='my'){
     h+=renderMyPage();
   }
-  h+='<div class="data-src">'+(dataSource==="sheets"?'<span class="dot"></span> Google Sheets 연동':'⚠️ 내장 데이터')+' · '+RECIPES.length+'개 레시피</div>';
+  var dsLabel='⚠️ 데이터 상태 확인 필요';
+  if(dataSource==='sheets')dsLabel='<span class="dot"></span> Google Sheets 연동';
+  else if(dataSource==='cache')dsLabel='⚡ 캐시 레시피 사용';
+  else if(dataSource==='error')dsLabel='⚠️ 네트워크 오류(재시도 필요)';
+  h+='<div class="data-src">'+dsLabel+' · '+RECIPES.length+'개 레시피</div>';
 h+='<div class="bnav"><button class="bnav-item '+(tab==='cook'?'on':'')+' " onclick="bnavTap(this,function(){tab=\'cook\';render()})"><span class="ico">🍽️</span>요리</button><button class="bnav-item '+(tab==='fav'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'fav\';render()})"><span class="ico">❤️</span>즐겨찾기</button><button class="bnav-item '+(tab==='my'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'my\';mode=\'ing\';render()})"><span class="ico">📊</span>내기록</button><button class="bnav-item '+(tab==='comm'?'on':'')+' " onclick="bnavTap(this,function(){showSearch=false;tab=\'comm\';render()})"><span class="ico">💬</span>커뮤니티</button></div>'; app.innerHTML=h;
   // Restore scroll position after re-render
   window.scrollTo(0,savedScroll);
