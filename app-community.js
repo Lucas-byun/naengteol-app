@@ -433,7 +433,7 @@ function approvePendingPost(pidx){
   fbDB.ref('community/approved/'+approvedPost.id).set(approvedPost,function(err){
     if(!err){
       // pending 노드에서 제거
-      if(fbKey)fbDB.ref('community/pending/'+fbKey).remove();
+      if(fbKey)fbDB.ref('community/pending/'+fbKey).remove(function(removeErr){if(removeErr)console.warn('[Firebase] pending 삭제 실패:',removeErr);});
       // 커뮤니티 평점이 있으면 Firebase recipes 노드에 집계
       if(approvedPost.recipeId && approvedPost.rating > 0){
         var recRef=fbDB.ref('recipes/'+approvedPost.recipeId);
@@ -447,8 +447,8 @@ function approvePendingPost(pidx){
             commTotalRating:(cur.commTotalRating||0)+approvedPost.rating,
             commRatingCount:(cur.commRatingCount||0)+1
           };
-          updates.commAvgRating=Math.round((updates.commTotalRating/updates.commRatingCount)*10)/10;
-          recRef.update(updates);
+          updates.commAvgRating=updates.commRatingCount>0?Math.round((updates.commTotalRating/updates.commRatingCount)*10)/10:0;
+          recRef.update(updates,function(updateErr){if(updateErr)console.warn('[Firebase] 레시피 평점 집계 실패:',updateErr);});
         });
       }
       // 구글 시트에 승인 기록 (백그라운드)
@@ -493,11 +493,11 @@ function likePost(idx){
       return;
     }
     // 좋아요 표시 저장 (uid 기반)
-    likeRef.set(true);
+    likeRef.set(true,function(setErr){if(setErr)console.warn('[Firebase] 좋아요 저장 실패:',setErr);});
     // 좋아요 카운트 트랜잭션 업데이트
     fbDB.ref('community/approved/'+fbKey+'/likes').transaction(function(cur){
       return (cur||0)+1;
-    });
+    },function(txErr){if(txErr)console.warn('[Firebase] 좋아요 카운트 실패:',txErr);});
     // localStorage에도 동시 저장 (오프라인 빠른 체크용)
     localStorage.setItem('nt_liked_'+postId,'1');
     showCartPopup('❤️ 좋아요!','좋아요를 눌렀습니다.');

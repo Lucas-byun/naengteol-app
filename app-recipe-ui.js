@@ -11,7 +11,7 @@ function renderDetail(){
   var _detBestPhotoBy=_detBestPhoto?ehtml(_detBestPhoto.author||'유저'):'유저';
   h+='<div class="det-hero">'+(getRecipeMedal(r.id)?'<div style="text-align:center;font-size:13px;font-weight:700;color:#ff6f00;margin-bottom:4px">'+getRecipeMedal(r.id)+' 인기 TOP 요리</div>':'')+(_detBestPhotoUrl?'<div style="position:relative;margin-bottom:12px;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:12px"><img src="'+eattr(_detBestPhotoUrl)+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentNode.style.display=\'none\'"><div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:3px 8px;border-radius:8px">📸 '+_detBestPhotoBy+'님의 요리</div></div>':'')+'<div class="emoji">'+r.emoji+'</div><h2>'+r.name+'</h2>';
   h+='<div class="meta"><span>'+(['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움')+'</span><span>⏱'+r.time+'분</span><span>'+r.serving+'인분</span></div>';
-  h+='<div class="desc">'+r.desc+'</div>';
+  h+='<div class="desc">'+ehtml(r.desc)+'</div>';
   var dTags=RECIPE_TAGS[r.id]||[];if(dTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;justify-content:center">';var dtC=TAG_COLORS;dTags.forEach(function(t){var c=dtC[t]||['#555','#eee'];h+='<span onclick="closeDetail();activeTag=\''+t+'\';tab=\'cook\';render()" style="font-size:11px;padding:3px 10px;border-radius:12px;background:'+c[1]+';color:'+c[0]+';font-weight:600;cursor:pointer">#'+t+'</span>';});h+='</div>';}
   h+='</div>';
   // 커뮤니티 평균 별점 계산
@@ -220,7 +220,7 @@ function renderFS(){
   if(r.desc){
     h+='<div style="margin:0 16px 8px;padding:12px 14px;background:linear-gradient(135deg,#fff8f0,#fff3e0);border-radius:12px;border-left:4px solid var(--primary)">';
     h+='<div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:4px">📖 요리 소개</div>';
-    h+='<div style="font-size:13px;line-height:1.6;color:#555">'+r.desc+'</div>';
+    h+='<div style="font-size:13px;line-height:1.6;color:#555">'+ehtml(r.desc)+'</div>';
     h+='</div>';
   }
   h+='<div class="det-section"><h3>👨‍🍳 요리 순서</h3>';
@@ -384,16 +384,16 @@ function renderFS(){
     h+='<div style="margin:0 16px 12px;background:linear-gradient(135deg,#f5f5f5,#fff);border:1px solid #f0e6d2;border-radius:12px;padding:16px">';
     h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:#333">🍽️ 맛있게 먹는 법</div>';
     h+='<div style="font-size:13px;line-height:1.6;color:#555">';
-    if(r.pair)h+='• <b>곁들이면 좋아요:</b> '+r.pair+'<br>';
+    if(r.pair)h+='• <b>곁들이면 좋아요:</b> '+ehtml(r.pair)+'<br>';
     r.tips.forEach(function(t){
       if(t.includes('뿌리')||t.includes('올리')||t.includes('곁들')||t.includes('접시')||t.includes('담'))
-        h+='• '+t+'<br>';
+        h+='• '+ehtml(t)+'<br>';
     });
     h+='</div></div>';
   }
   // Tips in fullscreen - always visible
   h+='<div class="det-section"><h3>💡 꿀팁</h3>';
-  r.tips.forEach(function(t){h+='<div class="tip-card">'+t+'</div>'});
+  r.tips.forEach(function(t){h+='<div class="tip-card">'+ehtml(t)+'</div>'});
   h+='</div>';
   h+='<div style="height:60px"></div></div>';
   // innerHTML 교체 방식으로 popstate 트리거 방지
@@ -496,7 +496,7 @@ function saveDetPhoto(id,share){
           submittedAt:new Date().toISOString()
         };
         // Firebase pending 노드에 저장
-        fbDB.ref('community/pending').push(newPost2).catch(function(){});
+        fbDB.ref('community/pending').push(newPost2).catch(function(e){console.warn('[Firebase] 커뮤니티 게시 실패:',e);showCartPopup('❌ 게시 실패','네트워크 오류로 자랑 신청에 실패했습니다. 잠시 후 다시 시도해주세요.');});
       }
     }
   }

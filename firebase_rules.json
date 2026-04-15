@@ -73,10 +73,17 @@
         "nickname": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length >= 1 && newData.val().length <= 15)" },
         "timestamp": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 40)" },
         "nicknameHistory": { ".validate": "!newData.exists() || newData.isList()" },
-        "$other": { ".validate": true }
+        "$other": { ".validate": false }
       }
     },
-    "history": { ".write": "auth != null" },
+    "history": {
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        "$timestamp": {
+          ".validate": "newData.isString() || newData.isNumber() || newData.hasChildren()"
+        }
+      }
+    },
     "cookLogs": {
       "$uid": {
         "$recipeId": {
