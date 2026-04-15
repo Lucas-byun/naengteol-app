@@ -286,6 +286,13 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="app-security.js"></script>
+<script src="app-pwa.js"></script>
+<script src="app-community.js"></script>
+<script src="app-recipe-ui.js"></script>
+<script src="app-onboarding.js"></script>
+<script src="app-about.js"></script>
 <!-- firebase-storage: Spark 무료 플랜 미지원, 추후 Blaze 업그레이드 시 활성화 -->
 </head>
 <body>
@@ -324,6 +331,7 @@ var firebaseConfig={
 };
 var fbApp=firebase.initializeApp(firebaseConfig);
 var fbDB=firebase.database();
+var fbAuth=firebase.auth();
 // Firebase Storage 마이그레이션 보류 (Spark 무료 플랜에서 미사용)
 // 커뮤니티 승인 기록용 Apps Script URL (구글 시트 '커뮤니티_승인기록' 탭에 기록)
 var COMMUNITY_SCRIPT_URL='https://script.google.com/macros/s/AKfycbyks9VaDhOGY2L4g-RFfnuzxE1bRLyijRvTXW6HFe5df_1AetQeMllsCGSARXs3nqZ59g/exec';
@@ -336,6 +344,40 @@ function reportCommunityApprovalToSheet(post){
 // 유저 고유 ID (기기별)
 var fbUid=localStorage.getItem('nt_uid');
 if(!fbUid){fbUid='u_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);localStorage.setItem('nt_uid',fbUid);}
+var fbAuthReady=false;
+
+function getCurrentUid(){
+  return fbUid||'unknown_uid';
+}
+
+function ensureFirebaseAuth(){
+  try{
+    fbAuth.onAuthStateChanged(function(user){
+      if(user&&user.uid){
+        fbUid=user.uid;
+        fbAuthReady=true;
+        localStorage.setItem('nt_uid',fbUid);
+        recordDailyAccess();
+        if(typeof refreshAdminUidFlag==='function'){
+          refreshAdminUidFlag().then(function(isAdminUid){
+            if(!isAdminUid){
+              localStorage.removeItem('nt_admin');
+            }else if(isAdminSession()&&typeof startPendingListener==='function'){
+              startPendingListener();
+            }
+            if(typeof tab!=='undefined'&&tab==='comm'&&typeof render==='function')render();
+          }).catch(function(){});
+        }
+        return;
+      }
+      fbAuth.signInAnonymously().catch(function(e){
+        console.warn('[Firebase Auth] 익명 로그인 실패:',e&&e.message?e.message:e);
+      });
+    });
+  }catch(e){
+    console.warn('[Firebase Auth] 초기화 실패:',e&&e.message?e.message:e);
+  }
+}
 
 // 일일 접속 기록 (날짜별 고유 접속자 수 집계용)
 function recordDailyAccess(){
@@ -345,13 +387,14 @@ function recordDailyAccess(){
     var lastAccessDate=localStorage.getItem('nt_last_access');
     if(lastAccessDate===today)return;
     // 오늘 처음 접속 → Firebase에 기록
-    fbDB.ref('accessLogs/'+today+'/'+fbUid).set(true).then(function(){
+    fbDB.ref('accessLogs/'+today+'/'+getCurrentUid()).set(true).then(function(){
       localStorage.setItem('nt_last_access',today);
     }).catch(function(){});
   }catch(e){}
 }
 // 앱 로드 시 접속 기록
 recordDailyAccess();
+ensureFirebaseAuth();
 
 // 요리 완성 시 → 매번 카운트 +1 (Google Sheets와 동일 기준: 요리 횟수 기반)
 function reportRecipeToFirebase(recipeId,recipeName){
@@ -1403,7 +1446,6 @@ function getTopUnlock(){
 }
 
 // === HELPERS ===
-function esc(s){return s.replace(/'/g,"\\'");}
 // 로컬 날짜 문자열 반환 (toISOString은 UTC 기준이라 한국 자정 전후 오류 발생)
 function getLocalDateStr(d){var dt=d||new Date();return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
 function toggleIngredient(n){
@@ -1621,36 +1663,7 @@ function selectAC(val){
   searchQ=val;
   render();
 }
-// 커뮤니티 검색 자동완성
-function updateCommAC(val){
-  var ac=document.getElementById('commAcList');
-  if(!ac)return;
-  var q=(val||'').trim();
-  if(!q){ac.style.display='none';return;}
-  var ql=q.toLowerCase();
-  // communityPosts에서 요리명 추출 (중복 제거)
-  var names=[];
-  communityPosts.forEach(function(c){
-    var n=c.recipe||'';
-    if(n&&n.toLowerCase().includes(ql)&&!names.includes(n))names.push(n);
-  });
-  names=names.slice(0,8);
-  if(names.length===0){ac.style.display='none';return;}
-  var h='';
-  names.forEach(function(s,idx){
-    h+='<div onclick="selectCommAC(\''+s.replace(/'/g,"\\'")+'\')" style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:'+(idx<names.length-1?'1px solid var(--border)':'none')+';display:flex;align-items:center" onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'\'">🔍 '+s+'</div>';
-  });
-  ac.innerHTML=h;
-  ac.style.display='block';
-}
-function selectCommAC(val){
-  var si=document.getElementById('commSearchInput');
-  if(si)si.value=val;
-  var ac=document.getElementById('commAcList');
-  if(ac)ac.style.display='none';
-  window._commSearch=val;
-  render();
-}
+// === COMMUNITY AC MODULE: moved to app-community.js ===
 
 // === SUBSTITUTE INGREDIENTS ===
 var SUBS_MAP={
@@ -2055,7 +2068,7 @@ function render(){
   }else if(tab==='comm'){
     h+=renderCommunity();
     // 관리자 모드 활성화 버튼 (숫겨진 영역)
-    var isAdmin=localStorage.getItem('nt_admin')==='1';
+    var isAdmin=isAdminSession();
     h+='<div style="text-align:center;padding:8px 0 20px">';
     if(isAdmin){
       h+='<span style="font-size:11px;color:var(--sub);cursor:pointer" onclick="if(confirm(\'\uad00\ub9ac\uc790 \ubaa8\ub4dc\ub97c \ud574\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?\')){{localStorage.removeItem(\'nt_admin\');render();}}">\u2705 \uad00\ub9ac\uc790 \ubaa8\ub4dc \ud65c성화 중 (탭하면 해제)</span>';
@@ -2132,7 +2145,11 @@ function renderCard(r){
   h+='<div class="rc-thumb-inner">';
   var catImgMap={'찌개/국':'icons/cat_찌개국.png','달걀요리':'icons/cat_달걀요리.png','면류':'icons/cat_면류.png','밥/덮밥':'icons/cat_밥덮밥.png','전/부침':'icons/cat_전부침.png','나물/반찬':'icons/cat_나물반찬.png','간식/분식':'icons/cat_간식분식.png','조림':'icons/cat_조림.png','볶음/구이':'icons/cat_볶음구이.png'};
   var catImg=catImgMap[r.cat]||null;
-  if(_bestPhoto){h+='<img src="'+(_bestPhoto.photo||_bestPhoto)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" style="width:100%;height:100%;object-fit:cover"><span style="display:none;font-size:36px;width:100%;height:100%;align-items:center;justify-content:center">'+r.emoji+'</span>';}
+  if(_bestPhoto){
+    var _bestPhotoUrl=safeUrl(_bestPhoto.photo||_bestPhoto);
+    if(_bestPhotoUrl)h+='<img src="'+eattr(_bestPhotoUrl)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" style="width:100%;height:100%;object-fit:cover"><span style="display:none;font-size:36px;width:100%;height:100%;align-items:center;justify-content:center">'+r.emoji+'</span>';
+    else h+='<span>'+r.emoji+'</span>';
+  }
   else if(catImg){h+='<img src="'+catImg+'" style="width:80%;height:80%;object-fit:contain;opacity:0.9;display:block;margin:auto;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">';}
   else{h+='<span>'+r.emoji+'</span>';}
   h+='</div></div>';
@@ -2153,602 +2170,9 @@ function renderCard(r){
   return h+'</div>';
 }
 
-// === DETAIL ===
-function openDetail(id){detailR=RECIPES.find(function(r){return r.id===id});servMul=1;pushState('detail');renderDetail();}
-function renderDetail(){
-  if(!detailR)return;var r=detailR;
-  var h='<div class="detail show">';
-  h+='<div class="det-hdr"><button class="det-back" onclick="closeDetail()">←</button><span style="font-weight:700">'+r.name+'</span>';
-  h+='<div style="display:flex;gap:8px"><button onclick="openFS(\''+r.id+'\')" style="padding:4px 12px;border:1.5px solid var(--primary);border-radius:8px;background:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🍳 요리시작</button><button class="det-back" onclick="toggleFav(\''+r.id+'\');renderDetail()">'+(favs.has(r.id)?'❤️':'🤍')+'</button></div></div>';
-  var _detBestPhoto=getRecipeBestPhoto(r.id);
-  h+='<div class="det-hero">'+(getRecipeMedal(r.id)?'<div style="text-align:center;font-size:13px;font-weight:700;color:#ff6f00;margin-bottom:4px">'+getRecipeMedal(r.id)+' 인기 TOP 요리</div>':'')+(_detBestPhoto?'<div style="position:relative;margin-bottom:12px;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:12px"><img src="'+(_detBestPhoto.photo||_detBestPhoto)+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentNode.style.display=\'none\'"><div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:3px 8px;border-radius:8px">📸 '+(_detBestPhoto.author||'유저')+'님의 요리</div></div>':'')+'<div class="emoji">'+r.emoji+'</div><h2>'+r.name+'</h2>';
-  h+='<div class="meta"><span>'+(['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움')+'</span><span>⏱'+r.time+'분</span><span>'+r.serving+'인분</span></div>';
-  h+='<div class="desc">'+r.desc+'</div>';
-  var dTags=RECIPE_TAGS[r.id]||[];if(dTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;justify-content:center">';var dtC=TAG_COLORS;dTags.forEach(function(t){var c=dtC[t]||['#555','#eee'];h+='<span onclick="closeDetail();activeTag=\''+t+'\';tab=\'cook\';render()" style="font-size:11px;padding:3px 10px;border-radius:12px;background:'+c[1]+';color:'+c[0]+';font-weight:600;cursor:pointer">#'+t+'</span>';});h+='</div>';}
-  h+='</div>';
-  // 커뮤니티 평균 별점 계산
-  var _commRated=communityPosts.filter(function(c){return c.recipeId===r.id&&c.rating&&c.rating>0;});
-  var _commAvgRating=_commRated.length>0?(_commRated.reduce(function(s,c){return s+Number(c.rating);},0)/_commRated.length):0;
-  var _commRatingCard=_commRated.length>0?('<div class="info-card" style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1px solid #ffe082"><div class="val" style="color:#f57f17">'+(function(){var s='';var avg=Math.round(_commAvgRating);for(var i=1;i<=5;i++)s+=(i<=avg?'★':'☆');return s;})()+'</div><div class="lbl">커뮤니티 '+_commRated.length+'명</div></div>'):'';
-  h+='<div class="det-info-cards"><div class="info-card"><div class="val">'+r.serving+'인분</div><div class="lbl">기준</div></div><div class="info-card"><div class="val">'+r.time+'분</div><div class="lbl">조리시간</div></div><div class="info-card"><div class="val">'+r.kcal+'</div><div class="lbl">칼로리</div></div>'+_commRatingCard+'</div>';
-  // 보관법 표시 제거됨
-  h+='<div class="serving-ctrl"><button class="sv-btn" onclick="if(servMul>1){servMul--;renderDetail()}">−</button><span class="sv-val">'+Math.round(r.serving*servMul)+'인분</span><button class="sv-btn" onclick="if(servMul<10){servMul++;renderDetail()}">＋</button></div>';
-  h+='<div class="det-section"><h3>📝 재료</h3><div class="det-legend">● 필수 / ○ 선택' + (sel.size>0 ? ' · <span style="color:var(--green)">✔ 보유</span> / <span style="color:#d84315">✘ 부족</span>' : '') + '</div>';
-  r.ings.forEach(function(i){
-    var isReq=i.t==='req';
-    var have=sel.size>0 && [...sel].some(function(s){return ingMatch(i.v,s)});
-    var miss=sel.size>0 && isReq && !have;
-    var dotCls=isReq?(have?'req':miss?'miss':'req'):(have?'opt-have':'opt');
-    var txtStyle='';
-    if(miss)txtStyle=' style="color:#d84315"';
-    else if(have)txtStyle=' style="color:var(--green)"';
-    h+='<div class="det-ing-item">';
-    h+='<span class="det-ing-dot '+dotCls+'"></span>';
-    h+='<span'+txtStyle+'>'+convertGUnit(scaleVal(i.v,servMul))+'</span>';
-    if(miss&&isReq)h+='<span style="margin-left:auto;font-size:11px;color:#b85450;background:#fdf5f5;padding:1px 6px;border-radius:8px">부족</span>';
-    else if(have)h+='<span style="margin-left:auto;font-size:11px;color:var(--green);background:#e8f5e9;padding:1px 6px;border-radius:8px">보유</span>';
-    h+='</div>';
-  });
-  if(servMul>1){
-    h+='<div style="margin-top:8px;padding:8px 10px;background:#fff8e1;border-radius:8px;border:1px solid #ffe082;font-size:12px;color:#795548;line-height:1.5">';
-    h+='⚠️ <b>'+Math.round(r.serving*servMul)+'인분 기준</b>으로 자동 계산된 양입니다.<br>양념은 실제 요리 시 맛을 보며 조절하세요.';
-    h+='</div>';
-  }
-  h+='</div>';
-  // Cart button for missing ingredients
-  if(sel.size>0){
-    var missingCount=r.ings.filter(function(i){return i.t==='req'&&![...sel].some(function(s){return ingMatch(i.v,s)})}).length;
-    if(missingCount>0){
-      h+='<div style="padding:0 16px 8px"><button onclick="addToCart(\''+r.id+'\')" style="width:100%;padding:12px;border:none;border-radius:10px;background:#1976d2;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🛒 부족 재료 '+missingCount+'개 장바구니에 담기</button></div>';
-    }
-  }
-  // Substitute ingredients info
-  var subs=getSubstitutes(r);
-  if(subs.length>0){
-    h+='<div class="det-section"><div style="background:#f0f4ff;border:1px solid #c5cae9;border-radius:10px;padding:10px 12px">';
-    h+='<div style="font-size:12px;font-weight:700;color:#3949ab;margin-bottom:6px">🔄 대체 가능 재료</div>';
-    subs.forEach(function(s){
-      h+='<div style="font-size:12px;color:#555;padding:2px 0">• <b>'+s.name+'</b> → '+s.alt+'</div>';
-    });
-    h+='</div></div>';
-  }
-  // 선택재료 보유 여부 확인
-  var ownedOptNames = [];
-  r.ings.forEach(function(i){
-    if(i.t==='opt' && sel.size>0 && [...sel].some(function(s){return ingMatch(i.v,s)})){
-      ownedOptNames.push(i.v.split(/[\s\d]/)[0].replace(/[•·()]/g,''));
-    }
-  });
-  var ownedOptCount = ownedOptNames.length;
-  var totalOptCount = r.ings.filter(function(i){return i.t==='opt';}).length;
-  h+='<div class="det-section"><h3>👨‍🍳 요리 순서</h3>';
-  if(totalOptCount>0){
-    if(ownedOptCount===0){
-      h+='<div style="font-size:12px;color:var(--sub);background:#f5f5f5;padding:6px 10px;border-radius:8px;margin-bottom:8px">📌 기본 버전 (선택재료 없이)</div>';
-    } else {
-      h+='<div style="font-size:12px;color:var(--primary);background:#f0f7ff;padding:6px 10px;border-radius:8px;margin-bottom:8px">✨ 선택재료 '+ownedOptCount+'개 반영 버전</div>';
-    }
-  }
-  var stepNum = 1;
-  r.steps.forEach(function(s,i){
-    var optIng = s.optIng || '';
-    // 선택재료 태그가 있는 단계: 보유 여부에 따라 표시/숨김
-    if(optIng){
-      var ingOwned = sel.size===0 || ownedOptNames.some(function(n){return optIng.includes(n)||n.includes(optIng);});
-      if(!ingOwned){
-        // 선택재료 없으면 해당 단계 회색으로 표시 (힌트용)
-        h+='<div class="step" style="opacity:0.4">';
-        h+='<div class="step-num" style="background:#ccc">'+stepNum+'</div>';
-        h+='<div class="step-txt"><span style="font-size:11px;color:#999;display:block;margin-bottom:2px">['+optIng+' 있으면]</span>'+scaleVal(getStepText(s),servMul,true)+'</div>';
-        h+='</div>';
-      } else {
-        h+='<div class="step" style="border-left:3px solid var(--primary)">';
-        h+='<div class="step-num" style="background:var(--primary);color:#fff">'+stepNum+'</div>';
-        h+='<div class="step-txt"><span style="font-size:11px;color:var(--primary);display:block;margin-bottom:2px">✨ '+optIng+'</span>'+scaleVal(getStepText(s),servMul,true)+'</div>';
-        h+='</div>';
-      }
-    } else {
-      h+='<div class="step"><div class="step-num">'+stepNum+'</div>';
-      h+='<div class="step-txt">'+scaleVal(getStepText(s),servMul,true)+'</div>';
-      h+='</div>';
-    }
-    stepNum++;
-  });
-  h+='<div style="margin-top:8px;padding:10px 14px;background:var(--card);border-radius:10px;border:1px dashed var(--border);text-align:center;font-size:13px;color:var(--sub)">💡 팁과 상세 설명은 <strong style="color:var(--primary)">요리모드</strong>에서 확인하세요</div>';
-  h+='</div>';
-  // 꿀팁은 요리모드에서만 표시 (레시피 상세에서는 제거)
-  // Cook complete button in regular detail
-  h+='<div style="padding:16px" id="det-cook-btn-'+r.id+'"><button onclick="openFS(\''+r.id+'\')" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">🍳 요리모드로 가기</button></div>';
-  h+='<div style="height:40px"></div></div>';
-  document.getElementById('app').insertAdjacentHTML('beforeend',h);
-}
-function closeDetail(){detailR=null;var d=document.querySelector('.detail');if(d)d.remove();}
+// === RECIPE UI MODULE: moved to app-recipe-ui.js ===
 
-// 조리 단계 텍스트 추출 헬퍼 (구글 시트 컬럼명 변경에 유연하게 대응)
-function getStepText(s){
-  var t=s.x||s.txt||s.text||'';
-  // 텍스트 내에 잔존하는 [재료명] 태그 제거 (파싱 후 남은 경우 대비)
-  t=t.replace(/^\[[^\]]+\]\s*/,'').replace(/\s*\[[^\]]+\]\s*/g,' ').trim();
-  return t;
-}
-function getStepTip(s){return s.p||s.tip||'';}
-// 선택재료 태그 매칭 공통 함수 (visibleSteps 필터링 + 렌더링 루프 양쪽에서 사용)
-function stepOptVisible(optIng, checkedOptNames){
-  if(!optIng) return true;
-  var tagNames=optIng.split(',').map(function(t){return t.trim();}).filter(Boolean);
-  return tagNames.some(function(tag){
-    return checkedOptNames.some(function(n){
-      var short=n.length>=2?n.substring(0,2):n;
-      return tag===n||tag.includes(n)||n.includes(tag)||(short.length>=2&&tag.startsWith(short));
-    });
-  });
-}
-
-// === FULLSCREEN COOK MODE ===
-var fsChecked=new Set();
-var fsFirstOpen=true;
-var wakeLock=null;
-async function requestWakeLock(){try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');}}catch(e){}}
-function releaseWakeLock(){if(wakeLock){wakeLock.release();wakeLock=null;}}
-function openFS(id){var found=RECIPES.find(function(r){return r.id===id});if(!found){alert('레시피를 찾을 수 없어요. 잠시 후 다시 시도해주세요.');return;}closeDetail();fsR=found;fsServMul=servMul||1;fsChecked=new Set();fsFirstOpen=true;pushState('fs');requestWakeLock();renderFS();}
-
-function toggleMeasure(btn){
-  var el=btn.nextElementSibling;
-  el.style.display=el.style.display==='none'?'block':'none';
-}
-function renderFS(){
-  if(!fsR)return;var r=fsR;
-  // Save scroll position before re-render
-  var oldModal=document.querySelector('.fs-modal');
-  var savedScroll=oldModal?oldModal.scrollTop:0;
-  // (oldModal 재사용 여부는 아래 innerHTML 교체 로직에서 직접 판단)
-  // Ingredients - checkable, split by req/opt
-  var reqIngs=[];var optIngs=[];
-  r.ings.forEach(function(i,idx){if(i.t==='req')reqIngs.push({i:i,idx:idx});else optIngs.push({i:i,idx:idx});});
-  
-  // 선택재료 체크 기반 표시 단계 필터링 (optIngs 선언 후에 실행)
-  var checkedOptNames=[];
-  optIngs.forEach(function(x){if(fsChecked.has('ing'+x.idx))checkedOptNames.push(x.i.v.split(/\s/)[0].replace(/[()]/g,''));});
-  
-  var visibleSteps=r.steps.filter(function(s){
-    return stepOptVisible(s.optIng||'', checkedOptNames);
-  });
-
-  var totalSteps=visibleSteps.length;
-  var doneSteps=0;
-  visibleSteps.forEach(function(s){
-    var originalIdx = r.steps.indexOf(s);
-    if(fsChecked.has('step'+originalIdx)) doneSteps++;
-  });
-  var pct=totalSteps?Math.min(Math.round(doneSteps/totalSteps*100),100):0;
-  var h='<div class="fs-modal show">';
-  // Header
-  h+='<div class="det-hdr"><button class="det-back" onclick="closeFS()">←</button><span style="font-weight:700">'+r.name+' <span class="cook-badge">🍳 요리 중</span></span>';
-  h+='<div><button class="det-back" onclick="toggleFav(\''+r.id+'\');renderFS()">'+(favs.has(r.id)?'❤️':'🤍')+'</button></div></div>';
-  // Progress bar
-  h+='<div style="padding:0 16px;margin-top:8px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:13px;font-weight:700;color:var(--primary)">'+pct+'%</span><span style="font-size:12px;color:var(--sub)">'+doneSteps+'/'+totalSteps+' 단계</span></div>';
-  h+='<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:var(--primary);border-radius:3px;transition:width .3s"></div></div></div>';
-  // Serving
-  h+='<div class="serving-ctrl"><button class="sv-btn" onclick="if(fsServMul>1){fsServMul--;renderFS()}">−</button><span class="sv-val">'+Math.round(r.serving*fsServMul)+'인분</span><button class="sv-btn" onclick="if(fsServMul<10){fsServMul++;renderFS()}">＋</button></div>';
-  h+='<div class="det-section"><h3>📝 재료 준비</h3>';
-  h+='<div style="margin-bottom:10px"><button onclick="toggleMeasure(this)" style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;color:#795548;cursor:pointer;font-family:inherit;width:100%">📏 계량 단위 안내 (탭하여 펼치기)</button><div style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:0 0 8px 8px;padding:10px 14px;font-size:12px;color:#5d4037"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🥄</div><div style="font-weight:700;font-size:13px">1큰술</div><div style="color:#795548;font-size:11px;line-height:1.5">밥숟가락 1개 가득<br><span style="color:#d84315">≈ 15ml</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🍵</div><div style="font-weight:700;font-size:13px">1작은술</div><div style="color:#795548;font-size:11px;line-height:1.5">티스푼 1개 가득<br><span style="color:#d84315">≈ 5ml (큰술의 1/3)</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🥤</div><div style="font-weight:700;font-size:13px">1컵</div><div style="color:#795548;font-size:11px;line-height:1.5">종이컵 1컵<br><span style="color:#d84315">≈ 200ml</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🍚</div><div style="font-weight:700;font-size:13px">1공기</div><div style="color:#795548;font-size:11px;line-height:1.5">밥공기 1그릇 가득<br><span style="color:#d84315">≈ 200g</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🌿</div><div style="font-weight:700;font-size:13px">1줌</div><div style="color:#795548;font-size:11px;line-height:1.5">한 손 가볍게 쥔 양<br><span style="color:#d84315">≈ 30~50g</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🧂</div><div style="font-weight:700;font-size:13px">적당량</div><div style="color:#795548;font-size:11px;line-height:1.5">맛을 보며<br>조금씩 추가</div></div></div><div style="font-size:11px;color:#8d6e63;background:#fffde7;border-radius:6px;padding:6px 8px">💡 계량스푼 없을 땐 밥숟가락(큰술)·티스푼(작은술)으로 대체하세요</div></div></div>';
-  h+='<div style="font-size:12px;color:var(--sub);margin-bottom:8px">● 필수 재료 ('+reqIngs.length+'개) / ○ 선택 재료 ('+optIngs.length+'개)' + (sel.size>0 ? ' · <span style="color:var(--green)">보유</span> / <span style="color:#d84315">부족</span>' : '') + '</div>';
-  // Required
-  h+='<div style="font-size:12px;font-weight:700;color:var(--green);padding:8px 0 4px;border-bottom:2px solid var(--green)">● 필수 재료</div>';
-  reqIngs.forEach(function(x){
-    var checked=fsChecked.has('ing'+x.idx);
-    var have=sel.size>0 && [...sel].some(function(s){return ingMatch(x.i.v,s)});
-    var miss=sel.size>0 && !have;
-    h+='<div class="fs-ing-item'+(checked?' done':'')+'" onclick="fsChecked.has(\'ing'+x.idx+'\')?fsChecked.delete(\'ing'+x.idx+'\'):fsChecked.add(\'ing'+x.idx+'\');renderFS()">';
-    h+='<span class="fs-check">'+(checked?'☑️':'⬜')+'</span>';
-    h+='<span class="fs-ing-dot-'+(miss?'miss':'req')+'"></span>';
-    var txtStyle=checked?' style="text-decoration:line-through;color:#aaa"':miss?' style="color:#d84315"':have?' style="color:var(--green)"':'';
-    h+='<span'+txtStyle+'>'+convertGUnit(scaleVal(x.i.v,fsServMul))+'</span>';
-    if(!checked&&miss)h+='<span style="margin-left:auto;font-size:10px;color:#b85450;background:#fdf5f5;padding:1px 6px;border-radius:8px">부족</span>';
-    else if(!checked&&have)h+='<span style="margin-left:auto;font-size:10px;color:var(--green);background:#e8f5e9;padding:1px 6px;border-radius:8px">보유</span>';
-    h+='</div>';
-  });
-  // Optional
-  if(optIngs.length>0){
-    h+='<div style="font-size:12px;font-weight:700;color:var(--sub);padding:8px 0 4px;margin-top:8px;border-bottom:2px solid #ccc">○ 선택 재료 (있으면 더 맛있어요)</div>';
-    optIngs.forEach(function(x){
-      var checked=fsChecked.has('ing'+x.idx);
-      var have=sel.size>0 && [...sel].some(function(s){return ingMatch(x.i.v,s)});
-      h+='<div class="fs-ing-item'+(checked?' done':'')+'" onclick="fsChecked.has(\'ing'+x.idx+'\')?fsChecked.delete(\'ing'+x.idx+'\'):fsChecked.add(\'ing'+x.idx+'\');renderFS()">';
-      h+='<span class="fs-check">'+(checked?'☑️':'⬜')+'</span>';
-      h+='<span class="fs-ing-dot-'+(have?'opt-have':'opt')+'"></span>';
-      var txtStyle=checked?' style="text-decoration:line-through;color:#aaa"':have?' style="color:var(--green)"':'style="color:var(--sub)"';
-      h+='<span '+txtStyle+'>'+convertGUnit(scaleVal(x.i.v,fsServMul))+'</span>';
-      if(!checked&&have)h+='<span style="margin-left:auto;font-size:10px;color:var(--green);background:#e8f5e9;padding:1px 6px;border-radius:8px">보유</span>';
-      h+='</div>';
-    });
-  }
-  h+='</div>';
-  // NO substitute info in fullscreen (only in basic detail)
-  // Steps - COOK MODE: large current step, compact completed, timer
-  // checkedOptNames 는 위에서 이미 계산됨 - 중복 선언 제거
-  
-  // 요리 설명 표시 (요리모드 전용)
-  if(r.desc){
-    h+='<div style="margin:0 16px 8px;padding:12px 14px;background:linear-gradient(135deg,#fff8f0,#fff3e0);border-radius:12px;border-left:4px solid var(--primary)">';
-    h+='<div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:4px">📖 요리 소개</div>';
-    h+='<div style="font-size:13px;line-height:1.6;color:#555">'+r.desc+'</div>';
-    h+='</div>';
-  }
-  h+='<div class="det-section"><h3>👨‍🍳 요리 순서</h3>';
-  if(checkedOptNames.length>0){
-    h+='<div style="font-size:11px;color:var(--primary);background:#f0f7ff;padding:6px 10px;border-radius:8px;margin-bottom:10px">✨ 선택 재료 반영: '+checkedOptNames.join(', ')+'</div>';
-  } else if(optIngs.length>0){
-    h+='<div style="font-size:11px;color:var(--sub);background:#f5f5f5;padding:6px 10px;border-radius:8px;margin-bottom:10px">📌 기본 버전 — 선택재료를 체크하면 단계가 추가됩니다</div>';
-  }
-  var firstUnchecked=-1;
-  // 표시될 단계들 중 첫 번째 미완료 단계 찾기
-  visibleSteps.forEach(function(s){
-    var originalIdx = r.steps.indexOf(s);
-    if(!fsChecked.has('step'+originalIdx) && firstUnchecked===-1) firstUnchecked=originalIdx;
-  });
-  
-  var stepDisplayIdx=0;
-  r.steps.forEach(function(s,i){
-    var checked=fsChecked.has('step'+i);
-    var optIng=s.optIng||'';
-    // 공통 함수로 통일된 매칭 로직 사용
-    if(!stepOptVisible(optIng, checkedOptNames)) return; 
-    
-    stepDisplayIdx++;
-    var isCurrent=(!checked&&i===firstUnchecked);
-    var tipText=getStepTip(s);
-    var tipMatchesOpt=checkedOptNames.some(function(name){return tipText.includes(name)||getStepText(s).includes(name);});
-    var hasUncheckedOptMention=false;
-    if(tipText){
-      var allOptNames=optIngs.map(function(x){return x.i.v.split(/\s/)[0].replace(/[()]/g,'')});
-      hasUncheckedOptMention=allOptNames.some(function(name){return tipText.includes(name)})&&!tipMatchesOpt;
-    }
-    
-    if(checked){
-      // COMPLETED: compact, one line
-      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;opacity:.4;cursor:pointer" onclick="fsChecked.delete(\'step'+i+'\');renderFS()">';
-      h+='<span style="font-size:16px">☑️</span>';
-      h+='<span style="font-size:13px;text-decoration:line-through;color:#aaa">STEP '+stepDisplayIdx+' '+getStepText(s).substring(0,25)+(getStepText(s).length>25?'...':'')+'</span>';
-      h+='</div>';
-    }else if(isCurrent){
-      // CURRENT: BIG, prominent, with timer + next step preview
-      h+='<div class="fs-step current" id="fs-step-'+i+'" style="margin:12px 16px;padding:20px;border-width:3px">';
-      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-      h+='<div class="fs-step-num" style="font-size:14px;letter-spacing:2px">🔥 STEP '+stepDisplayIdx+' / '+totalSteps+'</div>';
-      h+='<button onclick="fsNextStep('+i+')" style="padding:6px 16px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:12px;font-weight:700;cursor:pointer">완료 ✓</button>';
-      h+='</div>';
-      h+='<div style="font-size:18px;line-height:1.7;font-weight:500;margin-bottom:12px">'+scaleVal(getStepText(s),fsServMul,true)+'</div>';
-      // Auto-detect and show extra info badges
-      var extras=[];
-      var fireLevel='';
-      if(getStepText(s).includes('센불')||getStepText(s).includes('강불')){extras.push({t:'🔥🔥🔥 센불',bg:'#fafafa',c:'#d84315',b:'#ef9a9a'});fireLevel='high';}
-      else if(getStepText(s).includes('중불')||getStepText(s).includes('중간불')||getStepText(s).includes('중약불')){extras.push({t:'🔥🔥 중불',bg:'#f5f5f5',c:'#ff6f00',b:'#ffcc80'});fireLevel='mid';}
-      else if(getStepText(s).includes('약불')||getStepText(s).includes('약한불')){extras.push({t:'🔥 약불',bg:'#e3f2fd',c:'#1976d2',b:'#90caf9'});fireLevel='low';}
-
-      var isMicrowaveStep=r.sheetTags&&r.sheetTags.some(function(t){return t==='전자레인지';});
-      var timeM=getStepText(s).match(/(\d+)분/);if(timeM&&!isMicrowaveStep)extras.push({t:'⏱ '+timeM[1]+'분',bg:'var(--card)',c:'var(--text)',b:'var(--border)'});
-      var secM=getStepText(s).match(/(\d+)초/);if(secM&&!isMicrowaveStep)extras.push({t:'⏱ '+secM[1]+'초',bg:'var(--card)',c:'var(--text)',b:'var(--border)'});
-      if(extras.length>0){
-        h+='<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">';
-        extras.forEach(function(ex){h+='<span style="font-size:13px;padding:6px 12px;border-radius:10px;background:'+ex.bg+';border:1.5px solid '+ex.b+';font-weight:700;color:'+ex.c+'">'+ex.t+'</span>';});
-        h+='</div>';
-      }
-      // Timer: detect time mentions like "3분", "5분" etc
-      var timeMatch=getStepText(s).match(/(\d+)분/);
-      var isMicrowave=isMicrowaveStep;
-      if(timeMatch&&!isMicrowave){
-        var mins=parseInt(timeMatch[1]);
-        h+='<button onclick="startTimer('+mins+',this)" style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:2px solid var(--primary);border-radius:10px;background:#f5f5f5;cursor:pointer;font-size:14px;font-weight:700;color:var(--primary);width:100%;justify-content:center;font-family:inherit">⏱ '+mins+'분 타이머 시작</button>';
-        // Waiting tip
-        if(i<r.steps.length-1){
-          var nextStep=r.steps[i+1];
-          var _nsTxt=getStepText(nextStep);
-          var nextIngMention=_nsTxt.match(/([\uAC00-\uD7A3]+을|[\uAC00-\uD7A3]+를|[\uAC00-\uD7A3]+를)/);
-          h+='<div style="margin-top:8px;font-size:12px;color:#1976d2;background:#e3f2fd;padding:8px 10px;border-radius:8px">⏳ 기다리는 동안: 다음 단계 재료를 미리 준비하세요!</div>';
-        }
-      }
-      // Tip
-      if(tipText){
-        if(tipMatchesOpt) h+='<div class="step-tip" style="margin-top:12px;border-left:3px solid var(--primary);background:#f5f5f5;font-size:14px">✨ '+tipText+'</div>';
-        else if(!hasUncheckedOptMention) h+='<div class="step-tip" style="margin-top:12px;font-size:14px">💡 '+tipText+'</div>';
-      }
-      // Safety warning for fire/oil related steps
-      var _st=getStepText(s);
-      var _hasOil=['기름','식용유','올리브유','들기름','버터'].some(function(o){return _st.includes(o)});
-      var _hasHeat=['볶','튀','달구','두르','가열'].some(function(h){return _st.includes(h)});
-      var _hasBoil=_st.includes('끓');
-      var _hasHighHeat=_st.includes('센불');
-      if(_hasOil&&_hasHeat)
-        h+='<div style="margin-top:8px;font-size:12px;color:#b85450;background:#fdf5f5;padding:8px 10px;border-radius:8px">⚠️ 화상 주의! 기름이 튈 수 있어요</div>';
-      else if(_hasBoil)
-        h+='<div style="margin-top:8px;font-size:12px;color:#b85450;background:#fdf5f5;padding:8px 10px;border-radius:8px">⚠️ 화상 주의! 끓는 물에 조심하세요</div>';
-      else if(_hasHighHeat)
-        h+='<div style="margin-top:8px;font-size:12px;color:#b85450;background:#fdf5f5;padding:8px 10px;border-radius:8px">⚠️ 화상 주의! 센 불에 조심하세요</div>';
-      // Next step preview - visibleSteps 기준으로 다음 표시 단계 찾기
-      var curVisIdx = visibleSteps.indexOf(s);
-      var nextVisSt = curVisIdx>=0 ? visibleSteps[curVisIdx+1] : null;
-      if(nextVisSt){
-        h+='<div style="margin-top:16px;padding-top:12px;border-top:1px dashed var(--border)">';
-        h+='<div style="font-size:11px;color:var(--sub);margin-bottom:4px">👉 다음 단계 미리보기</div>';
-        h+='<div style="font-size:13px;color:var(--sub)">STEP '+(stepDisplayIdx+1)+': '+getStepText(nextVisSt).substring(0,40)+(getStepText(nextVisSt).length>40?'...':'')+'</div>';
-        h+='</div>';
-      }
-      h+='</div>';
-    }else{
-      // UPCOMING: medium, not yet active
-      h+='<div class="fs-step" id="fs-step-'+i+'" style="margin:4px 16px;padding:12px;opacity:.6" onclick="fsChecked.add(\'step'+i+'\');renderFS()">';
-      h+='<div style="display:flex;align-items:center;gap:8px">';
-      h+='<span style="font-size:14px">⬜</span>';
-      h+='<div><div style="font-size:11px;color:var(--sub)">STEP '+stepDisplayIdx+'</div>';
-      if(optIng)h+='<div style="font-size:10px;color:var(--primary);margin-bottom:2px">✨ '+optIng+'</div>';
-      h+='<div style="font-size:14px">'+scaleVal(getStepText(s),fsServMul,true)+'</div>';
-      var _upTip=getStepTip(s);if(_upTip)h+='<div style="font-size:13px;color:#2e7d32;background:#e8f5e9;border-radius:8px;padding:8px 12px;margin-top:8px;font-weight:500">💡 '+_upTip+'</div>';
-      h+='</div></div></div>';
-    }
-  });
-  h+='</div>';
-  // Completion - doneSteps는 위에서 이미 계산됨
-  if(doneSteps===totalSteps && totalSteps>0){
-    // Auto-register to history (only once per session)
-    if(!fsChecked.has('_recorded')){fsChecked.add('_recorded');launchConfetti();}
-    h+='<div data-complete-section="1" style="text-align:center;padding:24px 16px"><div style="font-size:64px;margin-bottom:12px">🎉</div><div style="font-size:20px;font-weight:700;color:var(--primary)">요리 완성!</div>';
-    h+='<div style="font-size:14px;color:var(--sub);margin-top:8px">아래 버튼을 눌러 기록을 저장하세요 📝</div></div>';
-    // Photo capture section
-    h+='<div style="margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">';
-    h+='<div style="font-size:14px;font-weight:700;margin-bottom:12px">📸 기념 사진 남기기</div>';
-    h+='<div id="photoPreview" style="display:none;margin-bottom:12px;text-align:center"><img id="photoImg" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover"/></div>';
-    h+='<input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none" onchange="handlePhoto(this)">';
-    h+='<input type="file" accept="image/*" id="photoGalleryInput" style="display:none" onchange="handlePhoto(this)">';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-    h+='<button onclick="document.getElementById(\'photoInput\').click()" id="photoBtn" style="padding:12px 8px;border:2px dashed var(--primary);border-radius:10px;background:none;color:var(--primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">📸<br>요리 사진 찍기</button>';
-    h+='<button onclick="document.getElementById(\'photoGalleryInput\').click()" id="photoGalleryBtn" style="padding:12px 8px;border:2px dashed #888;border-radius:10px;background:none;color:#555;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">🖼️<br>갤러리에서 찾기</button>';
-    h+='</div>';
-    // 별점
-    h+='<div style="margin-top:10px">';
-    h+='<div style="font-size:12px;color:var(--sub);margin-bottom:6px;font-weight:600">⭐ 오늘 요리 만족도</div>';
-    h+='<div id="ratingStars" style="display:flex;gap:4px">';
-    for(var si=1;si<=5;si++){
-      h+='<span onclick="setRating('+si+')" data-star="'+si+'" style="font-size:28px;cursor:pointer;transition:transform .1s;user-select:none" onmouseover="hoverRating('+si+')" onmouseout="hoverRating(0)">☆</span>';
-    }
-    h+='</div></div>';
-    h+='<input type="hidden" id="ratingInput" value="0">';
-    // 코멘트 + 글자수 카운터
-    h+='<div style="position:relative;margin-top:10px">';
-    h+='<input type="text" id="commentInput" maxlength="20" placeholder="한줄 코멘트 (최대 20자)" style="width:100%;padding:10px 14px;padding-right:44px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);color:var(--text);box-sizing:border-box" oninput="updateCommentCount(this,\'commentCount\')">';
-    h+='<span id="commentCount" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:#aaa">0/20</span>';
-    h+='</div>';
-    // 템플릿 태그
-    var TAGS=['😋 맛있어요','🎉 첫 성공!','👨‍👩‍👧 가족이 좋아해','궁금해서 도전','🔄 다음엔 더 잘할게','간단하고 맛있어','반찬으로 제격','실패했지만 맛있어'];
-    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
-    TAGS.forEach(function(tag){
-      h+='<span onclick="applyCommentTag(\''+tag+'\')" style="padding:4px 10px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--text);cursor:pointer">'+ tag+'</span>';
-    });
-    h+='</div>';
-    h+='<div style="display:flex;gap:8px;margin-top:10px">';
-    h+='<button onclick="completeCookSave(\''+r.id+'\',false)" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
-    h+='<button onclick="completeCookSave(\''+r.id+'\',true)" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
-    h+='</div>';
-    h+='<div style="margin-top:8px;padding:8px 10px;background:#fff8e1;border-radius:8px;border-left:3px solid #ffc107;font-size:11px;color:#795548;line-height:1.5">⏳ 커뮤니티 게시글은 <b>관리자 승인 후</b> 등록됩니다. 승인 전까지 커뮤니티 탭에서 "⏳ 대기중" 표시가 보입니다.</div>';
-    h+='<div style="text-align:center;margin-top:8px"><span onclick="closeFS()" style="font-size:12px;color:var(--sub);cursor:pointer;text-decoration:underline">사진 없이 닫기</span></div>';
-    h+='</div>';
-    // Plating guide
-    h+='<div style="margin:0 16px 12px;background:linear-gradient(135deg,#f5f5f5,#fff);border:1px solid #f0e6d2;border-radius:12px;padding:16px">';
-    h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:#333">🍽️ 맛있게 먹는 법</div>';
-    h+='<div style="font-size:13px;line-height:1.6;color:#555">';
-    if(r.pair)h+='• <b>곁들이면 좋아요:</b> '+r.pair+'<br>';
-    r.tips.forEach(function(t){
-      if(t.includes('뿌리')||t.includes('올리')||t.includes('곁들')||t.includes('접시')||t.includes('담'))
-        h+='• '+t+'<br>';
-    });
-    h+='</div></div>';
-  }
-  // Tips in fullscreen - always visible
-  h+='<div class="det-section"><h3>💡 꿀팁</h3>';
-  r.tips.forEach(function(t){h+='<div class="tip-card">'+t+'</div>'});
-  h+='</div>';
-  h+='<div style="height:60px"></div></div>';
-  // innerHTML 교체 방식으로 popstate 트리거 방지
-  var _existingFS=document.querySelector('.fs-modal');
-  if(_existingFS){
-    // 기존 modal의 innerHTML만 교체 (DOM에서 제거하지 않음)
-    // h에서 fs-modal div 내부 내용만 추출
-    var _innerStart=h.indexOf('>')+1;
-    var _innerEnd=h.lastIndexOf('</div>');
-    _existingFS.innerHTML=h.substring(_innerStart,_innerEnd);
-  } else {
-    document.getElementById('app').insertAdjacentHTML('beforeend',h);
-  }
-  // Restore scroll position (only auto-scroll on very first open)
-  var newModal=document.querySelector('.fs-modal');
-  if(newModal){
-    if(fsFirstOpen){newModal.scrollTop=0;fsFirstOpen=false;}
-    else{newModal.scrollTop=savedScroll;}
-  }
-}
-// === TIMER ===
-var timerInterval=null;
-function startTimer(mins,btn){
-  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
-  var secs=mins*60;
-  btn.style.background='var(--primary)';btn.style.color='#fff';btn.style.borderColor='var(--primary)';
-  function update(){
-    var m=Math.floor(secs/60);var s=secs%60;
-    btn.innerHTML='⏱ '+m+':'+(s<10?'0':'')+s+(secs>0?' (탭하면 취소)':'');
-    if(secs<=0){clearInterval(timerInterval);timerInterval=null;btn.innerHTML='✅ 시간 완료!';btn.style.background='var(--green)';btn.style.borderColor='var(--green)';try{if(navigator.vibrate)navigator.vibrate([200,100,200]);}catch(e){}}
-    secs--;
-  }
-  update();timerInterval=setInterval(update,1000);
-  btn.onclick=function(){clearInterval(timerInterval);timerInterval=null;btn.innerHTML='⏱ '+mins+'분 타이머 시작';btn.style.background='#f5f5f5';btn.style.color='var(--primary)';btn.style.borderColor='var(--primary)';btn.onclick=function(){startTimer(mins,btn)};};
-}
-
-function detCookDone(id){
-  // 콘페티 효과!
-  launchConfetti();
-  var el=document.getElementById('det-cook-btn-'+id);
-  if(!el)return;
-  var h='<div style="padding:12px;text-align:center;font-size:14px;color:var(--primary);font-weight:700;margin-bottom:8px">🎉 요리 완성! 아래 버튼으로 기록을 저장하세요</div>';
-  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">';
-  h+='<div style="font-size:14px;font-weight:700;margin-bottom:12px">📸 기념 사진 남기기</div>';
-  h+='<div id="detPhotoPreview" style="display:none;margin-bottom:12px;text-align:center"><img id="detPhotoImg" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover"/></div>';
-  h+='<input type="file" accept="image/*" capture="environment" id="detPhotoInput" style="display:none" onchange="handleDetPhoto(this)">';
-  h+='<button onclick="document.getElementById(\'detPhotoInput\').click()" id="detPhotoBtn" style="width:100%;padding:12px;border:2px dashed var(--primary);border-radius:10px;background:none;color:var(--primary);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">📸 요리 사진 올리기</button>';
-  h+='<input type="text" id="detCommentInput" placeholder="한줄 코멘트 (예: 처음 만들었는데 성공!)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;margin-top:10px;outline:none;background:var(--bg);color:var(--text);box-sizing:border-box">';
-  h+='<div style="display:flex;gap:8px;margin-top:10px">';
-  h+='<button onclick="addCookHistory(\''+id+'\',false);saveDetPhoto(\''+id+'\',false);closeDetail()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">내기록에만 저장</button>';
-  h+='<button onclick="addCookHistory(\''+id+'\',false);saveDetPhoto(\''+id+'\',true);closeDetail()" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">커뮤니티에 자랑!</button>';
-  h+='</div></div>';
-  el.innerHTML=h;
-}
-var detPhotoData=null;
-function handleDetPhoto(input){
-  if(!input.files[0])return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    // 크롭 모달 열기 (드래그/핀치로 원하는 부분 선택 가능)
-    openCropModal(e.target.result, function(croppedDataUrl){
-      detPhotoData=croppedDataUrl;
-      document.getElementById('detPhotoImg').src=detPhotoData;
-      document.getElementById('detPhotoPreview').style.display='block';
-      document.getElementById('detPhotoBtn').textContent='📸 사진 변경';
-    });
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-function saveDetPhoto(id,share){
-  var comment=(document.getElementById('detCommentInput')||{}).value||'';
-  if(detPhotoData||comment){
-    var entry=cookHistory.find(function(h){return h.id===id&&!h.photo&&!h.comment});
-    if(!entry)entry=cookHistory.find(function(h){return h.id===id});
-    if(entry){
-      if(detPhotoData)entry.photo=detPhotoData;
-      if(comment)entry.comment=comment;
-      localStorage.setItem('nt_history',JSON.stringify(cookHistory));
-      if(share){
-        var r=RECIPES.find(function(x){return x.id===id});
-        if(!detPhotoData){
-          showCartPopup('📸 사진이 없어요!','커뮤니티에 자랑하려면 사진이 필수입니다.');
-          return;
-        }
-        var pendingPosts2=getPendingPosts();
-        var newPost2={
-          id:'p_'+Date.now(),
-          recipe:r?r.name:'',
-          recipeId:id,
-          emoji:r?r.emoji:'🍳',
-          user:getDisplayName(),
-          nickname:getDisplayName(),
-          uid:fbUid||'',
-          date:getLocalDateStr(),
-          text:comment,
-          photo:detPhotoData,
-          rating:entry?entry.rating||0:0,
-          likes:0,
-          status:'pending',
-          submittedAt:new Date().toISOString()
-        };
-        // Firebase pending 노드에 저장
-        fbDB.ref('community/pending').push(newPost2).catch(function(){});
-      }
-    }
-  }
-  detPhotoData=null;
-  checkBadges();
-  // 디테일 화면 유지 — render()를 호출하면 디테일이 닫히므로
-  // 저장 완료 팝업만 표시
-  var dmsg=share?'자랑 신청 완료! ⏳':'내기록에 저장되었어요! ✅';
-  var dmsg2=share?'관리자 승인 후 커뮤니티에 등록됩니다.':'탭하면 닫혀요';
-  var dpopup='<div style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center" onclick="this.remove()">';
-  dpopup+='<div style="background:var(--bg);border-radius:16px;padding:24px;text-align:center;max-width:280px">';
-  dpopup+='<div style="font-size:48px;margin-bottom:12px">'+(share?'⏳':'✅')+'</div>';
-  dpopup+='<div style="font-size:15px;font-weight:700;margin-bottom:8px">'+dmsg+'</div>';
-  dpopup+='<div style="font-size:12px;color:var(--sub)">'+dmsg2+'</div></div></div>';
-  document.body.insertAdjacentHTML('beforeend',dpopup);
-}
-function fsNextStep(stepIdx){
-  window._fsRendering=true;
-  fsChecked.add('step'+stepIdx);
-  renderFS();
-  setTimeout(function(){window._fsRendering=false;},100);
-  // 다음 스텝으로 스크롤
-  setTimeout(function(){
-    var nextEl=document.getElementById('fs-step-'+(stepIdx+1));
-    if(nextEl){nextEl.scrollIntoView({behavior:'smooth',block:'center'});}
-    else{
-      // 마지막 스텝 완료 - 완성 섹션으로 스크롤
-      var modal=document.querySelector('.fs-modal');
-      if(modal){
-        // 완성 섹션(🎉 요리 완성!)으로 스크롤
-        setTimeout(function(){
-          var completeSection=modal.querySelector('[data-complete-section]');
-          if(completeSection){completeSection.scrollIntoView({behavior:'smooth',block:'start'});}
-          else{modal.scrollTo({top:modal.scrollHeight,behavior:'smooth'});}
-        },200);
-      }
-    }
-  },300);
-}
-function closeFS(){fsR=null;releaseWakeLock();if(timerInterval){clearInterval(timerInterval);timerInterval=null;}var m=document.querySelector('.fs-modal');if(m)m.remove();tab='cook';render();}
-
-function toggleFav(id){
-  var adding=!favs.has(id);
-  if(adding)favs.add(id);else favs.delete(id);
-  save();
-  // Firebase 즐겨찾기 카운트 업데이트
-  try{
-    var recipe=RECIPES.find(function(r){return r.id===id});
-    var rname=recipe?recipe.name:'';
-    if(adding){
-      fbDB.ref('favs/'+id+'/count').transaction(function(c){return(c||0)+1;});
-      fbDB.ref('favs/'+id+'/name').set(rname);
-    }else{
-      fbDB.ref('favs/'+id+'/count').transaction(function(c){return Math.max((c||1)-1,0);});
-    }
-  }catch(e){}
-}
-
-// === ONBOARDING ===
-function renderOnboard(){
-  var h='<div class="onboard"><button class="ob-skip" onclick="finishOnboard()">건너뛰기</button><div class="ob-content">';
-  if(onboardStep===0){
-    h+='<div class="ob-center">';
-    h+='<div style="font-size:72px;margin-bottom:8px">🍳</div>';
-    h+='<div style="font-size:26px;font-weight:800;margin-bottom:4px;color:var(--primary)">냉털</div>';
-    h+='<div style="font-size:14px;color:var(--sub);margin-bottom:24px">냉장고를 털자!</div>';
-    h+='<div style="font-size:18px;font-weight:700;line-height:1.6;margin-bottom:16px">장보기 없이,<br>지금 냉장고에 있는 것만으로<br><span style="color:var(--primary)">한 끼 뚝딱!</span></div>';
-    h+='<div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;margin-top:16px">';
-    h+='<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--primary-light),#fff);border:1.5px solid rgba(232,101,42,.15);border-radius:14px;padding:14px 16px"><span style="font-size:28px">🥕</span><div><div style="font-size:13px;font-weight:700;color:var(--primary)">재료 선택</div><div style="font-size:11px;color:var(--sub)">냉장고에 있는 재료를 터치!</div></div></div>';
-    h+='<div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px"><span style="font-size:28px">🍽️</span><div><div style="font-size:13px;font-weight:700;color:#333">레시피 추천</div><div style="font-size:11px;color:#666">만들 수 있는 요리를 자동 매칭</div></div></div>';
-    h+='<div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px"><span style="font-size:28px">👨‍🍳</span><div><div style="font-size:13px;font-weight:700;color:#333">단계별 가이드</div><div style="font-size:11px;color:#666">초보도 따라 할 수 있는 상세 설명</div></div></div>';
-    h+='</div>';
-    h+='<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">';
-    h+='<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:#e8f5e9;color:#388e3c">✅ 요리 초보도 실패 없이</span>';
-    h+='<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:#e3f2fd;color:#1976d2">✅ '+RECIPES.length+'개 레시피</span>';
-    h+='<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:#f5f5f5;color:#ff6f00">✅ 단계별 가이드</span>';
-    h+='</div>';
-    h+='</div>';
-  }else if(onboardStep===1){
-    h+='<h3 style="margin-bottom:4px">냉장고에 있는 재료를 골라보세요!</h3>';
-    h+='<div style="font-size:12px;color:var(--sub);margin-bottom:12px">나중에 언제든 변경할 수 있어요</div>';
-    h+='<div class="cat-tabs">';CATS.forEach(function(c){var label=c==='자주'?'⭐'+c:c;h+='<button class="cat-tab '+(cat===c?'on':'')+'" onclick="cat=\''+esc(c)+'\';render()">'+label+'</button>';});h+='</div>';
-    var fl=cat==='전체'?INGS:cat==='자주'?INGS.filter(function(i){return FAV_INGS.indexOf(i.n)!==-1}):INGS.filter(function(i){return i.c===cat});
-    h+='<div class="ing-grid">';fl.forEach(function(i){h+=ingBtn(i.n,sel.has(i.n))});h+='</div>';
-    if(sel.size>0){h+='<div style="padding:12px 0"><b>선택한 재료 ('+sel.size+'개)</b></div><div class="my-ings-bar" style="display:flex;flex-wrap:wrap">';[...sel].forEach(function(s){h+=ingTag(s)});h+='</div>';}
-  }else{
-    var matchCount=sel.size>0?getMatched().length:0;
-    h+='<div class="ob-center"><div style="font-size:60px;margin-bottom:16px">🎉</div>';
-    h+='<div style="font-size:22px;font-weight:700;margin-bottom:8px">준비 완료!</div>';
-    if(sel.size>0){h+='<div style="font-size:15px;color:var(--primary);font-weight:700;margin-bottom:4px">'+sel.size+'개 재료로 '+matchCount+'개 요리 가능!</div>';}
-    else{h+='<div style="font-size:15px;color:var(--primary);font-weight:700;margin-bottom:4px">'+RECIPES.length+'개 레시피가 기다리고 있어요!</div>';}
-    h+='<div style="font-size:13px;color:var(--sub);line-height:1.6">홈 화면에서 재료를 선택하면<br>만들 수 있는 요리가 바로 나타나요</div>';
-    h+='</div>';
-  }
-  h+='</div><div class="ob-dots">';[0,1,2].forEach(function(i){h+='<div class="ob-dot '+(onboardStep===i?'on':'')+'"></div>'});
-  h+='</div><button class="ob-btn" onclick="nextOnboard()">'+['재료 고르러 가기 →','다음','요리 시작! 🍳'][onboardStep]+'</button></div>';
-  return h;
-}
-function nextOnboard(){if(onboardStep<2){onboardStep++;render();}else finishOnboard();}
-function finishOnboard(){showOnboard=false;localStorage.setItem('nt_done','1');render();}
+// === ONBOARDING MODULE: moved to app-onboarding.js ===
 
 // === HOME REFRESH (no splash) ===
 // === 콘페티 효과 ===
@@ -2801,143 +2225,9 @@ function goHome(){
   window.scrollTo(0,0);
   render();
 }
-// === ABOUT PAGE ===
-function showAboutPage(){
-  var h='<div id="about-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:var(--bg);overflow-y:auto;animation:splashIn .3s ease-out">';
-  h+='<div style="max-width:480px;margin:0 auto;padding:20px">';
-  
-  // 헤더
-  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">';
-  h+='<button onclick="document.getElementById(\'about-modal\').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text)">←</button>';
-  h+='<span style="font-size:16px;font-weight:700;color:var(--text)">앱 정보</span>';
-  h+='<div style="width:24px"></div>';
-  h+='</div>';
-  
-  // 앱 로고
-  h+='<div style="text-align:center;margin-bottom:24px">';
-  h+='<img src="icons/app_icon_192.png" alt="냉털 아이콘" style="width:80px;height:80px;border-radius:20px;margin-bottom:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)">';
-  h+='<div style="font-size:22px;font-weight:800;color:var(--primary)">냉장고를 털자!</div>';
-  h+='<div style="font-size:14px;color:var(--sub);margin-top:2px">냉털 Ver. 0.8</div>';
-  h+='</div>';
-  
-  // 앱 소개
-  h+='<div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--border)">';
-  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text)">📱 냉털이란?</div>';
-  h+='<div style="font-size:13px;color:var(--sub);line-height:1.8">';
-  h+='냉장고에 있는 재료를 선택하면, 만들 수 있는 요리와 초보자도 따라할 수 있는 쉬운 레시피를 알려주는 앱이에요.<br><br>';
-  h+='• '+RECIPES.length+'개 레시피 · 55개 재료<br>';
-  h+='• 초보자 친화 단계별 가이드<br>';
-  h+='• 타이머 · 불세기 · 안전 경고 자동 감지<br>';
-  h+='• 뱃지 · 레벨 · 오늘의 미션';
-  h+='</div></div>';
-  
-  // 개발 정보
+// === ABOUT MODULE: moved to app-about.js ===
 
-  h+='<div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--border)">';
-  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text)">👨‍💻 개발 정보</div>';
-  h+='<div style="font-size:13px;color:var(--sub);line-height:1.8">';
-  h+='개발: Lucas<br>';
-  h+='문의: rookiesmart1031@gmail.com<br>';
-  h+='버전: Ver. 0.8 (2026.04)<br>';
-  h+='기술: HTML5 · Firebase · PWA';
-  h+='</div></div>';
-  
-  // 개인정보 처리방침
-  h+='<div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--border)">';
-  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text)">🔒 개인정보 처리방침</div>';
-  h+='<div style="font-size:12px;color:var(--sub);line-height:1.8">';
-  h+='<b>1. 수집하는 개인정보</b><br>';
-  h+='냉털은 별도의 회원가입 없이 이용 가능하며, 개인을 식별할 수 있는 정보를 수집하지 않습니다.<br><br>';
-  h+='<b>2. 기기 내 저장 데이터</b><br>';
-  h+='아래 데이터는 사용자 기기(브라우저)에만 저장되며, 외부 서버로 전송되지 않습니다.<br>';
-  h+='• 선택한 재료, 요리 기록, 뱃지, 레벨 정보<br>';
-  h+='• 즐겨찾기, 냉장고 저장 목록<br>';
-  h+='• 요리 사진 및 코멘트 (기기 내 저장)<br>';
-  h+='';
-  h+='<b>3. 외부 전송 데이터</b><br>';
-  h+='레시피 인기 랭킹 집계를 위해 아래 정보만 Firebase에 전송됩니다.<br>';
-  h+='• 요리 완성 시: 레시피 ID, 익명 기기 ID<br>';
-  h+='• 개인 식별 정보는 포함되지 않습니다.<br><br>';
-  h+='<b>4. 제3자 제공</b><br>';
-  h+='수집된 정보를 제3자에게 제공하지 않습니다.<br><br>';
-  h+='<b>5. 데이터 삭제</b><br>';
-  h+='브라우저의 사이트 데이터 삭제 또는 앱 삭제 시 모든 데이터가 삭제됩니다.<br><br>';
-  h+='<b>6. 문의</b><br>';
-  h+='개인정보 관련 문의: rookiesmart1031@gmail.com';
-  h+='</div></div>';
-  
-  // 데이터 저장 안내
-  h+='<div style="background:#fff8e1;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #ffe082">';
-  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:#f57f17">📦 데이터 저장 안내</div>';
-  h+='<div style="font-size:12px;color:#795548;line-height:1.8">';
-  h+='요리 기록(텍스트, 날짜, 별점)은 서버에 자동 백업됩니다.<br>';
-  h+='단, <b>요리 사진은 이 기기에만 저장</b>되어 앱 삭제 시 사라질 수 있어요.<br><br>';
-  h+='<span style="color:#1976d2;font-weight:600">🔜 추후 업데이트 예정</span><br>';
-  h+='구글 계정 연동 기능이 추가되면 사진 포함 전체 기록을 안전하게 보관할 수 있습니다.';
-  h+='</div></div>';
-
-  // 오픈소스 / 크레딧
-  h+='<div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:24px;border:1px solid var(--border)">';
-  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text)">📝 크레딧</div>';
-  h+='<div style="font-size:12px;color:var(--sub);line-height:1.8">';
-  h+='• 재료 아이콘: Icons8<br>';
-  h+='• 호스팅: Cloudflare Pages<br>';
-  h+='• 데이터베이스: Firebase<br>';
-  h+='• 레시피 데이터: 자체 제작 (AI 생성)';
-  h+='</div></div>';
-  
-  // 하단 닫기
-  h+='<div style="text-align:center;padding-bottom:40px">';
-  h+='<div style="margin-bottom:12px"><button onclick="document.getElementById(\'about-modal\').remove();render()" style="padding:12px 32px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">닫기</button>';
-  h+='</div>';
-  
-  h+='</div></div></div>';
-  document.body.insertAdjacentHTML('beforeend',h);
-}
-
-// === PWA 설치 제어 ===
-let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt',function(e){
-  e.preventDefault();
-  deferredPrompt=e;
-  updateInstallButtonVisibility();
-});
-window.addEventListener('appinstalled',function(){
-  console.log('[PWA] 앱이 설치되었습니다.');
-  deferredPrompt=null;
-  updateInstallButtonVisibility();
-});
-function updateInstallButtonVisibility(){
-  var btn=document.getElementById('myPageInstallBtn');
-  if(!btn)return;
-  if(deferredPrompt&&!isAppInstalled()){
-    btn.style.display='block';
-  }else{
-    btn.style.display='none';
-  }
-}
-function isAppInstalled(){
-  if(window.matchMedia('(display-mode: standalone)').matches)return true;
-  if(navigator.standalone===true)return true;
-  return false;
-}
-function triggerInstallPrompt(){
-  if(!deferredPrompt){
-    showCartPopup('⚠️ 설치 불가','이 브라우저에서는 설치가 지원되지 않습니다.\n\n브라우저 메뉴에서 "홈 화면에 추가" 옵션을 찾아주세요.');
-    return;
-  }
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(function(choiceResult){
-    if(choiceResult.outcome==='accepted'){
-      console.log('[PWA] 사용자가 설치를 수락했습니다.');
-      showCartPopup('✅ 설치 완료!','냉털이 홈 화면에 추가되었어요!\n\n언제든 쉽게 앱을 실행할 수 있습니다. 🍳');
-    }else{
-      console.log('[PWA] 사용자가 설치를 거절했습니다.');
-    }
-    deferredPrompt=null;
-    updateInstallButtonVisibility();
-  });
-}
+// === PWA MODULE: moved to app-pwa.js ===
 
 // === INGREDIENT SUGGEST ===
 // Pairs: ingredient -> commonly used together
@@ -2955,406 +2245,8 @@ function renderSuggest(){
   h+='</div></div>';return h;
 }
 
-// === COMMUNITY (SAMPLE) ===
-// 가짜 커뮤니티 게시글 제거 — 실제 유저가 올린 글만 표시
-var COMM_DATA=[];
-function renderCommunity(){
-  var h='<div class="recipe-section"><h2 style="color:var(--text)">💬 요리 후기</h2>';
-  h+='<div style="font-size:12px;color:var(--sub);margin-bottom:12px">다른 사용자들의 요리 후기를 구경해보세요!</div>';
-  h+='<div style="background:linear-gradient(135deg,rgba(255,193,7,.1),rgba(76,175,80,.1));border-left:4px solid #ffc107;padding:12px;border-radius:8px;margin-bottom:16px;font-size:12px;color:var(--text);line-height:1.5">';
-  h+='<div style="font-weight:700;margin-bottom:4px">⭐ 좋아요 많은 사진이 요리 대표 사진으로 선정됩니다!</div>';
-  h+='<div style="opacity:.8">맛있게 만든 요리 사진을 공유하고 좋아요를 받아보세요. 가장 인기 있는 사진이 모든 사용자에게 보여집니다.</div>';
-  h+='</div>';
-  // 승인 대기 중인 본인 글 표시
-  var myPendingPosts=getPendingPosts();
-  if(myPendingPosts.length>0){
-    myPendingPosts.forEach(function(p){
-      h+='<div class="comm-card" style="border-left:3px solid #ff9800;opacity:.85">';
-      h+='<div class="comm-top"><div class="comm-avatar" style="overflow:hidden;padding:0">'+getProfilePhotoHtml(36)+'</div><div style="flex:1"><div class="comm-user">나 <span style="font-size:10px;background:#ff9800;color:#fff;padding:1px 6px;border-radius:4px">⏳ 관리자 승인 대기중</span></div><div class="comm-date">'+(p.date||'')+'</div></div></div>';
-      h+='<div class="comm-recipe">🍳 '+(p.recipe||'')+'</div>';
-      if(p.text)h+='<div class="comm-txt">'+p.text+'</div>';
-      if(p.photo)h+='<img class="comm-img" src="'+p.photo+'" onerror="this.style.display=\'none\'">';
-      h+='<div class="comm-actions" style="color:#ff9800;font-size:12px">⏳ 승인 대기중입니다. 관리자가 확인 후 게시됩니다.</div>';
-      h+='</div>';
-    });
-  }
-  // 레시피별 커뮤니티 평균 별점 계산
-  var commRatingMap={};
-  communityPosts.forEach(function(c){
-    if(!c.rating||c.rating<1||!c.recipeId)return;
-    if(!commRatingMap[c.recipeId])commRatingMap[c.recipeId]={total:0,count:0,name:c.recipe||'',emoji:c.emoji||'🍳'};
-    commRatingMap[c.recipeId].total+=Number(c.rating);
-    commRatingMap[c.recipeId].count++;
-  });
-  var commRatingList=Object.keys(commRatingMap).map(function(rid){
-    var d=commRatingMap[rid];
-    return{id:rid,name:d.name,emoji:d.emoji,avg:d.total/d.count,count:d.count};
-  }).sort(function(a,b){return b.avg-a.avg||(b.count-a.count)}).slice(0,5);
-  // 커뮤니티 평균 별점 TOP5 섹션
-  if(commRatingList.length>0){
-    h+='<div style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1px solid #ffe082;border-radius:14px;padding:14px;margin-bottom:16px">';
-    h+='<div style="font-size:12px;font-weight:700;color:#f57f17;margin-bottom:10px">⭐ 커뮤니티 평균 별점 TOP'+commRatingList.length+'</div>';
-    h+='<div style="font-size:10px;color:#a1887f;margin-top:-6px;margin-bottom:8px">커뮤니티에 별점을 남긴 후기 기준</div>';
-    commRatingList.forEach(function(r,i){
-      var stars='';
-      var avgR=Math.round(r.avg);
-      for(var si=1;si<=5;si++)stars+=(si<=avgR?'★':'☆');
-      h+='<div onclick="openDetail(\''+r.id+'\')" style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer'+(i<commRatingList.length-1?';border-bottom:1px solid rgba(0,0,0,.06)':'')+'">'
-      h+='<span style="font-size:20px">'+r.emoji+'</span>';
-      h+='<div style="flex:1;min-width:0">';
-      h+='<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.name+'</div>';
-      h+='<div style="font-size:11px;color:#fbc02d">'+stars+' <span style="font-size:10px;color:#888">'+r.avg.toFixed(1)+'점 ('+r.count+'명)</span></div>';
-      h+='</div>';
-      h+='</div>';
-    });
-    h+='</div>';
-  }
-  // ===== 검색창 + 필터 =====
-  var isAdmin=localStorage.getItem('nt_admin')==='1';
-  var commSearchVal=window._commSearch||'';
-  var commSort=window._commSort||'latest';
-  h+='<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">';
-  h+='<div style="position:relative;flex:1">';
-  h+='<input id="commSearchInput" type="text" placeholder="요리명 검색..." value="'+esc(commSearchVal)+'" autocomplete="off" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit" oninput="updateCommAC(this.value)" onfocus="updateCommAC(this.value)" onblur="setTimeout(function(){var ac=document.getElementById(\'commAcList\');if(ac)ac.style.display=\'none\'},200)">';
-  h+='<div id="commAcList" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1.5px solid var(--primary);border-radius:12px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);margin-top:4px"></div>';
-  h+='</div>';
-  h+='<button onclick="var inp=document.getElementById(\'commSearchInput\');window._commSearch=(inp?inp.value:\'\');render()" style="padding:8px 14px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">검색</button>';
-  if(commSearchVal)h+='<button onclick="window._commSearch=\'\';render()" style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text)">✕</button>';
-  h+='<select onchange="window._commSort=this.value;render()" style="padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit">';
-  h+='<option value="latest"'+(commSort==='latest'?' selected':'')+'>최신순</option>';
-  h+='<option value="likes"'+(commSort==='likes'?' selected':'')+'>좋아요순</option>';
-  h+='</select>';
-  h+='</div>';
-  // ===== 인스타그램 그리드 (2열) =====
-  // 검색 + 정렬 필터
-  var filteredPosts=communityPosts.slice();
-  if(commSearchVal.trim()){
-    var kw=commSearchVal.trim().toLowerCase();
-    filteredPosts=filteredPosts.filter(function(c){return (c.recipe||'').toLowerCase().includes(kw)||(c.text||'').toLowerCase().includes(kw);});
-  }
-  if(commSort==='likes'){
-    filteredPosts.sort(function(a,b){return (b.likes||0)-(a.likes||0);});
-  }
-  if(filteredPosts.length>0){
-    h+='<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📸 후기 사진 ('+filteredPosts.length+'개)</div>';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:16px">';
-    filteredPosts.forEach(function(c,idx){
-      var _liked=localStorage.getItem('nt_liked_'+(c.id||c._fbKey||('idx_'+idx)))==='1';
-      var _isBest=c.recipeId&&RECIPE_BEST_PHOTOS[c.recipeId]&&RECIPE_BEST_PHOTOS[c.recipeId].photo===c.photo;
-      h+='<div onclick="openCommDetail('+idx+')" style="position:relative;cursor:pointer;background:#f5f5f5;aspect-ratio:1/1;overflow:hidden;border-radius:4px">';
-      if(c.photo){
-        h+='<img src="'+c.photo+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.style.background=\'#eee\';this.style.display=\'none\'">';
-      } else {
-        h+='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px">'+(c.emoji||'🍳')+'</div>';
-      }
-      // 좋아요 수 오버레이
-      if((c.likes||0)>0){
-        h+='<div style="position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;padding:2px 5px;border-radius:6px">❤️ '+(c.likes||0)+'</div>';
-      }
-      // 대표사진 뱃지
-      if(_isBest){
-        h+='<div style="position:absolute;top:4px;left:4px;background:rgba(255,111,0,.9);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px">👑</div>';
-      }
-      // 관리자 삭제 버튼
-      if(isAdmin){
-        h+='<button onclick="event.stopPropagation();deleteCommunityPost('+idx+')" style="position:absolute;top:4px;right:4px;background:rgba(211,47,47,.85);border:none;border-radius:5px;color:#fff;font-size:10px;padding:2px 6px;cursor:pointer;font-family:inherit">삭제</button>';
-      }
-      h+='</div>';
-    });
-    h+='</div>';
-  } else if(!isAdmin){
-    h+='<div style="text-align:center;padding:40px 20px;color:var(--sub)">';
-    h+='<div style="font-size:56px;margin-bottom:16px">📸</div>';
-    if(commSearchVal.trim()){
-      h+='<div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">"'+commSearchVal+'" 검색 결과가 없어요</div>';
-      h+='<div style="font-size:13px;line-height:1.5;margin-bottom:16px">다른 요리명으로 검색해보세요!</div>';
-    } else {
-      h+='<div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">아직 등록된 후기가 없어요</div>';
-      h+='<div style="font-size:13px;line-height:1.5;margin-bottom:16px">요리를 완성하고 사진을 찍어보세요!<br>다른 사용자들과 요리 경험을 공유할 수 있어요.</div>';
-      h+='<button class="empty-cta" onclick="tab=&apos;cook&apos;;render()">🍳 요리 시작하기</button>';
-    }
-    h+='</div>';
-  }
-  // 관리자 전용: 승인 대기 섹션
-  if(isAdmin){
-    var pendingPosts=getPendingPosts();
-    if(pendingPosts.length>0){
-      h+='<div style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:2px solid #ff9800;border-radius:12px;padding:14px;margin-top:16px">';
-      h+='<div style="font-size:14px;font-weight:700;color:#e65100;margin-bottom:10px">🔔 승인 대기 ('+pendingPosts.length+'건)</div>';
-      pendingPosts.forEach(function(p,pidx){
-        h+='<div style="background:#fff;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #ffe0b2" id="pendingCard_'+pidx+'">';
-        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
-        h+='<span style="font-size:20px">'+(p.emoji||'🍳')+'</span>';
-        h+='<div style="flex:1"><div style="font-size:13px;font-weight:600">'+p.recipe+'</div><div style="font-size:11px;color:#888">'+p.date+' · '+(p.nickname||p.user||'익명')+'</div></div>';
-        h+='</div>';
-        if(p.text)h+='<div style="font-size:12px;color:#555;margin-bottom:6px">'+p.text+'</div>';
-        if(p.photo){
-          h+='<div style="position:relative;margin-bottom:8px">';
-          h+='<div id="imgWrap_'+pidx+'" style="overflow:hidden;border-radius:8px;background:#f5f5f5;text-align:center">';
-          h+='<img id="adminImg_'+pidx+'" src="'+p.photo+'" style="max-width:100%;height:auto;display:block;margin:0 auto;transform-origin:center;transition:transform .2s" onerror="this.style.display=\'none\'">';
-          h+='</div>';
-          h+='<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">';
-          h+='<button onclick="adminRotateImg('+pidx+',-90)" style="flex:1;min-width:50px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↺ 왼쪽</button>';
-          h+='<button onclick="adminRotateImg('+pidx+',90)" style="flex:1;min-width:50px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↻ 오른쪽</button>';
-          h+='<button onclick="adminCropModal('+pidx+')" style="flex:1;min-width:70px;padding:5px;border:1px solid #ff6b35;border-radius:6px;background:#fff3e0;color:#e65100;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✂️ 크롭</button>';
-          h+='<button onclick="adminResetImg('+pidx+',\''+p.photo.replace(/'/g,"\\'")+'\')" style="flex:1;min-width:50px;padding:5px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;font-size:11px;cursor:pointer;font-family:inherit">↩ 원본</button>';
-          h+='</div>';
-          h+='</div>';
-        }
-        h+='<div style="display:flex;gap:6px;margin-top:6px">';
-        h+='<button onclick="approvePendingPost('+pidx+')" style="flex:1;padding:7px;border:none;border-radius:8px;background:#4caf50;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ 승인</button>';
-        h+='<button onclick="rejectPendingPost('+pidx+')" style="flex:1;padding:7px;border:none;border-radius:8px;background:#f44336;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">❌ 거절</button>';
-        h+='</div>';
-        h+='</div>';
-      });
-      h+='</div>';
-    } else {
-      h+='<div style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border:1px solid #66bb6a;border-radius:10px;padding:10px 14px;margin-top:12px;font-size:12px;color:#2e7d32;font-weight:600">✅ 관리자 모드 · 대기 중인 글 없음</div>';
-    }
-  }
-  h+='</div>';return h;
-}
-// 커뮤니티 상세 팝업 열기
-function openCommDetail(idx){
-  var c=communityPosts[idx];
-  if(!c)return;
-  var _liked=localStorage.getItem('nt_liked_'+(c.id||c._fbKey||('idx_'+idx)))==='1';
-  var _isBest=c.recipeId&&RECIPE_BEST_PHOTOS[c.recipeId]&&RECIPE_BEST_PHOTOS[c.recipeId].photo===c.photo;
-  var stars='';
-  if(c.rating&&c.rating>0){for(var i=1;i<=5;i++)stars+=(i<=c.rating?'★':'☆');}
-  var overlay=document.createElement('div');
-  overlay.id='commDetailOverlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
-  overlay.onclick=function(e){if(e.target===overlay)closeCommDetail();};
-  var box='<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:0 0 32px">';
-  // 드래그 핸들
-  box+='<div style="text-align:center;padding:12px 0 4px"><div style="width:36px;height:4px;background:#ddd;border-radius:2px;display:inline-block"></div></div>';
-  // 헤더
-  box+='<div style="display:flex;align-items:center;gap:10px;padding:10px 16px 8px">';
-  box+='<div style="width:38px;height:38px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:20px">'+(c.emoji||'🍳')+'</div>';
-  box+='<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">'+(c.nickname||c.user||'익명')+'</div><div style="font-size:11px;color:var(--sub)">'+(c.date||'')+'</div></div>';
-  box+='<button onclick="closeCommDetail()" style="background:none;border:none;font-size:22px;color:var(--sub);cursor:pointer;padding:4px">✕</button>';
-  box+='</div>';
-  // 레시피명 + 별점
-  box+='<div style="padding:0 16px 8px">';
-  box+='<div style="font-size:13px;font-weight:600;color:var(--primary)">🍳 '+(c.recipe||'')+'</div>';
-  if(stars)box+='<div style="font-size:13px;color:#fbc02d;margin-top:2px">'+stars+'</div>';
-  box+='</div>';
-  // 사진
-  if(c.photo){
-    box+='<div style="position:relative">';
-    box+='<img src="'+c.photo+'" style="width:100%;max-height:360px;object-fit:contain;background:#111;display:block" onerror="this.style.display=\'none\'">';
-    if(_isBest)box+='<div style="position:absolute;top:8px;left:8px;background:rgba(255,111,0,.92);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px">👑 대표 사진</div>';
-    box+='</div>';
-  }
-  // 코멘트
-  if(c.text)box+='<div style="padding:12px 16px;font-size:14px;line-height:1.6;color:var(--text)">'+c.text+'</div>';
-  // 좋아요 버튼
-  box+='<div style="padding:12px 16px 0;display:flex;align-items:center;gap:12px">';
-  box+='<button id="commDetailLikeBtn" onclick="likePostFromDetail('+idx+')" style="display:flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid #eee;border-radius:20px;background:'+(_liked?'#fce4ec':'var(--bg)')+';color:'+(_liked?'#e53935':'var(--sub)')+';font-size:14px;cursor:pointer;font-family:inherit">'+(_liked?'❤️':'🤍')+' <span id="commDetailLikeCount">'+(c.likes||0)+'</span></button>';
-  box+='<span style="font-size:12px;color:var(--sub)">탭해서 좋아요!</span>';
-  box+='</div>';
-  box+='</div>';
-  overlay.innerHTML=box;
-  document.body.appendChild(overlay);
-  // 스와이프 다운으로 닫기
-  var startY=0;
-  overlay.addEventListener('touchstart',function(e){startY=e.touches[0].clientY;},{passive:true});
-  overlay.addEventListener('touchend',function(e){
-    if(e.changedTouches[0].clientY-startY>80)closeCommDetail();
-  },{passive:true});
-}
-function closeCommDetail(){
-  var el=document.getElementById('commDetailOverlay');
-  if(el)el.remove();
-}
-function likePostFromDetail(idx){
-  likePost(idx);
-  // 팝업 내 좋아요 버튼 UI 즉시 업데이트
-  setTimeout(function(){
-    var c=communityPosts[idx];
-    if(!c)return;
-    var btn=document.getElementById('commDetailLikeBtn');
-    var cnt=document.getElementById('commDetailLikeCount');
-    if(btn&&cnt){
-      var _liked=localStorage.getItem('nt_liked_'+(c.id||c._fbKey||('idx_'+idx)))==='1';
-      btn.style.background=_liked?'#fce4ec':'var(--bg)';
-      btn.style.color=_liked?'#e53935':'var(--sub)';
-      btn.innerHTML=(_liked?'❤️':'🤍')+' <span id="commDetailLikeCount">'+String(c.likes||0)+'</span>';
-    }
-  },500);
-}
+// === COMMUNITY MODULE: moved to app-community.js ===
 
-// === 관리자 기능 ===
-
-// === 관리자 사진 편집 함수 ===
-// 각 이미지의 현재 회전각 저장
-var _adminImgRotation={};
-// 각 이미지의 편집된 데이터URL 저장 (승인 시 사용)
-var _adminImgEdited={};
-
-function adminRotateImg(pidx, deg){
-  _adminImgRotation[pidx]=(_adminImgRotation[pidx]||0)+deg;
-  var angle=_adminImgRotation[pidx];
-  var img=document.getElementById('adminImg_'+pidx);
-  if(!img)return;
-  // Canvas로 실제 회전 적용하여 데이터URL 저장
-  var canvas=document.createElement('canvas');
-  var tmpImg=new Image();
-  tmpImg.crossOrigin='anonymous';
-  tmpImg.onload=function(){
-    var w=tmpImg.naturalWidth, h=tmpImg.naturalHeight;
-    var rad=angle*Math.PI/180;
-    var sin=Math.abs(Math.sin(rad)), cos=Math.abs(Math.cos(rad));
-    canvas.width=Math.round(w*cos+h*sin);
-    canvas.height=Math.round(w*sin+h*cos);
-    var ctx=canvas.getContext('2d');
-    ctx.translate(canvas.width/2,canvas.height/2);
-    ctx.rotate(rad);
-    ctx.drawImage(tmpImg,-w/2,-h/2);
-    var dataUrl=canvas.toDataURL('image/jpeg',0.92);
-    _adminImgEdited[pidx]=dataUrl;
-    img.src=dataUrl;
-  };
-  // 원본 또는 이전 편집본 기준으로 회전
-  var pendingPosts=getPendingPosts();
-  var origSrc=(pendingPosts[pidx]&&pendingPosts[pidx].photo)||img.src;
-  // 누적 회전이므로 항상 원본에서 재계산
-  _adminImgRotation[pidx]=angle;
-  tmpImg.src=origSrc;
-}
-
-function adminCropModal(pidx){
-  var img=document.getElementById('adminImg_'+pidx);
-  if(!img)return;
-  var src=_adminImgEdited[pidx]||(getPendingPosts()[pidx]&&getPendingPosts()[pidx].photo)||img.src;
-  // 새 선택박스 크롭 모달 열기
-  openCropModal(src, function(croppedDataUrl){
-    _adminImgEdited[pidx]=croppedDataUrl;
-    img.src=croppedDataUrl;
-  });
-}
-
-function adminResetImg(pidx, origSrc){
-  var img=document.getElementById('adminImg_'+pidx);
-  if(!img)return;
-  delete _adminImgEdited[pidx];
-  delete _adminImgRotation[pidx];
-  img.src=origSrc;
-}
-// === END 관리자 사진 편집 ===
-
-// === 관리자 승인/거절 함수 ===
-function approvePendingPost(pidx){
-  var pendingPosts=getPendingPosts();
-  if(pidx<0||pidx>=pendingPosts.length)return;
-  var post=pendingPosts[pidx];
-  var fbKey=post._fbKey;
-  // 편집된 사진이 있으면 편집본 사용, 없으면 원본 사용
-  var finalPhoto=_adminImgEdited[pidx]||post.photo||'';
-  var approvedPost={
-    id:post.id||fbKey,
-    recipe:post.recipe,
-    recipeId:post.recipeId||'',
-    emoji:post.emoji||'🍳',
-    user:post.user||'익명',
-    nickname:post.nickname||post.user||'익명',
-    uid:post.uid||'',
-    date:post.date,
-    text:post.text||'',
-    photo:finalPhoto,
-    rating:post.rating||0,
-    likes:0,
-    approvedAt:new Date().toISOString()
-  };
-  // Firebase approved 노드에 저장
-  fbDB.ref('community/approved/'+approvedPost.id).set(approvedPost,function(err){
-    if(!err){
-      // pending 노드에서 제거
-      if(fbKey)fbDB.ref('community/pending/'+fbKey).remove();
-      // 커뮤니티 평점이 있으면 Firebase recipes 노드에 집계
-      if(approvedPost.recipeId && approvedPost.rating > 0){
-        var recRef=fbDB.ref('recipes/'+approvedPost.recipeId);
-        recRef.once('value',function(snap){
-          var cur=snap.val()||{};
-          var updates={
-            name:approvedPost.recipe||cur.name||'',
-            emoji:approvedPost.emoji||cur.emoji||'🍳',
-            count:cur.count||0,
-            lastDate:cur.lastDate||'',
-            commTotalRating:(cur.commTotalRating||0)+approvedPost.rating,
-            commRatingCount:(cur.commRatingCount||0)+1
-          };
-          updates.commAvgRating=Math.round((updates.commTotalRating/updates.commRatingCount)*10)/10;
-          recRef.update(updates);
-        });
-      }
-      // 구글 시트에 승인 기록 (백그라운드)
-      reportCommunityApprovalToSheet(approvedPost);
-      showCartPopup('✅ 승인 완료!','커뮤니티에 게시되었습니다.');
-    }else{
-      showCartPopup('❌ 오류','승인 중 오류가 발생했습니다.');
-    }
-  });
-}
-
-function rejectPendingPost(pidx){
-  var pendingPosts=getPendingPosts();
-  if(pidx<0||pidx>=pendingPosts.length)return;
-  var fbKey=pendingPosts[pidx]._fbKey;
-  if(fbKey){
-    fbDB.ref('community/pending/'+fbKey).remove(function(err){
-      if(!err)showCartPopup('❌ 거절 완료','해당 글이 삭제되었습니다.');
-    });
-  }
-}
-
-function likePost(idx){
-  if(!communityPosts[idx])return;
-  var postId=communityPosts[idx].id||communityPosts[idx]._fbKey||('idx_'+idx);
-  // localStorage 즉시 체크 — 동일 기기에서 빠른 중복 탭 방지 (비동기 완료 전 이중 호출 차단)
-  if(localStorage.getItem('nt_liked_'+postId)==='1'){
-    showCartPopup('❤️ 이미 좋아요!','이미 좋아요를 눌렀습니다.');
-    return;
-  }
-  var fbKey=communityPosts[idx]._fbKey||postId;
-  // Firebase uid 기반 좋아요 중복 방지 (재설치/브라우저 초기화 후에도 유지)
-  var likeRef=fbDB.ref('community/likes/'+fbKey+'/'+fbUid);
-  likeRef.once('value',function(snap){
-    if(snap.val()===true){
-      showCartPopup('❤️ 이미 좋아요!','이미 좋아요를 눌렀습니다.');
-      return;
-    }
-    // 좋아요 표시 저장 (uid 기반)
-    likeRef.set(true);
-    // 좋아요 카운트 트랜잭션 업데이트
-    fbDB.ref('community/approved/'+fbKey+'/likes').transaction(function(cur){
-      return (cur||0)+1;
-    });
-    // localStorage에도 동시 저장 (오프라인 빠른 체크용)
-    localStorage.setItem('nt_liked_'+postId,'1');
-    showCartPopup('❤️ 좋아요!','좋아요를 눌렀습니다.');
-  });
-}
-// === END 관리자 승인/거절 ===
-
-function deleteCookHistory(recipeId){
-  if(!confirm('이 요리 기록을 삭제하시겠습니까?\n(해당 레시피의 모든 기록이 삭제됩니다)'))return;
-  cookHistory=cookHistory.filter(function(ch){return ch.id!==recipeId});
-  localStorage.setItem('nt_history',JSON.stringify(cookHistory));
-  showCartPopup('🗑️ 삭제 완료','요리 기록이 삭제되었습니다.');
-  render();
-}
-
-function deleteCommunityPost(idx){
-  if(!confirm('이 게시글을 삭제하시겠습니까?'))return;
-  var fbKey=communityPosts[idx]&&(communityPosts[idx]._fbKey||communityPosts[idx].id);
-  if(fbKey){
-    fbDB.ref('community/approved/'+fbKey).remove(function(err){
-      if(!err)showCartPopup('🗑️ 삭제 완료','게시글이 삭제되었습니다.');
-    });
-  }
-}
 // ===== CSV 다운로드 헬퍼 =====
 function downloadCSV(filename, rows){
   var bom='\uFEFF'; // UTF-8 BOM (한글 깨짐 방지)
@@ -3752,13 +2644,8 @@ async function syncToSheets(){
 }
 
 async function activateAdmin(){
-  var pw=prompt('관리자 비밀번호를 입력하세요:');
-  if(!pw) return;
-  var enc=new TextEncoder();
-  var hashBuf=await crypto.subtle.digest('SHA-256',enc.encode(pw));
-  var hashArr=Array.from(new Uint8Array(hashBuf));
-  var hashHex=hashArr.map(function(b){return b.toString(16).padStart(2,'0');}).join('');
-  if(hashHex==='be43e68df297ba8d0500c65de953a3b74d6254525096fbc6a6b552bc66bfdf7e'){
+  var ok=await verifyAdminPassword(true);
+  if(ok){
     localStorage.setItem('nt_admin','1');
     startPendingListener(); // 관리자 활성화 시 pending 실시간 구독 시작
     alert('✅ 관리자 모드 활성화! 커뮤니티 탭 하단에서 대기 글을 승인/거절할 수 있습니다.');
@@ -3900,7 +2787,7 @@ function startPendingListener(){
 }
 
 // 페이지 로드 시 이미 관리자면 바로 구독 시작
-if(localStorage.getItem('nt_admin')==='1'){
+if(isAdminSession()){
   startPendingListener();
 }
 function getPendingPosts(){return pendingPostsCache;}
@@ -4770,7 +3657,7 @@ function renderMyPage(){
   h+='<div style="font-size:11px;color:var(--sub);margin-bottom:4px">내 닉네임 <span style="font-size:10px;color:#aaa">(1~15자, 중복 불가)</span></div>';
   // 읽기전용 표시 영역
   h+='<div id="nicknameDisplay" style="display:flex;align-items:center;gap:8px">';
-  h+='<span style="font-size:16px;font-weight:700;color:var(--text)">'+esc(userNickname||'닉네임 없음')+'</span>';
+  h+='<span style="font-size:16px;font-weight:700;color:var(--text)">'+ehtml(userNickname||'닉네임 없음')+'</span>';
   h+='<button onclick="enableNicknameEdit()" style="padding:4px 10px;border:1.5px solid var(--primary);border-radius:8px;background:transparent;color:var(--primary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">수정</button>';
   h+='</div>';
   // 수정 입력 영역 (기본 숨김)
@@ -5172,26 +4059,27 @@ function openPhotoViewer(photos,startIdx){
 function _buildViewerHTML(){
   var p=_viewerPhotos[_viewerIdx];
   var total=_viewerPhotos.length;
+  var viewerPhoto=safeUrl(p.photo);
   var h='';
   // 상단 바
   h+='<div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(rgba(0,0,0,.7),transparent);z-index:2">';
-  h+='<div style="color:#fff;font-size:13px;font-weight:700">'+(p.emoji||'')+(p.name?' '+p.name:'')+'</div>';
+  h+='<div style="color:#fff;font-size:13px;font-weight:700">'+ehtml(p.emoji||'')+(p.name?' '+ehtml(p.name):'')+'</div>';
   h+='<div style="display:flex;align-items:center;gap:12px">';
   h+='<span style="color:#aaa;font-size:12px">'+(_viewerIdx+1)+' / '+total+'</span>';
   h+='<button onclick="closePhotoViewer()" style="background:none;border:none;color:#fff;font-size:26px;cursor:pointer;line-height:1">✕</button>';
   h+='</div></div>';
   // 사진
-  h+='<img src="'+p.photo+'" style="max-width:100%;max-height:calc(100vh - 140px);object-fit:contain;display:block" onclick="event.stopPropagation()">';
+  if(viewerPhoto)h+='<img src="'+eattr(viewerPhoto)+'" style="max-width:100%;max-height:calc(100vh - 140px);object-fit:contain;display:block" onclick="event.stopPropagation()">';
   // 코멘트
   if(p.comment){
     h+='<div style="position:absolute;bottom:60px;left:0;right:0;padding:10px 20px;background:linear-gradient(transparent,rgba(0,0,0,.8));text-align:center">';
-    h+='<div style="color:#fff;font-size:13px;line-height:1.5">💬 '+p.comment+'</div>';
+    h+='<div style="color:#fff;font-size:13px;line-height:1.5">💬 '+ehtml(p.comment)+'</div>';
     h+='</div>';
   }
   // 하단 네비게이션
   h+='<div style="position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(transparent,rgba(0,0,0,.7))">';
   h+='<button onclick="_viewerPrev()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:44px;height:44px;border-radius:50%;cursor:pointer;'+(total<=1?'opacity:.2;pointer-events:none':'')+'">&lt;</button>';
-  h+='<div style="color:#aaa;font-size:11px">'+p.date+'</div>';
+  h+='<div style="color:#aaa;font-size:11px">'+ehtml(p.date||'')+'</div>';
   h+='<button onclick="_viewerNext()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:44px;height:44px;border-radius:50%;cursor:pointer;'+(total<=1?'opacity:.2;pointer-events:none':'')+'">&gt;</button>';
   h+='</div>';
   return h;
@@ -5392,21 +4280,16 @@ if('serviceWorker' in navigator){
 // ===== END Service Worker 등록 =====
 
 </script>
-  <button id="installButton" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:10px 20px; background-color:#E8652A; color:white; border:none; border-radius:5px; z-index:1000;">홈 화면에 냉털 추가</button>
-
-</body></html>
-
-
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const loadingTextElement = document.getElementById('dynamic-loading-dots');
+    var loadingTextElement=document.getElementById('dynamic-loading-dots');
     if (loadingTextElement) {
-      let dotCount = 0;
-      setInterval(() => {
-        dotCount = (dotCount + 1) % 4;
-        let dots = '.'.repeat(dotCount);
-        loadingTextElement.textContent = dots;
-      }, 500);
+      var dotCount = 0;
+      setInterval(function(){
+        dotCount=(dotCount+1)%4;
+        loadingTextElement.textContent='.'.repeat(dotCount);
+      },500);
     }
   });
 </script>
+</body></html>
