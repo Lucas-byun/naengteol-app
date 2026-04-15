@@ -517,7 +517,7 @@ function initTags(){
     // 야식 (간식/분식 또는 면류 중 라면 포함, 토스트)
     if(r.cat==='간식/분식'||r.name.includes('라면')||r.name.includes('토스트'))tags.push('야식');
     // 다이어트 (400kcal 이하)
-    if(r.kcal&&r.kcal<=200)tags.push('다이어트');
+    if(r.kcal&&r.kcal<=350)tags.push('다이어트');
     // 든든한끼 (500kcal 이상 또는 밥/덮밥)
     if((r.kcal&&r.kcal>=500)||r.cat==='밥/덮밥')tags.push('든든한끼');
     // 밑반찬 (나물/반찬 또는 조림)

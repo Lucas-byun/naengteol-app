@@ -222,13 +222,24 @@ async function loadData(){
 var SYN_MAP={'계란':'달걀','달걀':'계란','파':'대파','대파':'파','고기':'돼지고기','돼지':'돼지고기','소고기':'쇠고기','쇠고기':'소고기','닭':'닭고기','닭고기':'닭','새우':'해산물','국간장':'간장','진간장':'간장','양조간장':'간장','맛간장':'간장','올리브유':'식용유','포도씨유':'식용유','카놀라유':'식용유','들기름':'참기름','백설탕':'설탕','황설탕':'설탕','흑설탕':'설탕','쪽파':'대파','청양고추':'고추','홍고추':'고추','풋고추':'고추','청고추':'고추','새송이버섯':'버섯','팽이버섯':'버섯','표고버섯':'버섯','느타리버섯':'버섯','양송이버섯':'버섯','슬라이스치즈':'치즈','모짜렐라':'치즈','체다치즈':'치즈','크림치즈':'치즈'};
 function ingMatch(v,s){
   var nm=v.split(/\s/)[0].replace(/[()]/g,'');
+  // 1) 직접 매칭
   if(s===nm||v.startsWith(s+' ')||v.startsWith(s+'('))return true;
-  // Check synonyms
+  // 2) 순방향 동의어: 사용자 선택 재료의 표준명 → 레시피 재료 (예: 계란→달걀)
   var syn=SYN_MAP[s];
   if(syn&&(syn===nm||v.startsWith(syn+' ')||v.startsWith(syn+'(')))return true;
+  // 3) 역방향 동의어: 레시피 재료명의 표준명이 선택 재료와 일치 (예: 양조간장→간장)
+  var revSyn=SYN_MAP[nm];
+  if(revSyn&&revSyn===s)return true;
   return false;
 }
-function matchRecipe(r,selArr){var req=r.ings.filter(function(i){return i.t==='req'});var hv=req.filter(function(i){return selArr.some(function(s){return ingMatch(i.v,s)})});var pct=req.length?Math.round(hv.length/req.length*100):100;return{pct:Math.min(pct,100),have:hv.length,total:req.length};}
+function matchRecipe(r,selArr){
+  var req=r.ings.filter(function(i){return i.t==='req'});
+  var hv=req.filter(function(i){return selArr.some(function(s){return ingMatch(i.v,s)})});
+  var opt=r.ings.filter(function(i){return i.t==='opt'});
+  var hvOpt=opt.filter(function(i){return selArr.some(function(s){return ingMatch(i.v,s)})});
+  var pct=req.length?Math.round(hv.length/req.length*100):100;
+  return{pct:Math.min(pct,100),have:hv.length,total:req.length,optHave:hvOpt.length,optTotal:opt.length};
+}
 function getMatched(){
   // sel을 배열로 미리 변환하여 matchRecipe 내 [...sel] 반복 스프레드 제거
   var selArr=[...sel];
