@@ -28,6 +28,8 @@ function showRecipePhotos(recipeId,sortAsc){
   var histIdx=noPhotoEntries.length>0?noPhotoEntries[0].idx:-1;
   // 전체화면 뷰어용 사진 배열 준비
   var viewerList=allEntries.filter(function(ch){return ch.photo}).map(function(ch){return{photo:ch.photo,comment:ch.comment||'',date:ch.date,name:r?r.name:'',emoji:r?r.emoji:'🍳'};});
+  // onclick 속성에 JSON.stringify 직접 삽입 시 " 로 속성이 깨지므로 전역에 저장 후 참조
+  window._recipeViewerPhotos=viewerList;
   var h='<div id="galleryPopup" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:rgba(0,0,0,.85);overflow-y:auto" onclick="if(event.target===this)this.remove()">';
   h+='<div style="max-width:480px;margin:0 auto;padding:16px">';
   // Header
@@ -85,7 +87,7 @@ function showRecipePhotos(recipeId,sortAsc){
       if(ch.photo){
         h+='<div style="position:relative">';
         // 사진 클릭 시 전체화면 뷰어
-        h+='<img src="'+ch.photo+'" style="width:100%;display:block;border-radius:14px 14px 0 0;object-fit:cover;cursor:zoom-in" onclick="openPhotoViewer('+JSON.stringify(viewerList)+','+thisViewerIdx+')">';
+        h+='<img src="'+ch.photo+'" style="width:100%;display:block;border-radius:14px 14px 0 0;object-fit:cover;cursor:zoom-in" onclick="openPhotoViewer(window._recipeViewerPhotos,'+thisViewerIdx+')">';
         h+='<div style="position:absolute;bottom:8px;right:8px;display:flex;gap:6px">';
         h+='<label style="background:rgba(0,0,0,.65);color:#fff;font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px">';
         h+='<input type="file" accept="image/*" style="display:none" onchange="changeExistingPhoto('+chIdx+',this,\''+esc(recipeId)+'\')">'; 
