@@ -42,7 +42,7 @@ var FALLBACK=[];
 
 // === STATE ===
 var RECIPES=[],dataLoaded=false,dataSource='',loadDataStartedAt=0,_loadStatusTimer=null;
-var sel=new Set(),favs=new Set(),tab='cook',mode='ing',cat='자주',searchQ='',detailR=null,fsR=null,servMul=1,fsServMul=1,mealFilter='전체';
+var sel=new Set(),favs=new Set(),tab='cook',mode='ing',cat='자주',searchQ='',detailR=null,fsR=null,servMul=1,fsServMul=1,mealFilter='전체',diffFilter='전체',timeFilter=0;
 var onboardStep=0,showOnboard=!localStorage.getItem('nt_done'),showSearch=false,showFavIngs=true;
 // 프로필 사진 (localStorage 저장)
 var userProfilePhoto=localStorage.getItem('nt_profile_photo')||'';

@@ -481,6 +481,8 @@ var TAG_COLORS={
   '전자레인지':['#0277bd','#e1f5fe']
 };
 var TAG_EMOJIS={'초간단':'⚡','5분완성':'⏱️','야식':'🌙','다이어트':'🥗','밑반찬':'🍱','비오는날':'🌧️','든든한끼':'💪','전자레인지':'📡'};
+// 필터 바에 표시할 해시태그 목록 (renderFilterBar 공용)
+var FILTER_TAGS=['초간단','5분완성','야식','다이어트','밑반찬','비오는날','든든한끼'];
 
 // === 카테고리 매핑 전역 상수 ===
 var CAT_LABEL_MAP={'밥/덮밥':'한끼','면류':'한끼','찌개/국':'반찬','달걀요리':'반찬','볶음/구이':'반찬','조림':'반찬','전/부침':'반찬','나물/반찬':'반찬','간식/분식':'간식'};
@@ -516,6 +518,33 @@ function initTags(){
 var activeTag='';
 var expandedTags={};
 function toggleTag(t){activeTag=(activeTag===t)?'':t;render();}
+// 모든 필터 초기화
+function resetFilters(){mealFilter='전체';diffFilter='전체';timeFilter=0;activeTag='';render();}
+// 식사유형 + 난이도 + 시간 + 해시태그 필터 바 HTML 반환 (재료모드·요리모드 공용)
+function renderFilterBar(){
+  var fh='';
+  var MC={'전체':['var(--text)','var(--border)'],'한끼':['#1976d2','#e3f2fd'],'반찬':['#388e3c','#e8f5e9'],'간식':['#ff6f00','#f5f5f5']};
+  // 식사유형
+  fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
+  ['전체','한끼','반찬','간식'].forEach(function(f){var act=mealFilter===f;var c=MC[f];fh+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:3px 11px;border-radius:14px;font-size:12px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid '+c[0]:'1px solid var(--border)')+';background:'+(act?c[1]:'var(--bg)')+';color:'+(act?c[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';});
+  fh+='</div>';
+  // 난이도
+  fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
+  [{v:'전체',l:'전체'},{v:1,l:'⭐ 쉬움'},{v:2,l:'⭐⭐ 보통'},{v:3,l:'⭐⭐⭐ 어려움'}].forEach(function(d){var act=diffFilter===d.v;var dv=d.v==='전체'?'\'전체\'':d.v;fh+='<button onclick="diffFilter='+dv+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid var(--primary)':'1px solid var(--border)')+';background:'+(act?'#FEF3EC':'var(--bg)')+';color:'+(act?'var(--primary)':'var(--sub)')+';cursor:pointer;font-family:inherit">'+d.l+'</button>';});
+  fh+='</div>';
+  // 조리시간
+  fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
+  [{v:0,l:'전체'},{v:15,l:'⏱ 15분↓'},{v:30,l:'⏱ 30분↓'}].forEach(function(t){var act=timeFilter===t.v;fh+='<button onclick="timeFilter='+t.v+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid #0288d1':'1px solid var(--border)')+';background:'+(act?'#e1f5fe':'var(--bg)')+';color:'+(act?'#0288d1':'var(--sub)')+';cursor:pointer;font-family:inherit">'+t.l+'</button>';});
+  fh+='</div>';
+  // 해시태그
+  fh+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px">';
+  FILTER_TAGS.forEach(function(t){var act=activeTag===t;var tc=TAG_COLORS[t]||['#333','#eee'];var em=TAG_EMOJIS[t]||'';fh+='<button onclick="toggleTag(\''+t+'\')" style="display:flex;align-items:center;gap:3px;padding:3px 9px;border-radius:14px;border:'+(act?'2px solid '+tc[0]:'1px solid var(--border)')+';background:'+(act?tc[1]:'var(--card)')+';color:'+(act?tc[0]:'var(--sub)')+';font-size:11px;font-weight:'+(act?'700':'500')+';cursor:pointer;font-family:inherit;white-space:nowrap">'+(em?em+' ':'')+t+'</button>';});
+  fh+='</div>';
+  // 활성 필터 요약 + 전체 초기화
+  var actCnt=[mealFilter!=='전체',diffFilter!=='전체',timeFilter>0,!!activeTag].filter(Boolean).length;
+  if(actCnt>0){fh+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px"><span style="font-size:11px;color:var(--primary);font-weight:700">필터 '+actCnt+'개 적용 중</span><button onclick="resetFilters()" style="font-size:10px;padding:1px 8px;border-radius:8px;border:1px solid var(--primary);background:none;color:var(--primary);cursor:pointer;font-family:inherit">✕ 전체 초기화</button></div>';}
+  return fh;
+}
 function randomRecipe(){
   if(!RECIPES||RECIPES.length===0)return;
   var pool=RECIPES;
@@ -582,34 +611,14 @@ function render(){
       if(sel.size>0){
         var selArr2=[...sel];
         var allMatched=RECIPES.map(function(r){return Object.assign({},r,{match:matchRecipe(r,selArr2)})}).filter(function(r){return r.match.pct>=20}).sort(function(a,b){if(a.match.pct===100&&b.match.pct!==100)return -1;if(b.match.pct===100&&a.match.pct!==100)return 1;return b.match.pct-a.match.pct;});
-        // 한끼/반찬/간식 필터 적용
-        var ingMealFilter=mealFilter;
-        var filteredMatched=ingMealFilter!=='전체'?allMatched.filter(function(r){return CAT_LABEL_MAP[r.cat]===ingMealFilter}):allMatched;
-        // 해시태그 필터 적용
-        if(activeTag)filteredMatched=filteredMatched.filter(function(r){return RECIPE_TAGS[r.id]&&RECIPE_TAGS[r.id].indexOf(activeTag)!==-1});
+        // mealFilter + diffFilter + timeFilter + activeTag 일괄 적용
+        var filteredMatched=applyRecipeFilters(allMatched);
         var perfectList=filteredMatched.filter(function(r){return r.match.pct===100});
         var partialList=filteredMatched.filter(function(r){return r.match.pct<100});
         var perfectAll=allMatched.filter(function(r){return r.match.pct===100});
         var partialAll=allMatched.filter(function(r){return r.match.pct<100});
-        // 필터 UI (한끼/반찬/간식 + 해시태그)
         h+='<div style="padding:8px 16px 0">';
-        // 한끼/반찬/간식 필터 버튼
-        h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">';
-        ['전체','한끼','반찬','간식'].forEach(function(f){
-          var actF=ingMealFilter===f;
-          var colF={'전체':['var(--text)','var(--border)'],'한끼':['#1976d2','#e3f2fd'],'반찬':['#388e3c','#e8f5e9'],'간식':['#ff6f00','#f5f5f5']}[f];
-          h+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:4px 12px;border-radius:16px;font-size:12px;font-weight:'+(actF?'700':'500')+';border:'+(actF?'2px solid '+colF[0]:'1px solid var(--border)')+';background:'+(actF?colF[1]:'var(--bg)')+';color:'+(actF?colF[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';
-        });
-        h+='</div>';
-        // 해시태그 필터 버튼
-        h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">';
-        ['초간단','5분완성','야식','다이어트','밑반찬','비오는날','든든한끼'].forEach(function(t){
-          var actT=activeTag===t;var tc={'초간단':['#388e3c','#e8f5e9'],'5분완성':['#1976d2','#e3f2fd'],'야식':['#6a1b9a','#f3e5f5'],'다이어트':['#00838f','#e0f7fa'],'밑반찬':['#ef6c00','#f5f5f5'],'비오는날':['#455a64','#eceff1'],'든든한끼':['#d84315','#fafafa']}[t]||['#333','#eee'];
-          var em={'초간단':'⚡','5분완성':'⏱️','야식':'🌙','다이어트':'🥗','밑반찬':'🍱','비오는날':'🌧️','든든한끼':'💪'}[t];
-          h+='<button onclick="toggleTag(\''+t+'\')" style="display:flex;align-items:center;gap:3px;padding:3px 9px;border-radius:14px;border:'+(actT?'2px solid '+tc[0]:'1px solid var(--border)')+';background:'+(actT?tc[1]:'var(--card)')+';color:'+(actT?tc[0]:'var(--sub)')+';font-size:11px;font-weight:'+(actT?'700':'500')+';cursor:pointer;font-family:inherit;white-space:nowrap">'+em+' '+t+'</button>';
-        });
-        h+='</div>';
-        if(activeTag){h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:11px;color:var(--primary);font-weight:700">#'+activeTag+' 필터 적용 중</span><button onclick="activeTag=\'\';render()" style="font-size:10px;padding:1px 7px;border-radius:8px;border:1px solid var(--primary);background:none;color:var(--primary);cursor:pointer;font-family:inherit">✕ 해제</button></div>';}
+        h+=renderFilterBar();
         h+='</div>';
         if(filteredMatched.length>0){
           // 상단 요약 배너
@@ -691,20 +700,12 @@ function render(){
       }
     }else{
       var q=searchQ.toLowerCase();var fl2=q?RECIPES.filter(function(r){var nm=r.name.toLowerCase();if(nm.includes(q))return true;var sq=SYN_MAP[q];return sq&&nm.includes(sq);}):RECIPES;
-      if(activeTag)fl2=fl2.filter(function(r){return RECIPE_TAGS[r.id]&&RECIPE_TAGS[r.id].indexOf(activeTag)!==-1});
-      // 카테고리 필터 (요리모드)
-      if(mealFilter!=='전체')fl2=fl2.filter(function(r){return CAT_LABEL_MAP[r.cat]===mealFilter});
+      // mealFilter + diffFilter + timeFilter + activeTag 일괄 적용
+      fl2=applyRecipeFilters(fl2);
       var cs=[...new Set(fl2.map(function(r){return r.cat}))];
-      // 카테고리 필터 버튼 (전체/한끼/반찬/간식)
-      h+='<div style="display:flex;gap:6px;padding:8px 16px 0">';
-      ['전체','한끼','반찬','간식'].forEach(function(f){
-        var actF=mealFilter===f;
-        var colF={'전체':['var(--text)','var(--border)'],'한끼':['#1976d2','#e3f2fd'],'반찬':['#388e3c','#e8f5e9'],'간식':['#ff6f00','#f5f5f5']}[f];
-        h+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:4px 12px;border-radius:16px;font-size:12px;font-weight:'+(actF?'700':'500')+';border:'+(actF?'2px solid '+colF[0]:'1px solid var(--border)')+';background:'+(actF?colF[1]:'var(--bg)')+';color:'+(actF?colF[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';
-      });
+      h+='<div style="padding:8px 16px 0">';
+      h+=renderFilterBar();
       h+='</div>';
-      // 태그 필터 (해시태그 클릭 방식)
-      if(activeTag){h+='<div style="display:flex;align-items:center;gap:8px;padding:4px 16px 8px;"><span style="font-size:12px;color:var(--primary);font-weight:700">#'+activeTag+' 필터 적용 중</span><button onclick="activeTag=\'\';render()" style="font-size:11px;padding:2px 8px;border-radius:8px;border:1px solid var(--primary);background:none;color:var(--primary);cursor:pointer;font-family:inherit">✕ 해제</button></div>';}
       h+='<div class="recipe-count">'+fl2.length+'개 레시피</div>';
       cs.forEach(function(c){var rs=fl2.filter(function(r){return r.cat===c});h+='<div class="recipe-section" style="background:var(--cook-bg)"><h2 style="color:var(--text)">'+(rs[0]?rs[0].emoji:'')+' '+c+' ('+rs.length+')</h2>';rs.forEach(function(r){h+=renderCard(Object.assign({},r,{match:sel.size>0?matchRecipe(r,selArr):{pct:0}}))});h+='</div>';});
     }

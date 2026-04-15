@@ -261,6 +261,16 @@ function getTopUnlock(){
   return sorted.length>0?sorted[0]:null;
 }
 
+// 레시피 필터 공통 함수 — mealFilter, diffFilter, timeFilter, activeTag 일괄 적용
+// CAT_LABEL_MAP, RECIPE_TAGS 는 index.html 전역에서 선언됨
+function applyRecipeFilters(list){
+  if(mealFilter!=='전체')list=list.filter(function(r){return CAT_LABEL_MAP[r.cat]===mealFilter;});
+  if(diffFilter!=='전체')list=list.filter(function(r){return r.diff===diffFilter;});
+  if(timeFilter>0)list=list.filter(function(r){return r.time<=timeFilter;});
+  if(activeTag)list=list.filter(function(r){return RECIPE_TAGS[r.id]&&RECIPE_TAGS[r.id].indexOf(activeTag)!==-1;});
+  return list;
+}
+
 // === HELPERS ===
 // 로컬 날짜 문자열 반환 (toISOString은 UTC 기준이라 한국 자정 전후 오류 발생)
 function getLocalDateStr(d){var dt=d||new Date();return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
