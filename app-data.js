@@ -3,6 +3,8 @@
 //       RECIPE_BEST_PHOTOS, CAT_IMAGES, updateBestPhotos(), initTags(), render() 는 index.html에서 선언됨
 
 var DESC_FIX={};
+// 재료목록(추가 INGS) 로드 상태 - 관리자 확인용
+var EXTRA_INGS_STATUS={state:'idle',added:0,rows:0,message:'아직 실행 전',updatedAt:0};
 
 // === GOOGLE SHEETS CONFIG ===
 var SHEET_ID='13DpBAiqpcdWLgfh-mRE_cBvt-T1jtrhD_hE_KJ9mk4w';
@@ -208,17 +210,7 @@ async function loadData(){
       // 재료목록 탭이 있으면 INGS/SYN_MAP에 추가 재료 병합 (비동기, 실패 무시)
       loadExtraIngs();
       // optIng 불일치 검증 — 개발자 콘솔 경고
-      RECIPES.forEach(function(r){
-        r.steps.forEach(function(s){
-          if(!s.optIng)return;
-          var found=r.ings.some(function(i){
-            if(i.t!=='opt')return false;
-            var nm=i.v.split(/\s/)[0].replace(/[()]/g,'');
-            return nm===s.optIng||i.v.startsWith(s.optIng+' ')||i.v.startsWith(s.optIng+'(');
-          });
-          if(!found)console.warn('[optIng 불일치] 레시피:',r.name,'/ optIng:',s.optIng,'/ 선택재료:',r.ings.filter(function(i){return i.t==='opt';}).map(function(i){return i.v;}));
-        });
-      });
+      runOptIngLinkCheck();
     })
     .catch(function(e){
       clearTimeout(timeoutId);
@@ -240,9 +232,30 @@ async function loadData(){
 //   2. 1행: 이름 | 이모지 | 카테고리 | 동의어 (헤더)
 //   3. 2행부터 추가 재료 입력 (예: 새우 | 🦐 | 해산물 | 흰새우)
 function loadExtraIngs(){
+  EXTRA_INGS_STATUS={state:'loading',added:0,rows:0,message:'재료목록 시트 불러오는 중...',updatedAt:Date.now()};
+  function normKey(k){return String(k||'').replace(/\ufeff/g,'').replace(/\s+/g,'').toLowerCase();}
+  function getRowVal(row, aliases){
+    // 1) 정확히 같은 키 우선
+    for(var i=0;i<aliases.length;i++){
+      var v=row[aliases[i]];
+      if(v!=null&&String(v).trim())return String(v).trim();
+    }
+    // 2) 공백/BOM/대소문자 차이 무시한 키로 재시도
+    var m={};
+    Object.keys(row).forEach(function(k){m[normKey(k)]=row[k];});
+    for(var j=0;j<aliases.length;j++){
+      var v2=m[normKey(aliases[j])];
+      if(v2!=null&&String(v2).trim())return String(v2).trim();
+    }
+    return '';
+  }
   fetch('https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('재료목록'))
     .then(function(res){
-      if(!res.ok)return;
+      if(!res.ok){
+        EXTRA_INGS_STATUS={state:'error',added:0,rows:0,message:'시트 응답 실패('+res.status+')',updatedAt:Date.now()};
+        console.info('[재료목록] 시트 응답 실패('+res.status+') — 기본 INGS만 사용');
+        return;
+      }
       return res.text();
     })
     .then(function(csv){
@@ -250,10 +263,10 @@ function loadExtraIngs(){
       var rows=parseCSV(csv);
       var added=0;
       rows.forEach(function(row){
-        var n=(row['이름']||'').trim();
-        var e=(row['이모지']||'').trim();
-        var c=(row['카테고리']||'').trim();
-        var syn=(row['동의어']||'').trim();
+        var n=getRowVal(row,['이름','재료명','name']);
+        var e=getRowVal(row,['이모지','emoji']);
+        var c=getRowVal(row,['카테고리','분류','category']);
+        var syn=getRowVal(row,['동의어','별칭','alias']);
         if(!n)return;
         // 이미 INGS에 있으면 추가 안 함
         if(INGS.find(function(i){return i.n===n;}))return;
@@ -265,12 +278,21 @@ function loadExtraIngs(){
         added++;
       });
       if(added>0){
+        EXTRA_INGS_STATUS={state:'loaded',added:added,rows:rows.length,message:'추가 재료 '+added+'종 로드됨',updatedAt:Date.now()};
         console.log('[재료목록] Sheets에서 추가 재료 '+added+'종 로드됨');
         render(); // INGS 변경 반영
+      }else{
+        EXTRA_INGS_STATUS={state:'noop',added:0,rows:rows.length,message:'추가된 항목 없음(중복/빈값/헤더 확인)',updatedAt:Date.now()};
+        console.info('[재료목록] 추가된 항목 없음 (헤더/중복/빈값 확인 필요)');
       }
     })
-    .catch(function(){/* 재료목록 탭 없음 또는 네트워크 오류 — 무시 */});
+    .catch(function(e){
+      EXTRA_INGS_STATUS={state:'error',added:0,rows:0,message:'로드 실패'+(e&&e.message?('('+e.message+')'):''),updatedAt:Date.now()};
+      console.info('[재료목록] 로드 실패 — 기본 INGS만 사용',e&&e.message?('('+e.message+')'):'');
+    });
 }
+
+function getExtraIngsStatus(){return EXTRA_INGS_STATUS;}
 
 // === MATCH ===
 // Synonym map for ingredient matching
@@ -372,6 +394,37 @@ function runIngCoverageCheck(){
   }
   return {pct:pct,matched:matched,total:total,unmatched:unmatched};
 }
+
+// === 선택재료(optIng) 연결 점검 (관리자/개발자용) ===
+// step.optIng 값이 실제 선택재료(ings.type==='opt')와 연결되는지 확인
+function runOptIngLinkCheck(){
+  if(!RECIPES||!RECIPES.length){console.warn('[optIng 점검] RECIPES 없음');return null;}
+  var total=0,mismatch=0;
+  RECIPES.forEach(function(r){
+    r.steps.forEach(function(s){
+      if(!s.optIng)return;
+      total++;
+      var found=r.ings.some(function(i){
+        if(i.t!=='opt')return false;
+        var nm=i.v.split(/\s/)[0].replace(/[()]/g,'');
+        return nm===s.optIng||i.v.startsWith(s.optIng+' ')||i.v.startsWith(s.optIng+'(');
+      });
+      if(!found){
+        mismatch++;
+        console.warn('[optIng 불일치] 레시피:',r.name,'/ optIng:',s.optIng,'/ 선택재료:',r.ings.filter(function(i){return i.t==='opt';}).map(function(i){return i.v;}));
+      }
+    });
+  });
+  if(mismatch===0)console.log('[optIng 점검] '+total+'개 항목 모두 정상 ✅');
+  else console.warn('[optIng 점검] '+mismatch+'/'+total+'개 항목 불일치');
+  return {total:total,mismatch:mismatch};
+}
+// 진단 API 버전 공개 (index.html과 버전 혼재 시 안전 연결용)
+window.NT_APP_API=window.NT_APP_API||{};
+window.NT_APP_API.diagApiVersion=2;
+window.NT_APP_API.runOptIngLinkCheck=runOptIngLinkCheck;
+window.NT_APP_API.getExtraIngsStatus=getExtraIngsStatus;
+window.NT_APP_API.reloadExtraIngs=loadExtraIngs;
 
 // === HELPERS ===
 // 로컬 날짜 문자열 반환 (toISOString은 UTC 기준이라 한국 자정 전후 오류 발생)
@@ -560,4 +613,3 @@ function convertGUnit(txt) {
     return match;
   });
 }
-
