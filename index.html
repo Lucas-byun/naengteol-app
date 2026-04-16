@@ -948,8 +948,24 @@ function render(){
       h+='<span style="font-size:11px;color:var(--sub);cursor:pointer" onclick="if(confirm(\'\uad00\ub9ac\uc790 \ubaa8\ub4dc\ub97c \ud574\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?\')){{localStorage.removeItem(\'nt_admin\');render();}}">\u2705 \uad00\ub9ac\uc790 \ubaa8\ub4dc \ud65c성화 중 (탭하면 해제)</span>';
       h+='<div id="adminStatsArea"></div>';
       h+='<button onclick="loadAdminStats()" style="width:100%;padding:9px;background:linear-gradient(135deg,#7b1fa2,#4a148c);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px">📊 통계 대시보드 보기</button>';
-      h+=(typeof renderAdminExportPanel==='function'?renderAdminExportPanel():'');
-      h+=(typeof renderAdminQualityPanel==='function'?renderAdminQualityPanel():'');
+      if(typeof renderAdminExportPanel==='function'&&typeof renderAdminQualityPanel==='function'){
+        h+=renderAdminExportPanel();
+        h+=renderAdminQualityPanel();
+      }else{
+        // 캐시 혼재(구버전 app-admin.js) 대비: index 내 최소 관리자 UI 폴백
+        h+='<div style="margin-top:0px;padding:12px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;border:1px solid rgba(255,200,0,.3)">';
+        h+='<div style="font-size:12px;font-weight:700;color:#fbc02d;margin-bottom:8px">📊 데이터 내보내기 (CSV)</div>';
+        h+='<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px">app-admin 모듈이 최신이 아니어 간단 모드로 표시됩니다.</div>';
+        h+='<button onclick="exportUsersCSV&&exportUsersCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#fbc02d,#f57f17);border:none;border-radius:8px;color:#1a1a2e;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">👥 유저목록 CSV 다운로드</button>';
+        h+='<button onclick="exportCommunityCSV&&exportCommunityCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#4caf50,#2e7d32);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">💬 커뮤니티 CSV 다운로드</button>';
+        h+='<button onclick="exportRecipesCSV&&exportRecipesCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#1565c0,#0d47a1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🍽️ 레시피카운트 CSV 다운로드</button>';
+        h+='</div>';
+        h+='<div style="margin-top:8px;padding:12px;background:linear-gradient(135deg,#1b2838,#0d1b2a);border-radius:12px;border:1px solid rgba(100,200,100,.3)">';
+        h+='<div style="font-size:12px;font-weight:700;color:#81c784;margin-bottom:8px">🔍 데이터 품질 진단</div>';
+        h+='<button onclick="runIngCoverageCheck&&runIngCoverageCheck();showCartPopup(\'✅ 진단 완료\',\'브라우저 콘솔(F12)에서 결과를 확인하세요.\')" style="width:100%;padding:9px;background:linear-gradient(135deg,#388e3c,#1b5e20);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">🥕 재료 커버리지 점검</button>';
+        h+='<button onclick="triggerOptIngCheck&&triggerOptIngCheck()" style="width:100%;padding:9px;background:linear-gradient(135deg,#f57c00,#bf360c);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚙️ 선택재료 연결 점검</button>';
+        h+='</div>';
+      }
     }else{
       h+='<button onclick="activateAdmin()" style="padding:4px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--sub);font-size:11px;cursor:pointer;font-family:inherit;opacity:0.6">관리자</button>';
     }
