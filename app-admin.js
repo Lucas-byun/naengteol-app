@@ -4,11 +4,17 @@
 var pendingPostsCache=[];
 var _pendingListener=null;
 
-function getActiveScriptUrl(){
+function getCustomScriptUrl(){
   try{
     var custom=localStorage.getItem('nt_script_url_custom')||'';
     if(custom&&/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/i.test(custom.trim()))return custom.trim();
   }catch(e){}
+  return '';
+}
+
+function getActiveScriptUrl(){
+  var custom=getCustomScriptUrl();
+  if(custom)return custom;
   return COMMUNITY_SCRIPT_URL;
 }
 
@@ -315,12 +321,25 @@ async function syncIngredientsToSheet(){
         lowMsg.indexOf('unknown action')>=0||
         lowMsg.indexOf('unknown action: syncingredients')>=0;
       if(isUnknownAction){
-        alert(
+        var activeUrl=getActiveScriptUrl()||'';
+        var customUrl=getCustomScriptUrl();
+        var helpMsg=
           '❌ 자동 업로드 실패: 서버가 구버전 Apps Script이거나 URL이 이전 배포 주소입니다.\n\n'+
+          '현재 사용 URL:\n'+activeUrl+'\n\n'+
           '해결:\n'+
-          '1) 관리자 화면에서 "🔗 Apps Script URL 설정"으로 최신 /exec URL 저장\n'+
-          '2) 그래도 동일하면 "🛠 Apps Script 업데이트 방법" 순서대로 재배포'
-        );
+          '1) 관리자 화면의 "🔗 Apps Script URL 설정"에 최신 /exec URL 저장\n'+
+          '2) "🛠 Apps Script 업데이트 방법"대로 코드 재배포\n'+
+          '3) 배포 시 "웹 앱" + 실행권한 "모든 사용자" 확인';
+        alert(helpMsg);
+
+        if(customUrl){
+          var resetCustom=confirm('참고: 이 기기에는 커스텀 URL이 저장되어 있습니다.\n기본 URL로 되돌린 뒤 다시 시도할까요?');
+          if(resetCustom){
+            localStorage.removeItem('nt_script_url_custom');
+            var retry=confirm('✅ 커스텀 URL을 지웠습니다.\n지금 바로 다시 자동 업로드를 시도할까요?');
+            if(retry)syncIngredientsToSheet();
+          }
+        }
       }else{
         alert('❌ 자동 업로드 실패: '+msg);
       }
