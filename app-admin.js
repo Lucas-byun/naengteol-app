@@ -260,14 +260,29 @@ async function syncIngredientsToSheet(){
       headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({action:'syncIngredients',ingredients:ingredients,syncTime:new Date().toISOString()})
     });
-    var result=await resp.json();
-    if(result&&result.ok){
+    var raw=await resp.text();
+    var result=null;
+    try{
+      result=raw?JSON.parse(raw):null;
+    }catch(_e){
+      result=null;
+    }
+    var ok=!!(result&&(result.ok===true||result.success===true));
+    if(ok){
       alert('✅ 재료목록 자동 업로드 완료! ('+ingredients.length+'종)\n\n앱에서도 바로 다시 불러옵니다.');
       if(window.NT_APP_API&&window.NT_APP_API.reloadExtraIngs)window.NT_APP_API.reloadExtraIngs();
       setTimeout(render,700);
     }else{
-      var msg=(result&&result.msg)?String(result.msg):'응답 확인 필요';
-      if(msg.indexOf('unknown action: syncIngredients')>=0){
+      var msg='응답 확인 필요';
+      if(result){
+        msg=String(result.msg||result.error||result.message||msg);
+      }else if(!resp.ok){
+        msg='HTTP '+resp.status;
+      }else if(raw){
+        msg='서버 응답 형식 확인 필요';
+      }
+      var lowMsg=msg.toLowerCase();
+      if(lowMsg.indexOf('unknown action: syncingredients')>=0){
         alert('❌ 자동 업로드 실패: 서버가 구버전 Apps Script입니다.\n\n해결:\n- 관리자 화면의 "🛠 Apps Script 업데이트 방법" 버튼을 눌러\n  안내 순서대로 웹앱을 재배포해 주세요.');
       }else{
         alert('❌ 자동 업로드 실패: '+msg);
