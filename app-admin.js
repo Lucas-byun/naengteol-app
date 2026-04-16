@@ -310,7 +310,8 @@ async function syncIngredientsToSheet(){
         msg='서버 응답 형식 확인 필요';
       }
       var lowMsg=msg.toLowerCase();
-      if(lowMsg.indexOf('unknown action')>=0){
+      var isUnknownAction=/unknown action(?:\s*:?\s*syncingredients)?/.test(lowMsg);
+      if(isUnknownAction){
         alert('❌ 자동 업로드 실패: 서버가 구버전 Apps Script이거나 URL이 이전 배포 주소입니다.\n\n해결:\n1) 관리자 화면에서 "🔗 Apps Script URL 설정"으로 최신 /exec URL 저장\n2) 그래도 동일하면 "🛠 Apps Script 업데이트 방법" 순서대로 재배포');
       }else{
         alert('❌ 자동 업로드 실패: '+msg);
