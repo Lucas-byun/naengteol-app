@@ -1,8 +1,31 @@
 // Recipe detail/fullscreen module
 // === DETAIL ===
 function openDetail(id){detailR=RECIPES.find(function(r){return r.id===id});servMul=1;pushState('detail');renderDetail();}
+function getServingStep(baseServing){
+  var base=Math.max(1,parseInt(baseServing,10)||1);
+  return base>1?(1/base):1;
+}
+function getServingCount(baseServing,mul){
+  var base=Math.max(1,parseInt(baseServing,10)||1);
+  return Math.max(1,Math.round(base*(mul||1)));
+}
+function adjustServingMul(curMul,baseServing,delta){
+  var base=Math.max(1,parseInt(baseServing,10)||1);
+  var step=getServingStep(base);
+  var min=step;          // 최소 1인분
+  var max=10/base;       // 최대 10인분
+  var next=(curMul||1)+(delta*step);
+  // step 단위로 스냅해서 부동소수 오차 방지
+  next=Math.round(next/step)*step;
+  if(next<min)next=min;
+  if(next>max)next=max;
+  return Number(next.toFixed(6));
+}
 function renderDetail(){
   if(!detailR)return;var r=detailR;
+  var currentServing=getServingCount(r.serving,servMul);
+  var minMul=getServingStep(r.serving);
+  var maxMul=10/Math.max(1,parseInt(r.serving,10)||1);
   var h='<div class="detail show">';
   h+='<div class="det-hdr"><button class="det-back" onclick="closeDetail()">←</button><span style="font-weight:700">'+r.name+'</span>';
   h+='<div style="display:flex;gap:8px"><button onclick="openFS(\''+r.id+'\')" style="padding:4px 12px;border:1.5px solid var(--primary);border-radius:8px;background:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🍳 요리시작</button><button class="det-back" onclick="toggleFav(\''+r.id+'\');renderDetail()">'+(favs.has(r.id)?'❤️':'🤍')+'</button></div></div>';
@@ -19,8 +42,11 @@ function renderDetail(){
   var _commAvgRating=_commRated.length>0?(_commRated.reduce(function(s,c){return s+Number(c.rating);},0)/_commRated.length):0;
   var _commRatingCard=_commRated.length>0?('<div class="info-card" style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1px solid #ffe082"><div class="val" style="color:#f57f17">'+(function(){var s='';var avg=Math.round(_commAvgRating);for(var i=1;i<=5;i++)s+=(i<=avg?'★':'☆');return s;})()+'</div><div class="lbl">커뮤니티 '+_commRated.length+'명</div></div>'):'';
   h+='<div class="det-info-cards"><div class="info-card"><div class="val">'+r.serving+'인분</div><div class="lbl">기준</div></div><div class="info-card"><div class="val">'+r.time+'분</div><div class="lbl">조리시간</div></div><div class="info-card"><div class="val">'+r.kcal+'</div><div class="lbl">칼로리</div></div>'+_commRatingCard+'</div>';
+  if(r.serving>1){
+    h+='<div style="padding:0 16px 8px"><div style="font-size:12px;color:#8d6e63;background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:8px 10px">ℹ️ 이 요리는 <b>기본 '+r.serving+'인분</b> 레시피예요. 아래에서 1인분으로 줄일 수 있어요.</div></div>';
+  }
   // 보관법 표시 제거됨
-  h+='<div class="serving-ctrl"><button class="sv-btn" onclick="if(servMul>1){servMul--;renderDetail()}">−</button><span class="sv-val">'+Math.round(r.serving*servMul)+'인분</span><button class="sv-btn" onclick="if(servMul<10){servMul++;renderDetail()}">＋</button></div>';
+  h+='<div class="serving-ctrl"><button class="sv-btn" onclick="if(servMul>'+minMul+'){servMul=adjustServingMul(servMul,'+r.serving+',-1);renderDetail()}">−</button><span class="sv-val">'+currentServing+'인분</span><button class="sv-btn" onclick="if(servMul<'+maxMul+'){servMul=adjustServingMul(servMul,'+r.serving+',1);renderDetail()}">＋</button></div>';
   h+='<div class="det-section"><h3>📝 재료</h3><div class="det-legend">● 필수 / ○ 선택' + (sel.size>0 ? ' · <span style="color:var(--green)">✔ 보유</span> / <span style="color:#d84315">✘ 부족</span>' : '') + '</div>';
   r.ings.forEach(function(i){
     var isReq=i.t==='req';
@@ -37,9 +63,9 @@ function renderDetail(){
     else if(have)h+='<span style="margin-left:auto;font-size:11px;color:var(--green);background:#e8f5e9;padding:1px 6px;border-radius:8px">보유</span>';
     h+='</div>';
   });
-  if(servMul>1){
+  if(servMul!==1){
     h+='<div style="margin-top:8px;padding:8px 10px;background:#fff8e1;border-radius:8px;border:1px solid #ffe082;font-size:12px;color:#795548;line-height:1.5">';
-    h+='⚠️ <b>'+Math.round(r.serving*servMul)+'인분 기준</b>으로 자동 계산된 양입니다.<br>양념은 실제 요리 시 맛을 보며 조절하세요.';
+    h+='⚠️ <b>'+currentServing+'인분 기준</b>으로 자동 계산된 양입니다.<br>양념은 실제 요리 시 맛을 보며 조절하세요.';
     h+='</div>';
   }
   h+='</div>';
@@ -146,6 +172,9 @@ function toggleMeasure(btn){
 }
 function renderFS(){
   if(!fsR)return;var r=fsR;
+  var fsCurrentServing=getServingCount(r.serving,fsServMul);
+  var fsMinMul=getServingStep(r.serving);
+  var fsMaxMul=10/Math.max(1,parseInt(r.serving,10)||1);
   // Save scroll position before re-render
   var oldModal=document.querySelector('.fs-modal');
   var savedScroll=oldModal?oldModal.scrollTop:0;
@@ -177,7 +206,10 @@ function renderFS(){
   h+='<div style="padding:0 16px;margin-top:8px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:13px;font-weight:700;color:var(--primary)">'+pct+'%</span><span style="font-size:12px;color:var(--sub)">'+doneSteps+'/'+totalSteps+' 단계</span></div>';
   h+='<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:var(--primary);border-radius:3px;transition:width .3s"></div></div></div>';
   // Serving
-  h+='<div class="serving-ctrl"><button class="sv-btn" onclick="if(fsServMul>1){fsServMul--;renderFS()}">−</button><span class="sv-val">'+Math.round(r.serving*fsServMul)+'인분</span><button class="sv-btn" onclick="if(fsServMul<10){fsServMul++;renderFS()}">＋</button></div>';
+  h+='<div class="serving-ctrl"><button class="sv-btn" onclick="if(fsServMul>'+fsMinMul+'){fsServMul=adjustServingMul(fsServMul,'+r.serving+',-1);renderFS()}">−</button><span class="sv-val">'+fsCurrentServing+'인분</span><button class="sv-btn" onclick="if(fsServMul<'+fsMaxMul+'){fsServMul=adjustServingMul(fsServMul,'+r.serving+',1);renderFS()}">＋</button></div>';
+  if(r.serving>1){
+    h+='<div style="padding:0 16px 8px"><div style="font-size:12px;color:#8d6e63;background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:8px 10px">ℹ️ 기본 '+r.serving+'인분 레시피 · 현재 '+fsCurrentServing+'인분으로 계산 중</div></div>';
+  }
   h+='<div class="det-section"><h3>📝 재료 준비</h3>';
   h+='<div style="margin-bottom:10px"><button onclick="toggleMeasure(this)" style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;color:#795548;cursor:pointer;font-family:inherit;width:100%">📏 계량 단위 안내 (탭하여 펼치기)</button><div style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:0 0 8px 8px;padding:10px 14px;font-size:12px;color:#5d4037"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🥄</div><div style="font-weight:700;font-size:13px">1큰술</div><div style="color:#795548;font-size:11px;line-height:1.5">밥숟가락 1개 가득<br><span style="color:#d84315">≈ 15ml</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🍵</div><div style="font-weight:700;font-size:13px">1작은술</div><div style="color:#795548;font-size:11px;line-height:1.5">티스푼 1개 가득<br><span style="color:#d84315">≈ 5ml (큰술의 1/3)</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🥤</div><div style="font-weight:700;font-size:13px">1컵</div><div style="color:#795548;font-size:11px;line-height:1.5">종이컵 1컵<br><span style="color:#d84315">≈ 200ml</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🍚</div><div style="font-weight:700;font-size:13px">1공기</div><div style="color:#795548;font-size:11px;line-height:1.5">밥공기 1그릇 가득<br><span style="color:#d84315">≈ 200g</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🌿</div><div style="font-weight:700;font-size:13px">1줌</div><div style="color:#795548;font-size:11px;line-height:1.5">한 손 가볍게 쥔 양<br><span style="color:#d84315">≈ 30~50g</span></div></div><div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ffe082"><div style="font-size:16px;margin-bottom:2px">🧂</div><div style="font-weight:700;font-size:13px">적당량</div><div style="color:#795548;font-size:11px;line-height:1.5">맛을 보며<br>조금씩 추가</div></div></div><div style="font-size:11px;color:#8d6e63;background:#fffde7;border-radius:6px;padding:6px 8px">💡 계량스푼 없을 땐 밥숟가락(큰술)·티스푼(작은술)으로 대체하세요</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sub);margin-bottom:8px">● 필수 재료 ('+reqIngs.length+'개) / ○ 선택 재료 ('+optIngs.length+'개)' + (sel.size>0 ? ' · <span style="color:var(--green)">보유</span> / <span style="color:#d84315">부족</span>' : '') + '</div>';
