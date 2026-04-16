@@ -35,7 +35,7 @@ function renderAdminQualityPanel(){
     var stateMap={idle:'대기',loading:'로딩중',loaded:'성공',noop:'변경없음',error:'오류'};
     var st=stateMap[ex.state]||ex.state||'알수없음';
     h+='<div style="font-size:11px;color:#b2dfdb;margin:2px 0 8px">📌 재료목록 연동 상태: <b>'+st+'</b> · '+(ex.message||'-')+(ex.rows?(' · 시트행 '+ex.rows+'개'):'')+'</div>';
-    h+='<button onclick="(window.NT_APP_API&&window.NT_APP_API.reloadExtraIngs?window.NT_APP_API.reloadExtraIngs():loadExtraIngs());showCartPopup(\'🔄 재시도 시작\',\'재료목록 시트 재동기화를 시작했습니다. 잠시 후 상태를 확인하세요.\');setTimeout(render,700);" style="width:100%;padding:8px;background:linear-gradient(135deg,#00897b,#00695c);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">🧪 재료목록 연동 재시도</button>';
+    h+='<button onclick="retryIngredientSheetSync()" style="width:100%;padding:8px;background:linear-gradient(135deg,#00897b,#00695c);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">🧪 재료목록 연동 재시도</button>';
   }
   h+='<button onclick="runIngCoverageCheck();showCartPopup(\'✅ 진단 완료\',\'브라우저 콘솔(F12)에서 결과를 확인하세요.\')" style="width:100%;padding:9px;background:linear-gradient(135deg,#388e3c,#1b5e20);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">🥕 재료 커버리지 점검</button>';
   h+='<button onclick="triggerOptIngCheck()" style="width:100%;padding:9px;background:linear-gradient(135deg,#f57c00,#bf360c);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚙️ 선택재료 연결 점검</button>';
@@ -206,6 +206,36 @@ function showIngredientSheetGuide(){
 
 function showAppsScriptDeployGuide(){
   alert('자동 업로드가 "unknown action"으로 실패하면, Apps Script를 한 번만 업데이트하면 됩니다.\n\n1) 저장소의 apps_script_v5.gs 코드 복사\n2) script.google.com > 프로젝트 열기\n3) 기존 코드 전체 삭제 후 붙여넣기/저장\n4) 우측 상단 "배포" > "배포 관리"\n5) 웹 앱 재배포(또는 새 버전 배포)\n6) 앱으로 돌아와 다시 "☁️ 재료목록 자동 업로드" 클릭');
+}
+
+async function retryIngredientSheetSync(){
+  try{
+    var api=window.NT_APP_API||{};
+    var reloadFn=(typeof api.reloadExtraIngs==='function')?api.reloadExtraIngs:(typeof loadExtraIngs==='function'?loadExtraIngs:null);
+    var statusFn=(typeof api.getExtraIngsStatus==='function')?api.getExtraIngsStatus:(typeof getExtraIngsStatus==='function'?getExtraIngsStatus:null);
+    if(!reloadFn){
+      showCartPopup('❌ 재시도 실패','재료목록 재시도 함수를 찾지 못했습니다.');
+      return;
+    }
+    reloadFn();
+    showCartPopup('🔄 재시도 시작','재료목록 시트 재동기화를 시작했습니다. 잠시 후 상태를 확인합니다.');
+    setTimeout(function(){
+      var st=statusFn?statusFn():null;
+      var msg=st&&st.message?String(st.message):'';
+      var needCreate=(st&&st.state==='error'&&(msg.indexOf('404')>=0||msg.indexOf('응답 실패')>=0));
+      if(needCreate){
+        var go=confirm('재료목록 시트를 찾지 못했습니다.\n\n지금 "재료목록 자동 업로드"를 실행해서 시트를 새로 만들까요?\n(기존 재료목록 탭이 있으면 덮어쓰기됩니다)');
+        if(go)syncIngredientsToSheet();
+      }else if(st&&st.state==='loaded'){
+        showCartPopup('✅ 연동 성공','재료목록 시트에서 추가 재료를 불러왔습니다.');
+      }else if(st&&st.state==='noop'){
+        showCartPopup('ℹ️ 연동 완료','통신은 성공했지만 새로 추가된 재료가 없었습니다.');
+      }
+      render();
+    },900);
+  }catch(e){
+    showCartPopup('❌ 재시도 오류',e.message||'알 수 없는 오류');
+  }
 }
 
 async function syncIngredientsToSheet(){
