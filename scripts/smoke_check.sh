@@ -1,3 +1,4 @@
+cat > scripts/smoke_check.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -59,3 +60,7 @@ grep -q "action === 'syncIngredients'" apps_script_v5.gs
 echo "  - found syncIngredients server action"
 
 echo "Smoke checks passed."
+EOF
+
+chmod +x scripts/smoke_check.sh
+./scripts/smoke_check.sh

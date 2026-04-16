@@ -4,6 +4,45 @@
 var pendingPostsCache=[];
 var _pendingListener=null;
 
+// 관리자 패널 HTML 조각 (index.html 간소화용)
+function renderAdminExportPanel(){
+  var h='';
+  h+='<div style="margin-top:0px;padding:12px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;border:1px solid rgba(255,200,0,.3)">';
+  h+='<div style="font-size:12px;font-weight:700;color:#fbc02d;margin-bottom:8px">📊 데이터 내보내기 (CSV)</div>';
+  h+='<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px">Firebase 데이터를 CSV로 다운로드 후 구글 시트에 붙여넣기<br>(유저목록 · 커뮤니티 · 레시피카운트)</div>';
+  h+='<button onclick="exportUsersCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#fbc02d,#f57f17);border:none;border-radius:8px;color:#1a1a2e;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">👥 유저목록 CSV 다운로드</button>';
+  h+='<button onclick="exportCommunityCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#4caf50,#2e7d32);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">💬 커뮤니티 CSV 다운로드</button>';
+  h+='<button onclick="exportRecipesCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#1565c0,#0d47a1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">🍽️ 레시피카운트 CSV 다운로드</button>';
+  h+='<button onclick="exportIngredientsCSV()" style="width:100%;padding:9px;background:linear-gradient(135deg,#00897b,#00695c);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">🥕 재료목록 CSV 다운로드(업로드용)</button>';
+  h+='<button onclick="syncIngredientsToSheet()" style="width:100%;padding:9px;background:linear-gradient(135deg,#26a69a,#00796b);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">☁️ 재료목록 자동 업로드</button>';
+  h+='<div style="display:flex;gap:6px">';
+  h+='<button onclick="openIngredientSheet()" style="flex:1;padding:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📄 시트 열기</button>';
+  h+='<button onclick="showIngredientSheetGuide()" style="flex:1;padding:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">❓ 업로드 방법</button>';
+  h+='</div>';
+  h+='<button onclick="showAppsScriptDeployGuide()" style="width:100%;padding:8px;margin-top:6px;background:rgba(255,255,255,.05);border:1px dashed rgba(255,255,255,.25);border-radius:8px;color:#cfd8dc;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🛠 Apps Script 업데이트 방법</button>';
+  h+='</div>';
+  return h;
+}
+
+function renderAdminQualityPanel(){
+  var h='';
+  h+='<div style="margin-top:8px;padding:12px;background:linear-gradient(135deg,#1b2838,#0d1b2a);border-radius:12px;border:1px solid rgba(100,200,100,.3)">';
+  h+='<div style="font-size:12px;font-weight:700;color:#81c784;margin-bottom:8px">🔍 데이터 품질 진단</div>';
+  h+='<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px">결과는 브라우저 개발자 콘솔(F12)에 출력됩니다</div>';
+  var exApi=window.NT_APP_API||{};
+  if(typeof exApi.getExtraIngsStatus==='function'){
+    var ex=exApi.getExtraIngsStatus()||{};
+    var stateMap={idle:'대기',loading:'로딩중',loaded:'성공',noop:'변경없음',error:'오류'};
+    var st=stateMap[ex.state]||ex.state||'알수없음';
+    h+='<div style="font-size:11px;color:#b2dfdb;margin:2px 0 8px">📌 재료목록 연동 상태: <b>'+st+'</b> · '+(ex.message||'-')+(ex.rows?(' · 시트행 '+ex.rows+'개'):'')+'</div>';
+    h+='<button onclick="(window.NT_APP_API&&window.NT_APP_API.reloadExtraIngs?window.NT_APP_API.reloadExtraIngs():loadExtraIngs());showCartPopup(\'🔄 재시도 시작\',\'재료목록 시트 재동기화를 시작했습니다. 잠시 후 상태를 확인하세요.\');setTimeout(render,700);" style="width:100%;padding:8px;background:linear-gradient(135deg,#00897b,#00695c);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">🧪 재료목록 연동 재시도</button>';
+  }
+  h+='<button onclick="runIngCoverageCheck();showCartPopup(\'✅ 진단 완료\',\'브라우저 콘솔(F12)에서 결과를 확인하세요.\')" style="width:100%;padding:9px;background:linear-gradient(135deg,#388e3c,#1b5e20);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:6px">🥕 재료 커버리지 점검</button>';
+  h+='<button onclick="triggerOptIngCheck()" style="width:100%;padding:9px;background:linear-gradient(135deg,#f57c00,#bf360c);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚙️ 선택재료 연결 점검</button>';
+  h+='</div>';
+  return h;
+}
+
 function startPendingListener(){
   if(_pendingListener)return; // 이미 구독 중이면 중복 방지
   _pendingListener=fbDB.ref('community/pending').on('value',function(snap){
@@ -126,6 +165,87 @@ async function exportRecipesCSV(){
     downloadCSV('냉털_레시피카운트_'+new Date().toISOString().substring(0,10)+'.csv',rows);
     alert('✅ 레시피카운트 CSV 다운로드 완료! ('+(rows.length-1)+'개)');
   }catch(e){alert('❌ 오류: '+e.message);}
+}
+
+// ===== 재료목록 CSV (Google Sheets 재료목록 탭 업로드용) =====
+function exportIngredientsCSV(){
+  try{
+    // 동의어 역인덱스: 표준명 -> 별칭 목록
+    var aliasByName={};
+    Object.keys(SYN_MAP||{}).forEach(function(k){
+      var v=SYN_MAP[k];
+      if(!v||k===v)return;
+      if(!aliasByName[v])aliasByName[v]=[];
+      if(aliasByName[v].indexOf(k)===-1)aliasByName[v].push(k);
+    });
+    var rows=[['이름','이모지','카테고리','동의어']];
+    (INGS||[]).forEach(function(i){
+      if(!i||!i.n)return;
+      rows.push([
+        i.n,
+        i.e||'',
+        i.c||'기타',
+        (aliasByName[i.n]||[]).join('|')
+      ]);
+    });
+    downloadCSV('냉털_재료목록_업로드용_'+new Date().toISOString().substring(0,10)+'.csv',rows);
+    alert('✅ 재료목록 CSV 다운로드 완료! ('+(rows.length-1)+'종)\n\n다음 단계:\n1) 관리자 > 📄 시트 열기\n2) "재료목록" 탭 선택\n3) 파일 > 가져오기 > 업로드');
+  }catch(e){
+    alert('❌ 재료목록 CSV 생성 실패: '+e.message);
+  }
+}
+
+function openIngredientSheet(){
+  var url='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/edit';
+  window.open(url,'_blank');
+}
+
+function showIngredientSheetGuide(){
+  alert('재료목록 반영 경로 (초간단)\n\n[권장] 자동 업로드\n1) "☁️ 재료목록 자동 업로드" 클릭\n2) 완료 후 앱에서 자동 재동기화\n\n[수동] CSV 업로드\n1) "🥕 재료목록 CSV 다운로드(업로드용)" 클릭\n2) "📄 시트 열기" 클릭\n3) 구글 시트 "재료목록" 탭 > 파일 > 가져오기 > 업로드');
+}
+
+function showAppsScriptDeployGuide(){
+  alert('자동 업로드가 "unknown action"으로 실패하면, Apps Script를 한 번만 업데이트하면 됩니다.\n\n1) 저장소의 apps_script_v5.gs 코드 복사\n2) script.google.com > 프로젝트 열기\n3) 기존 코드 전체 삭제 후 붙여넣기/저장\n4) 우측 상단 "배포" > "배포 관리"\n5) 웹 앱 재배포(또는 새 버전 배포)\n6) 앱으로 돌아와 다시 "☁️ 재료목록 자동 업로드" 클릭');
+}
+
+async function syncIngredientsToSheet(){
+  try{
+    if(typeof COMMUNITY_SCRIPT_URL!=='string'||!COMMUNITY_SCRIPT_URL){
+      alert('❌ 자동 업로드 URL이 설정되지 않았습니다.');
+      return;
+    }
+    if(!confirm('현재 앱 재료목록을 구글 시트 "재료목록" 탭에 자동 업로드할까요?\n(기존 탭 데이터는 덮어쓰기됩니다)'))return;
+    var aliasByName={};
+    Object.keys(SYN_MAP||{}).forEach(function(k){
+      var v=SYN_MAP[k];
+      if(!v||k===v)return;
+      if(!aliasByName[v])aliasByName[v]=[];
+      if(aliasByName[v].indexOf(k)===-1)aliasByName[v].push(k);
+    });
+    var ingredients=(INGS||[]).filter(function(i){return i&&i.n;}).map(function(i){
+      return {name:i.n,emoji:i.e||'',category:i.c||'기타',alias:(aliasByName[i.n]||[]).join('|')};
+    });
+    var resp=await fetch(COMMUNITY_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'syncIngredients',ingredients:ingredients,syncTime:new Date().toISOString()})
+    });
+    var result=await resp.json();
+    if(result&&result.ok){
+      alert('✅ 재료목록 자동 업로드 완료! ('+ingredients.length+'종)\n\n앱에서도 바로 다시 불러옵니다.');
+      if(window.NT_APP_API&&window.NT_APP_API.reloadExtraIngs)window.NT_APP_API.reloadExtraIngs();
+      setTimeout(render,700);
+    }else{
+      var msg=(result&&result.msg)?String(result.msg):'응답 확인 필요';
+      if(msg.indexOf('unknown action: syncIngredients')>=0){
+        alert('❌ 자동 업로드 실패: 서버가 구버전 Apps Script입니다.\n\n해결:\n- 관리자 화면의 "🛠 Apps Script 업데이트 방법" 버튼을 눌러\n  안내 순서대로 웹앱을 재배포해 주세요.');
+      }else{
+        alert('❌ 자동 업로드 실패: '+msg);
+      }
+    }
+  }catch(e){
+    alert('❌ 자동 업로드 오류: '+e.message);
+  }
 }
 
 // ===== 관리자 통계 대시보드 =====

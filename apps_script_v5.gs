@@ -11,6 +11,8 @@ function doPost(e) {
 
     if (action === 'fullSync') {
       return fullSync(data);
+    } else if (action === 'syncIngredients') {
+      return syncIngredients(data);
     } else if (action === 'save_cook_log') {
       // 기존 호환성 유지 (실제로는 호출되지 않음)
       return ContentService.createTextOutput(JSON.stringify({ok:true, msg:'legacy'}))
@@ -30,6 +32,48 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ok:false, msg:err.toString()}))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// ===== 재료목록 탭 동기화 =====
+function syncIngredients(data){
+  try{
+    var ss=SpreadsheetApp.openById(SPREADSHEET_ID);
+    var list=data.ingredients||[];
+    var result=syncIngredientsSheet(ss,list);
+    return ContentService.createTextOutput(JSON.stringify({
+      ok:true,
+      msg:result,
+      count:list.length,
+      syncTime:data.syncTime||new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }catch(err){
+    return ContentService.createTextOutput(JSON.stringify({ok:false,msg:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function syncIngredientsSheet(ss, ingredients){
+  var sheetName='재료목록';
+  var sheet=ss.getSheetByName(sheetName);
+  if(!sheet){
+    sheet=ss.insertSheet(sheetName);
+  }
+  var headers=['이름','이모지','카테고리','동의어','동기화시각'];
+  sheet.clearContents();
+  sheet.getRange(1,1,1,headers.length).setValues([headers]);
+  sheet.getRange(1,1,1,headers.length).setFontWeight('bold').setBackground('#00897b').setFontColor('#fff');
+
+  if(!ingredients||ingredients.length===0){
+    return '재료목록 0건 동기화';
+  }
+
+  var now=new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+  var rows=ingredients.map(function(i){
+    return [i.name||'',i.emoji||'',i.category||'기타',i.alias||'',now];
+  });
+  sheet.getRange(2,1,rows.length,headers.length).setValues(rows);
+  sheet.autoResizeColumns(1,headers.length);
+  return '재료목록 '+ingredients.length+'건 동기화 완료';
 }
 
 function doGet(e) {
