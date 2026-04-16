@@ -1,3 +1,4 @@
+cat > scripts/smoke_check.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -32,7 +33,7 @@ grep -q "RECIPE UI MODULE: moved to app-recipe-ui.js" index.html
 echo "  - all markers found"
 
 echo "[5/7] Security guardrail check"
-if rg -n "localStorage\\.getItem\\('nt_admin'\\)==='1'" app-community.js index.html >/dev/null; then
+if grep -nE "localStorage\\.getItem\\('nt_admin'\\)==='1'" app-community.js index.html >/dev/null; then
   echo "❌ raw nt_admin flag check found (use isAdminSession())"
   exit 1
 fi
@@ -45,7 +46,7 @@ grep -q "window.NT_APP_API.runOptIngLinkCheck=runOptIngLinkCheck;" app-data.js
 echo "  - found runOptIngLinkCheck API export"
 grep -q "function triggerOptIngCheck()" index.html
 echo "  - found triggerOptIngCheck wrapper"
-if rg -n "onclick=\\\"triggerOptIngCheck\\(\\)\\\"" index.html app-admin.js >/dev/null; then
+if grep -nE "onclick=\\\"triggerOptIngCheck\\(\\)\\\"" index.html app-admin.js >/dev/null; then
   echo "  - admin button uses triggerOptIngCheck()"
 else
   echo "❌ admin button triggerOptIngCheck() wiring not found"
@@ -59,3 +60,7 @@ grep -q "action === 'syncIngredients'" apps_script_v5.gs
 echo "  - found syncIngredients server action"
 
 echo "Smoke checks passed."
+EOF
+
+chmod +x scripts/smoke_check.sh
+./scripts/smoke_check.sh
