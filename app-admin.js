@@ -309,23 +309,18 @@ async function syncIngredientsToSheet(){
       }else if(raw){
         msg='서버 응답 형식 확인 필요';
       }
+      // 자동 업로드 실패 처리
       var lowMsg=msg.toLowerCase();
-// 자동 업로드 실패 처리
-var lowMsg = msg.toLowerCase();
-var isUnknownAction =
-  lowMsg.indexOf('unknown action') >= 0 ||
-  lowMsg.indexOf('unknown action: syncingredients') >= 0;
-
-if (isUnknownAction) {
-  alert(
-    '❌ 자동 업로드 실패: 서버가 구버전 Apps Script이거나 URL이 이전 배포 주소입니다.\n\n' +
-    '해결:\n' +
-    '1) 관리자 화면에서 "🔗 Apps Script URL 설정"으로 최신 /exec URL 저장\n' +
-    '2) 그래도 동일하면 "🛠 Apps Script 업데이트 방법" 순서대로 재배포'
-  );
-} else {
-  alert('❌ 자동 업로드 실패: ' + msg);
-}
+      var isUnknownAction=
+        lowMsg.indexOf('unknown action')>=0||
+        lowMsg.indexOf('unknown action: syncingredients')>=0;
+      if(isUnknownAction){
+        alert(
+          '❌ 자동 업로드 실패: 서버가 구버전 Apps Script이거나 URL이 이전 배포 주소입니다.\n\n'+
+          '해결:\n'+
+          '1) 관리자 화면에서 "🔗 Apps Script URL 설정"으로 최신 /exec URL 저장\n'+
+          '2) 그래도 동일하면 "🛠 Apps Script 업데이트 방법" 순서대로 재배포'
+        );
       }else{
         alert('❌ 자동 업로드 실패: '+msg);
       }
