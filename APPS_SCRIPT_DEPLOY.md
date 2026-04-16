@@ -31,6 +31,8 @@
 ---
 
 ## 빠른 체크
+- `🔗 Apps Script URL 설정`을 눌러 **비운 뒤 저장**하면(기본값 복원)
+  이 브라우저에 저장된 이전 URL(localStorage)을 초기화할 수 있습니다.
 - 여전히 실패하면:
   1) `COMMUNITY_SCRIPT_URL`이 최신 배포 URL인지 확인
   2) Apps Script 배포가 웹 앱 형태인지 확인
