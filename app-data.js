@@ -205,6 +205,20 @@ async function loadData(){
       }catch(e){}
       console.log('✅ Google Sheets 연동 성공: ' + RECIPES.length + '개 레시피');
       updateBestPhotos(); initTags(); render();
+      // 재료목록 탭이 있으면 INGS/SYN_MAP에 추가 재료 병합 (비동기, 실패 무시)
+      loadExtraIngs();
+      // optIng 불일치 검증 — 개발자 콘솔 경고
+      RECIPES.forEach(function(r){
+        r.steps.forEach(function(s){
+          if(!s.optIng)return;
+          var found=r.ings.some(function(i){
+            if(i.t!=='opt')return false;
+            var nm=i.v.split(/\s/)[0].replace(/[()]/g,'');
+            return nm===s.optIng||i.v.startsWith(s.optIng+' ')||i.v.startsWith(s.optIng+'(');
+          });
+          if(!found)console.warn('[optIng 불일치] 레시피:',r.name,'/ optIng:',s.optIng,'/ 선택재료:',r.ings.filter(function(i){return i.t==='opt';}).map(function(i){return i.v;}));
+        });
+      });
     })
     .catch(function(e){
       clearTimeout(timeoutId);
@@ -215,6 +229,47 @@ async function loadData(){
       // 연결 실패 시에도 render() 호출하여 앱 표시 (흰 화면 방지)
       render();
     });
+}
+
+// === 추가 재료 로드 (Google Sheets "재료목록" 탭) ===
+// Sheets에 "재료목록" 탭이 있으면 INGS와 SYN_MAP을 동적으로 확장합니다.
+// 탭 컬럼: 이름 | 이모지 | 카테고리 | 동의어
+// 탭이 없거나 오류 발생 시 조용히 무시 — 기존 하드코딩 INGS는 항상 유지됩니다.
+// Google Sheets에서 "재료목록" 탭 추가 방법:
+//   1. Sheets에서 "+" 버튼 → 시트 이름을 "재료목록" 으로 설정
+//   2. 1행: 이름 | 이모지 | 카테고리 | 동의어 (헤더)
+//   3. 2행부터 추가 재료 입력 (예: 새우 | 🦐 | 해산물 | 흰새우)
+function loadExtraIngs(){
+  fetch('https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('재료목록'))
+    .then(function(res){
+      if(!res.ok)return;
+      return res.text();
+    })
+    .then(function(csv){
+      if(!csv)return;
+      var rows=parseCSV(csv);
+      var added=0;
+      rows.forEach(function(row){
+        var n=(row['이름']||'').trim();
+        var e=(row['이모지']||'').trim();
+        var c=(row['카테고리']||'').trim();
+        var syn=(row['동의어']||'').trim();
+        if(!n)return;
+        // 이미 INGS에 있으면 추가 안 함
+        if(INGS.find(function(i){return i.n===n;}))return;
+        INGS.push({n:n,e:e||'🥘',c:c||'기타'});
+        // CATS에 카테고리 없으면 추가 (전체/자주 유지)
+        if(c&&CATS.indexOf(c)===-1)CATS.splice(CATS.length-2,0,c);
+        // 동의어 등록 (양방향)
+        if(syn&&!SYN_MAP[n]){SYN_MAP[n]=syn;SYN_MAP[syn]=n;}
+        added++;
+      });
+      if(added>0){
+        console.log('[재료목록] Sheets에서 추가 재료 '+added+'종 로드됨');
+        render(); // INGS 변경 반영
+      }
+    })
+    .catch(function(){/* 재료목록 탭 없음 또는 네트워크 오류 — 무시 */});
 }
 
 // === MATCH ===
@@ -282,6 +337,42 @@ function applyRecipeFilters(list){
   return list;
 }
 
+// === 재료 커버리지 진단 (관리자 전용) ===
+// 각 레시피 필수재료가 INGS 배열에 매칭되는지 점검
+// 브라우저 콘솔 또는 관리자 모달에서 결과 확인
+function runIngCoverageCheck(){
+  if(!RECIPES||!RECIPES.length){console.warn('[커버리지] RECIPES 없음');return null;}
+  var ingNames=INGS.map(function(i){return i.n;});
+  var unmatched={};
+  var total=0,matched=0;
+  RECIPES.forEach(function(r){
+    r.ings.filter(function(i){return i.t==='req';}).forEach(function(i){
+      total++;
+      var nm=i.v.split(/\s/)[0].replace(/[()]/g,'');
+      // INGS 직접 매칭 또는 SYN_MAP 역방향 확인
+      var found=ingNames.some(function(n){return n===nm||SYN_MAP[n]===nm||SYN_MAP[nm]===n;});
+      if(found){matched++;}
+      else{
+        if(!unmatched[nm])unmatched[nm]={count:0,recipes:[]};
+        unmatched[nm].count++;
+        unmatched[nm].recipes.push(r.name);
+      }
+    });
+  });
+  var pct=total?Math.round(matched/total*100):0;
+  console.log('[재료 커버리지] '+matched+'/'+total+' ('+pct+'%) 매칭됨');
+  var unmatchedList=Object.keys(unmatched).sort(function(a,b){return unmatched[b].count-unmatched[a].count;});
+  if(unmatchedList.length===0){
+    console.log('[재료 커버리지] 모든 필수재료가 INGS에 매칭됩니다 ✅');
+  }else{
+    console.warn('[재료 커버리지] INGS 미매칭 재료 ('+unmatchedList.length+'종):');
+    unmatchedList.forEach(function(nm){
+      console.warn('  - '+nm+' ('+unmatched[nm].count+'개 레시피: '+unmatched[nm].recipes.slice(0,3).join(', ')+(unmatched[nm].recipes.length>3?'...':'')+')');
+    });
+  }
+  return {pct:pct,matched:matched,total:total,unmatched:unmatched};
+}
+
 // === HELPERS ===
 // 로컬 날짜 문자열 반환 (toISOString은 UTC 기준이라 한국 자정 전후 오류 발생)
 function getLocalDateStr(d){var dt=d||new Date();return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
@@ -330,8 +421,17 @@ function toggleIngredient(n){
 }
 function ingBtn(n,on){var ig=INGS.find(function(i){return i.n===n});var icon=ig&&ig.ic?'<img src="'+ig.ic+'" width="46" height="46" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'block\'" style="display:block;margin:0 auto;object-fit:contain;flex-shrink:0"><span style="display:none;font-size:24px;line-height:1">'+(ig?ig.e:'')+'</span>':'<span class="em">'+(ig?ig.e:'')+'</span>';return '<button class="ing-btn '+(on?'on':'')+'" data-name="'+esc(n)+'" onclick="toggleIngredient(\''+esc(n)+'\')">'+(on?'<span class="ing-check" style="position:absolute;top:3px;right:5px;font-size:10px;color:#fff;font-weight:700;width:16px;height:16px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;line-height:1">✓</span>':'')+icon+n+'</button>';}
 function ingTag(s){var ig=INGS.find(function(i){return i.n===s});var icon=ig&&ig.ic?'<img src="'+ig.ic+'" width="16" height="16" style="vertical-align:middle" onerror="this.outerHTML=\''+ig.e+'\'">':ig?ig.e:'';return '<span class="my-ing-tag">'+icon+' '+s+' <span class="x" onclick="sel.delete(\''+esc(s)+'\');save();render()">✕</span></span>';}
+// 한국어 수사를 숫자로 변환 (스케일링 전처리용)
+var KO_NUM_MAP={'한':1,'두':2,'세':3,'네':4,'다섯':5,'여섯':6,'일곱':7,'여덟':8,'아홉':9,'열':10,'반':0.5};
+function replaceKoNum(txt){
+  // "반 개" → "0.5 개", "두 장" → "2 장" 등 (단어 경계 기준)
+  return txt.replace(/\b(열|다섯|여섯|일곱|여덟|아홉|한|두|세|네|반)\s+/g,function(m,w){
+    return KO_NUM_MAP[w]+' ';
+  });
+}
 function scaleVal(txt,mul,isStep){
   if(mul===1)return txt;
+  txt=replaceKoNum(txt);
   // 조리순서 모드: 시간/온도/비율 패턴은 배수 적용 제외
   if(isStep){
     // 제외 패턴: 숫자+분/초/시간/도/°C, 비율(1:1.5), 단계번호(1. 2. 등), 범위(15~20)
