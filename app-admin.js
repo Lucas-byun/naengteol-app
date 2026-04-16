@@ -4,6 +4,32 @@
 var pendingPostsCache=[];
 var _pendingListener=null;
 
+function getActiveScriptUrl(){
+  try{
+    var custom=localStorage.getItem('nt_script_url_custom')||'';
+    if(custom&&/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/i.test(custom.trim()))return custom.trim();
+  }catch(e){}
+  return COMMUNITY_SCRIPT_URL;
+}
+
+function configureScriptUrl(){
+  var current=getActiveScriptUrl()||'';
+  var input=prompt('Apps Script 웹앱 URL을 입력해 주세요.\n(형식: https://script.google.com/macros/s/.../exec)\n\n비우고 확인하면 기본값으로 돌아갑니다.',current);
+  if(input===null)return;
+  var next=String(input||'').trim();
+  if(!next){
+    localStorage.removeItem('nt_script_url_custom');
+    alert('✅ URL 설정을 기본값으로 되돌렸습니다.');
+    return;
+  }
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/i.test(next)){
+    alert('❌ URL 형식이 올바르지 않습니다.\n예: https://script.google.com/macros/s/XXXX/exec');
+    return;
+  }
+  localStorage.setItem('nt_script_url_custom',next);
+  alert('✅ Apps Script URL을 저장했습니다.\n이제 자동 업로드를 다시 시도해 주세요.');
+}
+
 // 관리자 패널 HTML 조각 (index.html 간소화용)
 function renderAdminExportPanel(){
   var h='';
@@ -19,6 +45,7 @@ function renderAdminExportPanel(){
   h+='<button onclick="openIngredientSheet()" style="flex:1;padding:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📄 시트 열기</button>';
   h+='<button onclick="showIngredientSheetGuide()" style="flex:1;padding:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">❓ 업로드 방법</button>';
   h+='</div>';
+  h+='<button onclick="configureScriptUrl()" style="width:100%;padding:8px;margin-top:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🔗 Apps Script URL 설정</button>';
   h+='<button onclick="showAppsScriptDeployGuide()" style="width:100%;padding:8px;margin-top:6px;background:rgba(255,255,255,.05);border:1px dashed rgba(255,255,255,.25);border-radius:8px;color:#cfd8dc;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🛠 Apps Script 업데이트 방법</button>';
   h+='</div>';
   return h;
@@ -240,7 +267,8 @@ async function retryIngredientSheetSync(){
 
 async function syncIngredientsToSheet(){
   try{
-    if(typeof COMMUNITY_SCRIPT_URL!=='string'||!COMMUNITY_SCRIPT_URL){
+    var scriptUrl=getActiveScriptUrl();
+    if(typeof scriptUrl!=='string'||!scriptUrl){
       alert('❌ 자동 업로드 URL이 설정되지 않았습니다.');
       return;
     }
@@ -255,7 +283,7 @@ async function syncIngredientsToSheet(){
     var ingredients=(INGS||[]).filter(function(i){return i&&i.n;}).map(function(i){
       return {name:i.n,emoji:i.e||'',category:i.c||'기타',alias:(aliasByName[i.n]||[]).join('|')};
     });
-    var resp=await fetch(COMMUNITY_SCRIPT_URL,{
+    var resp=await fetch(scriptUrl,{
       method:'POST',
       headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({action:'syncIngredients',ingredients:ingredients,syncTime:new Date().toISOString()})
@@ -282,8 +310,22 @@ async function syncIngredientsToSheet(){
         msg='서버 응답 형식 확인 필요';
       }
       var lowMsg=msg.toLowerCase();
-      if(lowMsg.indexOf('unknown action: syncingredients')>=0){
-        alert('❌ 자동 업로드 실패: 서버가 구버전 Apps Script입니다.\n\n해결:\n- 관리자 화면의 "🛠 Apps Script 업데이트 방법" 버튼을 눌러\n  안내 순서대로 웹앱을 재배포해 주세요.');
+// 자동 업로드 실패 처리
+var lowMsg = msg.toLowerCase();
+var isUnknownAction =
+  lowMsg.indexOf('unknown action') >= 0 ||
+  lowMsg.indexOf('unknown action: syncingredients') >= 0;
+
+if (isUnknownAction) {
+  alert(
+    '❌ 자동 업로드 실패: 서버가 구버전 Apps Script이거나 URL이 이전 배포 주소입니다.\n\n' +
+    '해결:\n' +
+    '1) 관리자 화면에서 "🔗 Apps Script URL 설정"으로 최신 /exec URL 저장\n' +
+    '2) 그래도 동일하면 "🛠 Apps Script 업데이트 방법" 순서대로 재배포'
+  );
+} else {
+  alert('❌ 자동 업로드 실패: ' + msg);
+}
       }else{
         alert('❌ 자동 업로드 실패: '+msg);
       }
@@ -563,7 +605,7 @@ async function syncToSheets(){
       syncTime:new Date().toISOString()
     };
 
-    var resp=await fetch(COMMUNITY_SCRIPT_URL,{
+    var resp=await fetch(getActiveScriptUrl(),{
       method:'POST',
       headers:{'Content-Type':'text/plain'},
       body:JSON.stringify(payload)
