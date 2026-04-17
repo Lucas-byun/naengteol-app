@@ -601,6 +601,19 @@ function renderCard(r){
   var catColor=CAT_COLOR_MAP[catLabel]||'var(--sub)';
   var catBg=CAT_BG_MAP[catLabel]||'var(--card)';
   var borderCol=m.pct===100?'#4CAF50':m.pct>=50?'#FF9800':'#BDBDBD';
+  var reqList=r.ings.filter(function(i){return i.t==='req'});
+  var missCount=0;
+  if(sel.size>0){
+    reqList.forEach(function(i){
+      var hv=[...sel].some(function(s){return ingMatch(i.v,s)});
+      if(!hv)missCount++;
+    });
+  }
+  var statusClass=(sel.size>0&&m.pct===100)?'ok':'need';
+  var statusText='재료 확인 필요';
+  if(sel.size===0){statusClass='neutral';statusText='재료 선택 후 상태 확인';}
+  else if(m.pct===100)statusText='지금 바로 가능';
+  else if(missCount>0)statusText='🛒 재료 '+missCount+'개 부족';
   // v14: 16:9 썬네일 + 콴텐츠 영역 분리
   var _bestPhoto=getRecipeBestPhoto(r.id);
   var h='<div class="recipe-card" onclick="openDetail(\''+r.id+'\')" style="border-left:4px solid '+borderCol+'">';
@@ -621,6 +634,7 @@ function renderCard(r){
   // 콘텐츠 영역
   h+='<div class="rc-info" style="padding:12px 12px 10px;flex:1;min-width:0;position:relative">';
  h+='<button class="rc-fav" style="top:8px;right:8px;font-size:18px" onclick="event.stopPropagation();toggleFav(\''+r.id+'\');render()">'+(favs.has(r.id)?'❤️':'🤍')+'</button>';
+  h+='<div class="rc-status '+statusClass+'">'+statusText+'</div>';
   h+='<div class="rc-name" style="font-size:14px;margin-bottom:4px;padding-right:28px">'+r.name+' '+(getRecipeMedal(r.id)?'<span style="font-size:12px">'+getRecipeMedal(r.id)+'</span>':'')+'</div>';
   if(r._ratingHtml)h+=r._ratingHtml;
   h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
@@ -629,8 +643,13 @@ function renderCard(r){
   h+='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:#f5f5f5;color:var(--sub)">⏱ '+r.time+'분</span>';
   h+='</div>';
   var rTags=RECIPE_TAGS[r.id]||[];if(rTags.length>0){var tagC=TAG_COLORS;var showAll=expandedTags&&expandedTags[r.id];var visibleTags=showAll?rTags:rTags.slice(0,3);h+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px;align-items:center">';visibleTags.forEach(function(t){var c=tagC[t]||['#555','#eee'];h+='<span onclick="event.stopPropagation();activeTag=(activeTag===&quot;'+t+'&quot;)?&quot;&quot;:&quot;'+t+'&quot;;render()" style="font-size:10px;padding:1px 6px;border-radius:8px;background:'+c[1]+';color:'+c[0]+';font-weight:600;cursor:pointer">#'+t+'</span>';});if(rTags.length>3){if(showAll){h+='<span onclick="event.stopPropagation();if(!expandedTags)expandedTags={};expandedTags[&quot;'+r.id+'&quot;]=false;render()" style="font-size:10px;padding:1px 6px;border-radius:8px;background:#e8e8e8;color:#666;cursor:pointer">접기</span>';}else{h+='<span onclick="event.stopPropagation();if(!expandedTags)expandedTags={};expandedTags[&quot;'+r.id+'&quot;]=true;render()" style="font-size:10px;padding:1px 6px;border-radius:8px;background:#e8e8e8;color:#666;cursor:pointer">+'+( rTags.length-3)+'</span>';}}h+='</div>';}
-  if(m.pct===100){h+='<span class="rc-match perfect" style="font-size:11px">✅ 바로 가능'+(m.optHave>0?' <span style="font-size:10px;opacity:0.75">+'+m.optHave+'선택재료</span>':'')+'</span>';}
+  if(sel.size>0&&m.pct<100&&missCount>0){
+    var missingNames=reqList.filter(function(i){return ![...sel].some(function(s){return ingMatch(i.v,s)});}).slice(0,2).map(function(i){return i.v.split(/\s/)[0].replace(/[()]/g,'');});
+    h+='<div class="rc-missing">부족 재료: '+missingNames.join(', ')+(missCount>2?' 외 '+(missCount-2)+'개':'')+'</div>';
+  }
+  if(m.pct===100){h+='<span class="rc-match perfect" style="font-size:11px">옵션 재료 '+(m.optHave||0)+'개 보유</span>';}
+  h+='<button onclick="event.stopPropagation();openDetail(\''+r.id+'\')" style="margin-top:6px;width:100%;padding:8px 10px;border-radius:10px;border:'+(m.pct===100?'1px solid #66bb6a':'1px solid #ffb74d')+';background:'+(m.pct===100?'#e8f5e9':'#fff3e0')+';color:'+(m.pct===100?'#2e7d32':'#ef6c00')+';font-size:12px;font-weight:800;cursor:pointer;font-family:inherit">'+(m.pct===100?'지금 바로 요리하기':'부족 재료 확인하기')+'</button>';
   h+='</div></div>';
-  if(sel.size>0){h+='<div class="rc-ings" style="padding:0 12px 10px;margin-top:0;border-top:1px solid var(--border)">';h+='<div style="padding-top:8px;display:flex;flex-wrap:wrap;gap:4px">';r.ings.filter(function(i){return i.t==='req'}).forEach(function(i){var nm=i.v.split(/\s/)[0].replace(/[()]/g,'');var hv=[...sel].some(function(s){return ingMatch(i.v,s)});h+='<span class="rc-ing '+(hv?'have':'miss')+'">'+nm+'</span>';});h+='</div></div>';}
+  if(sel.size>0){h+='<div class="rc-ings" style="padding:0 12px 10px;margin-top:0;border-top:1px solid var(--border)">';h+='<div style="padding-top:8px;display:flex;flex-wrap:wrap;gap:4px">';reqList.forEach(function(i){var nm=i.v.split(/\s/)[0].replace(/[()]/g,'');var hv=[...sel].some(function(s){return ingMatch(i.v,s)});h+='<span class="rc-ing '+(hv?'have':'miss')+'">'+nm+'</span>';});h+='</div></div>';}
   return h+'</div>';
 }
