@@ -573,21 +573,52 @@ function toggleTag(t){activeTag=(activeTag===t)?'':t;render();}
 // 모든 필터 초기화
 function resetFilters(){mealFilter='전체';diffFilter='전체';timeFilter=0;activeTag='';render();}
 // 식사유형 + 난이도 + 시간 + 해시태그 필터 바 HTML 반환 (재료모드·요리모드 공용)
-function renderFilterBar(){
+function getFilterAvailability(baseList){
+  var list=Array.isArray(baseList)?baseList:[];
+  var meal={};
+  var diff={};
+  var time={t15:false,t30:false};
+  list.forEach(function(r){
+    var m=CAT_LABEL_MAP[r.cat]||'';
+    if(m==='한끼'||m==='반찬'||m==='간식')meal[m]=true;
+    if(r.diff===1||r.diff===2||r.diff===3)diff[r.diff]=true;
+    if(typeof r.time==='number'){
+      if(r.time<=15)time.t15=true;
+      if(r.time<=30)time.t30=true;
+    }
+  });
+  return {meal:meal,diff:diff,time:time};
+}
+function renderFilterBar(baseList){
   var fh='';
+  var avail=getFilterAvailability((baseList&&baseList.length)?baseList:RECIPES);
+  // 현재 선택값이 후보에 없으면 자동 초기화 (빈 결과 방지)
+  if(mealFilter!=='전체'&&!avail.meal[mealFilter])mealFilter='전체';
+  if(diffFilter!=='전체'&&!avail.diff[diffFilter])diffFilter='전체';
+  if(timeFilter===15&&!avail.time.t15)timeFilter=0;
+  if(timeFilter===30&&!avail.time.t30)timeFilter=0;
   var MC={'전체':['var(--text)','var(--border)'],'한끼':['#1976d2','#e3f2fd'],'반찬':['#388e3c','#e8f5e9'],'간식':['#ff6f00','#f5f5f5']};
   // 식사유형
-  fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
-  ['전체','한끼','반찬','간식'].forEach(function(f){var act=mealFilter===f;var c=MC[f];fh+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:3px 11px;border-radius:14px;font-size:12px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid '+c[0]:'1px solid var(--border)')+';background:'+(act?c[1]:'var(--bg)')+';color:'+(act?c[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';});
-  fh+='</div>';
+  var mealOpts=['전체','한끼','반찬','간식'].filter(function(f){return f==='전체'||avail.meal[f];});
+  if(mealOpts.length>1){
+    fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
+    mealOpts.forEach(function(f){var act=mealFilter===f;var c=MC[f];fh+='<button onclick="mealFilter=\''+f+'\';render()" style="padding:3px 11px;border-radius:14px;font-size:12px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid '+c[0]:'1px solid var(--border)')+';background:'+(act?c[1]:'var(--bg)')+';color:'+(act?c[0]:'var(--sub)')+';cursor:pointer;font-family:inherit">'+f+'</button>';});
+    fh+='</div>';
+  }
   // 난이도
-  fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
-  [{v:'전체',l:'전체'},{v:1,l:'⭐ 쉬움'},{v:2,l:'⭐⭐ 보통'},{v:3,l:'⭐⭐⭐ 어려움'}].forEach(function(d){var act=diffFilter===d.v;var dv=d.v==='전체'?'\'전체\'':d.v;fh+='<button onclick="diffFilter='+dv+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid var(--primary)':'1px solid var(--border)')+';background:'+(act?'#FEF3EC':'var(--bg)')+';color:'+(act?'var(--primary)':'var(--sub)')+';cursor:pointer;font-family:inherit">'+d.l+'</button>';});
-  fh+='</div>';
+  var diffOpts=[{v:'전체',l:'전체'},{v:1,l:'⭐ 쉬움'},{v:2,l:'⭐⭐ 보통'},{v:3,l:'⭐⭐⭐ 어려움'}].filter(function(d){return d.v==='전체'||avail.diff[d.v];});
+  if(diffOpts.length>1){
+    fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
+    diffOpts.forEach(function(d){var act=diffFilter===d.v;var dv=d.v==='전체'?'\'전체\'':d.v;fh+='<button onclick="diffFilter='+dv+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid var(--primary)':'1px solid var(--border)')+';background:'+(act?'#FEF3EC':'var(--bg)')+';color:'+(act?'var(--primary)':'var(--sub)')+';cursor:pointer;font-family:inherit">'+d.l+'</button>';});
+    fh+='</div>';
+  }
   // 조리시간
-  fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
-  [{v:0,l:'전체'},{v:15,l:'⏱ 15분↓'},{v:30,l:'⏱ 30분↓'}].forEach(function(t){var act=timeFilter===t.v;fh+='<button onclick="timeFilter='+t.v+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid #0288d1':'1px solid var(--border)')+';background:'+(act?'#e1f5fe':'var(--bg)')+';color:'+(act?'#0288d1':'var(--sub)')+';cursor:pointer;font-family:inherit">'+t.l+'</button>';});
-  fh+='</div>';
+  var timeOpts=[{v:0,l:'전체'},{v:15,l:'⏱ 15분↓'},{v:30,l:'⏱ 30분↓'}].filter(function(t){return t.v===0||(t.v===15&&avail.time.t15)||(t.v===30&&avail.time.t30);});
+  if(timeOpts.length>1){
+    fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
+    timeOpts.forEach(function(t){var act=timeFilter===t.v;fh+='<button onclick="timeFilter='+t.v+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid #0288d1':'1px solid var(--border)')+';background:'+(act?'#e1f5fe':'var(--bg)')+';color:'+(act?'#0288d1':'var(--sub)')+';cursor:pointer;font-family:inherit">'+t.l+'</button>';});
+    fh+='</div>';
+  }
   // 해시태그 — 실제 데이터 기반 동적 목록
   var activeTags=getActiveTags();
   if(activeTags.length>0){
@@ -703,7 +734,7 @@ function render(){
         var perfectAll=allMatched.filter(function(r){return r.match.pct===100});
         var partialAll=allMatched.filter(function(r){return r.match.pct<100});
         h+='<div style="padding:8px 16px 0">';
-        h+=renderFilterBar();
+        h+=renderFilterBar(allMatched);
         h+='</div>';
         if(filteredMatched.length>0){
           // 상단 요약 배너
@@ -785,11 +816,12 @@ function render(){
       }
     }else{
       var q=searchQ.toLowerCase();var fl2=q?RECIPES.filter(function(r){var nm=r.name.toLowerCase();if(nm.includes(q))return true;var sq=SYN_MAP[q];return sq&&nm.includes(sq);}):RECIPES;
+      var fl2Base=fl2.slice();
       // mealFilter + diffFilter + timeFilter + activeTag 일괄 적용
       fl2=applyRecipeFilters(fl2);
       var cs=[...new Set(fl2.map(function(r){return r.cat}))];
       h+='<div style="padding:8px 16px 0">';
-      h+=renderFilterBar();
+      h+=renderFilterBar(fl2Base);
       h+='</div>';
       h+='<div class="recipe-count">'+fl2.length+'개 레시피</div>';
       cs.forEach(function(c){var rs=fl2.filter(function(r){return r.cat===c});h+='<div class="recipe-section" style="background:var(--cook-bg)"><h2 style="color:var(--text)">'+(rs[0]?rs[0].emoji:'')+' '+c+' ('+rs.length+')</h2>';rs.forEach(function(r){h+=renderCard(Object.assign({},r,{match:sel.size>0?matchRecipe(r,selArr):{pct:0}}))});h+='</div>';});
