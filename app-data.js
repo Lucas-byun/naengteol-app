@@ -5,6 +5,9 @@
 var DESC_FIX={};
 // 재료목록(추가 INGS) 로드 상태 - 관리자 확인용
 var EXTRA_INGS_STATUS={state:'idle',added:0,rows:0,message:'아직 실행 전',updatedAt:0};
+var INGS_CACHE_KEY='nt_ings_cache_v1';
+var INGS_CACHE_TS_KEY='nt_ings_cache_ts_v1';
+var INGS_CACHE_MAX_AGE_MS=24*60*60*1000; // 24시간
 
 // === GOOGLE SHEETS CONFIG ===
 var SHEET_ID='13DpBAiqpcdWLgfh-mRE_cBvt-T1jtrhD_hE_KJ9mk4w';
@@ -152,7 +155,13 @@ async function loadData(){
   var CACHE_TS_KEY='nt_recipe_cache_ts_v1';
   var CACHE_MAX_AGE_MS=6*60*60*1000; // 6시간
 
-  // 0) 캐시가 있으면 먼저 즉시 표시 (체감 속도 개선)
+  // 0) 재료 캐시가 있으면 먼저 반영 (시트 우선 구조의 체감속도 개선)
+  applyCachedIngs();
+  // 0-1) 재료목록 시트는 항상 백그라운드에서 최신화
+  //      (레시피 캐시가 신선해 조기 return 되어도 재료는 최신 반영되도록)
+  loadExtraIngs({replaceAll:true});
+
+  // 1) 레시피 캐시가 있으면 먼저 즉시 표시 (체감 속도 개선)
   try{
     var cachedRaw=localStorage.getItem(CACHE_KEY);
     var cachedTs=parseInt(localStorage.getItem(CACHE_TS_KEY)||'0',10)||0;
@@ -207,8 +216,6 @@ async function loadData(){
       }catch(e){}
       console.log('✅ Google Sheets 연동 성공: ' + RECIPES.length + '개 레시피');
       updateBestPhotos(); initTags(); render();
-      // 재료목록 탭이 있으면 INGS/SYN_MAP에 추가 재료 병합 (비동기, 실패 무시)
-      loadExtraIngs();
       // optIng 불일치 검증 — 개발자 콘솔 경고
       runOptIngLinkCheck();
     })
@@ -223,15 +230,17 @@ async function loadData(){
     });
 }
 
-// === 추가 재료 로드 (Google Sheets "재료목록" 탭) ===
-// Sheets에 "재료목록" 탭이 있으면 INGS와 SYN_MAP을 동적으로 확장합니다.
+// === 재료 로드 (Google Sheets "재료목록" 탭) ===
+// Sheets "재료목록" 탭을 INGS 소스로 사용합니다.
 // 탭 컬럼: 이름 | 이모지 | 카테고리 | 동의어
-// 탭이 없거나 오류 발생 시 조용히 무시 — 기존 하드코딩 INGS는 항상 유지됩니다.
+// 탭이 없거나 오류 발생 시 캐시/기본 INGS를 유지합니다.
 // Google Sheets에서 "재료목록" 탭 추가 방법:
 //   1. Sheets에서 "+" 버튼 → 시트 이름을 "재료목록" 으로 설정
 //   2. 1행: 이름 | 이모지 | 카테고리 | 동의어 (헤더)
 //   3. 2행부터 추가 재료 입력 (예: 새우 | 🦐 | 해산물 | 흰새우)
-function loadExtraIngs(){
+function loadExtraIngs(opts){
+  opts=opts||{};
+  var replaceAll=opts.replaceAll!==false;
   EXTRA_INGS_STATUS={state:'loading',added:0,rows:0,message:'재료목록 시트 불러오는 중...',updatedAt:Date.now()};
   function normKey(k){return String(k||'').replace(/\ufeff/g,'').replace(/\s+/g,'').toLowerCase();}
   function getRowVal(row, aliases){
@@ -261,29 +270,47 @@ function loadExtraIngs(){
     .then(function(csv){
       if(!csv)return;
       var rows=parseCSV(csv);
+      var iconByName={};
+      (INGS||[]).forEach(function(i){if(i&&i.n&&i.ic)iconByName[i.n]=i.ic;});
+      var nextIngs=[];
+      var seen={};
       var added=0;
       rows.forEach(function(row){
         var n=getRowVal(row,['이름','재료명','name']);
         var e=getRowVal(row,['이모지','emoji']);
         var c=getRowVal(row,['카테고리','분류','category']);
-        var syn=getRowVal(row,['동의어','별칭','alias']);
+        var synRaw=getRowVal(row,['동의어','별칭','alias']);
         if(!n)return;
-        // 이미 INGS에 있으면 추가 안 함
-        if(INGS.find(function(i){return i.n===n;}))return;
-        INGS.push({n:n,e:e||'🥘',c:c||'기타'});
-        // CATS에 카테고리 없으면 추가 (전체/자주 유지)
-        if(c&&CATS.indexOf(c)===-1)CATS.splice(CATS.length-2,0,c);
-        // 동의어 등록 (양방향)
-        if(syn&&!SYN_MAP[n]){SYN_MAP[n]=syn;SYN_MAP[syn]=n;}
+        if(seen[n])return;
+        seen[n]=true;
+        nextIngs.push({n:n,e:e||'🥘',c:c||'기타',ic:iconByName[n]||''});
+        // 동의어 등록 (양방향, | 구분 지원)
+        synRaw.split('|').map(function(s){return s.trim();}).filter(Boolean).forEach(function(syn){
+          SYN_MAP[syn]=n;
+          if(!SYN_MAP[n])SYN_MAP[n]=syn;
+        });
         added++;
       });
-      if(added>0){
-        EXTRA_INGS_STATUS={state:'loaded',added:added,rows:rows.length,message:'추가 재료 '+added+'종 로드됨',updatedAt:Date.now()};
-        console.log('[재료목록] Sheets에서 추가 재료 '+added+'종 로드됨');
+
+      if(replaceAll&&nextIngs.length>0){
+        INGS=nextIngs;
+        rebuildIngredientCategories();
+      }else if(!replaceAll&&nextIngs.length>0){
+        nextIngs.forEach(function(ni){
+          if(!INGS.find(function(i){return i.n===ni.n;}))INGS.push(ni);
+        });
+        rebuildIngredientCategories();
+      }
+
+      if(nextIngs.length>0){
+        saveIngsCache(nextIngs);
+        var msg=replaceAll?('재료목록 '+nextIngs.length+'종 전체 반영 완료'):('추가 재료 '+added+'종 로드됨');
+        EXTRA_INGS_STATUS={state:'loaded',added:added,rows:rows.length,message:msg,updatedAt:Date.now()};
+        console.log('[재료목록] '+msg);
         render(); // INGS 변경 반영
       }else{
-        EXTRA_INGS_STATUS={state:'noop',added:0,rows:rows.length,message:'추가된 항목 없음(중복/빈값/헤더 확인)',updatedAt:Date.now()};
-        console.info('[재료목록] 추가된 항목 없음 (헤더/중복/빈값 확인 필요)');
+        EXTRA_INGS_STATUS={state:'noop',added:0,rows:rows.length,message:'시트 재료가 비어 있어 기존 목록 유지',updatedAt:Date.now()};
+        console.info('[재료목록] 시트 재료 없음 — 기존 INGS 유지');
       }
     })
     .catch(function(e){
@@ -293,6 +320,45 @@ function loadExtraIngs(){
 }
 
 function getExtraIngsStatus(){return EXTRA_INGS_STATUS;}
+
+function rebuildIngredientCategories(){
+  var seen={'자주':true,'전체':true};
+  var next=['자주'];
+  (INGS||[]).forEach(function(i){
+    var c=(i&&i.c)?String(i.c).trim():'기타';
+    if(!c||seen[c])return;
+    seen[c]=true;
+    next.push(c);
+  });
+  next.push('전체');
+  CATS=next;
+}
+
+function saveIngsCache(ings){
+  try{
+    localStorage.setItem(INGS_CACHE_KEY,JSON.stringify(ings||[]));
+    localStorage.setItem(INGS_CACHE_TS_KEY,String(Date.now()));
+  }catch(e){}
+}
+
+function applyCachedIngs(){
+  try{
+    var raw=localStorage.getItem(INGS_CACHE_KEY);
+    var ts=parseInt(localStorage.getItem(INGS_CACHE_TS_KEY)||'0',10)||0;
+    if(!raw)return false;
+    if(Date.now()-ts>INGS_CACHE_MAX_AGE_MS)return false;
+    var cached=JSON.parse(raw);
+    if(!Array.isArray(cached)||cached.length===0)return false;
+    INGS=cached.filter(function(i){return i&&i.n;}).map(function(i){
+      return {n:i.n,e:i.e||'🥘',c:i.c||'기타',ic:i.ic||''};
+    });
+    rebuildIngredientCategories();
+    EXTRA_INGS_STATUS={state:'cache',added:INGS.length,rows:INGS.length,message:'캐시 재료목록 사용',updatedAt:Date.now()};
+    return true;
+  }catch(e){
+    return false;
+  }
+}
 
 // === MATCH ===
 // Synonym map for ingredient matching
