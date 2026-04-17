@@ -157,6 +157,9 @@ async function loadData(){
 
   // 0) 재료 캐시가 있으면 먼저 반영 (시트 우선 구조의 체감속도 개선)
   applyCachedIngs();
+  // 0-1) 재료목록 시트는 항상 백그라운드에서 최신화
+  //      (레시피 캐시가 신선해 조기 return 되어도 재료는 최신 반영되도록)
+  loadExtraIngs({replaceAll:true});
 
   // 1) 레시피 캐시가 있으면 먼저 즉시 표시 (체감 속도 개선)
   try{
@@ -213,8 +216,6 @@ async function loadData(){
       }catch(e){}
       console.log('✅ Google Sheets 연동 성공: ' + RECIPES.length + '개 레시피');
       updateBestPhotos(); initTags(); render();
-      // 재료목록 탭에서 INGS 전체를 읽어 교체 (비동기, 실패 시 캐시/기본값 유지)
-      loadExtraIngs({replaceAll:true});
       // optIng 불일치 검증 — 개발자 콘솔 경고
       runOptIngLinkCheck();
     })
