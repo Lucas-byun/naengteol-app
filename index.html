@@ -783,7 +783,7 @@ h+='<button class="my-ing-action-btn '+(myIngAction==='result'?'is-selected':'')
         if(filteredMatched.length>0){
           // 상단 요약 KPI 카드
           var topUnlock2=getTopUnlock();
-          var kpiCardStyle='border-radius:10px;padding:10px 8px;text-align:center;min-height:96px;display:flex;flex-direction:column;justify-content:center;gap:4px';
+          var kpiCardStyle='border-radius:10px;padding:8px 8px;text-align:center;min-height:74px;display:flex;flex-direction:column;justify-content:center;gap:2px';
           h+='<div style="margin:4px 16px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px">';
           h+='<div style="background:var(--state-ok-bg);border:1px solid #c8e6c9;'+kpiCardStyle+'"><div style="font-size:clamp(10px,2.8vw,12px);color:var(--state-ok);font-weight:700">바로 가능</div><div style="font-size:clamp(18px,4.5vw,24px);color:#1b5e20;font-weight:800;line-height:1.1">'+perfectList.length+'개</div></div>';
           h+='<div style="background:var(--state-need-bg);border:1px solid #ffe0b2;'+kpiCardStyle+'"><div style="font-size:clamp(10px,2.8vw,12px);color:var(--state-need);font-weight:700">추가 재료 필요</div><div style="font-size:clamp(18px,4.5vw,24px);color:#e65100;font-weight:800;line-height:1.1">'+partialList.length+'개</div></div>';
