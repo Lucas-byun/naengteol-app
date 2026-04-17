@@ -58,8 +58,9 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .my-ing-summary-count{font-size:14px;color:var(--text);font-weight:800}
 .my-ing-summary-count.one-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px}
 .my-ing-summary-actions{display:flex;gap:8px;padding:8px 16px 0}
-.my-ing-action-btn{flex:1;padding:10px 12px;border-radius:10px;font-size:12px;font-weight:700;border:1px solid var(--border);background:#fff;cursor:pointer;font-family:inherit}
-.my-ing-action-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.my-ing-action-btn{flex:1;padding:10px 12px;border-radius:10px;font-size:12px;font-weight:700;border:1px solid var(--border);background:#fff;cursor:pointer;font-family:inherit;transition:all .16s ease}
+.my-ing-action-btn:active{border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+.my-ing-action-btn.is-selected{border-color:var(--primary);background:var(--primary);color:#fff;box-shadow:0 4px 10px rgba(232,101,42,.22)}
 .my-ing-action-btn:disabled{background:#f1f1f1;border-color:#ddd;color:#9e9e9e;cursor:not-allowed}
 /* Category Tabs */
 .cat-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:none}
@@ -631,6 +632,7 @@ function renderFilterBar(baseList){
   // 난이도 (상세: 보통/어려움만)
   var diffOpts=[{v:2,l:'⭐⭐ 보통'},{v:3,l:'⭐⭐⭐ 어려움'}].filter(function(d){return avail.diff[d.v];});
   if(diffOpts.length>1){
+    fh+='<div style="font-size:10px;color:var(--sub);font-weight:700;margin:2px 0 4px">난이도</div>';
     fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
     diffOpts.forEach(function(d){var act=diffFilter===d.v;fh+='<button onclick="diffFilter='+d.v+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid var(--primary)':'1px solid var(--border)')+';background:'+(act?'#FEF3EC':'var(--bg)')+';color:'+(act?'var(--primary)':'var(--sub)')+';cursor:pointer;font-family:inherit">'+d.l+'</button>';});
     fh+='</div>';
@@ -638,6 +640,7 @@ function renderFilterBar(baseList){
   // 조리시간 (상세: 30분↓만)
   var timeOpts=[{v:30,l:'⏱ 30분↓'}].filter(function(t){return t.v===30&&avail.time.t30;});
   if(timeOpts.length>0){
+    fh+='<div style="font-size:10px;color:var(--sub);font-weight:700;margin:2px 0 4px">조리시간</div>';
     fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
     timeOpts.forEach(function(t){var act=timeFilter===t.v;fh+='<button onclick="timeFilter='+t.v+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid #0288d1':'1px solid var(--border)')+';background:'+(act?'#e1f5fe':'var(--bg)')+';color:'+(act?'#0288d1':'var(--sub)')+';cursor:pointer;font-family:inherit">'+t.l+'</button>';});
     fh+='</div>';
@@ -645,6 +648,7 @@ function renderFilterBar(baseList){
   // 해시태그 — 실제 데이터 기반 동적 목록
   var activeTags=getActiveTags();
   if(activeTags.length>0){
+    fh+='<div style="font-size:10px;color:var(--sub);font-weight:700;margin:2px 0 4px">#태그</div>';
     fh+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px">';
     activeTags.forEach(function(t){var act=activeTag===t;var tc=TAG_COLORS[t]||['#333','#eee'];var em=TAG_EMOJIS[t]||'';fh+='<button onclick="toggleTag(\''+t+'\')" style="display:flex;align-items:center;gap:3px;padding:3px 9px;border-radius:14px;border:'+(act?'2px solid '+tc[0]:'1px solid var(--border)')+';background:'+(act?tc[1]:'var(--card)')+';color:'+(act?tc[0]:'var(--sub)')+';font-size:11px;font-weight:'+(act?'700':'500')+';cursor:pointer;font-family:inherit;white-space:nowrap">'+(em?em+' ':'')+t+'</button>';});
     fh+='</div>';
@@ -661,6 +665,15 @@ function randomRecipe(){
   if(sel.size>0){var m=getMatched();if(m.length>0)pool=m;}
   var pick=pool[Math.floor(Math.random()*pool.length)];
   openDetail(pick.id);
+}
+function setMyIngAction(action,targetSelector){
+  myIngAction=action;
+  render();
+  if(!targetSelector)return;
+  setTimeout(function(){
+    var target=document.querySelector(targetSelector);
+    if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+  },0);
 }
 function render(){
   if(!dataLoaded)return;
@@ -704,8 +717,8 @@ function render(){
         h+='<button class="my-ing-action-btn" onclick="openFridge()">전체보기</button>';
         h+='</div></div>';
         h+='<div class="my-ing-summary-actions">';
-        h+='<button class="my-ing-action-btn" onclick="document.querySelector(\'.ing-grid\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">재료 더 고르기</button>';
-        h+='<button class="my-ing-action-btn primary" '+(quickMatchCount===0?'disabled':'')+' onclick="'+(quickMatchCount===0?'':'document.getElementById(\'resultAnchor\')&&document.getElementById(\'resultAnchor\').scrollIntoView({behavior:\'smooth\',block:\'start\'})')+'">'+(quickMatchCount===0?'추천 결과 없음':'추천 보러가기')+'</button>';
+        h+='<button class="my-ing-action-btn '+(myIngAction==='pick'?'is-selected':'')+'" onclick="setMyIngAction(\'pick\',\'.ing-grid\')">재료 더 고르기</button>';
+        h+='<button class="my-ing-action-btn '+(myIngAction==='result'?'is-selected':'')+'" '+(quickMatchCount===0?'disabled':'')+' onclick="'+(quickMatchCount===0?'':'setMyIngAction(\'result\',\'#resultAnchor\')')+'">'+(quickMatchCount===0?'추천 결과 없음':'추천 보러가기')+'</button>';
         h+='</div>';
       }
       var fl=cat==='전체'?INGS:cat==='자주'?INGS.filter(function(i){return FAV_INGS.indexOf(i.n)!==-1}):INGS.filter(function(i){return i.c===cat});
@@ -773,7 +786,7 @@ function render(){
           h+='<div style="margin:4px 16px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px">';
           h+='<div style="background:var(--state-ok-bg);border:1px solid #c8e6c9;border-radius:10px;padding:9px 8px"><div style="font-size:10px;color:var(--state-ok);font-weight:700">바로 가능</div><div style="font-size:16px;color:#1b5e20;font-weight:800">'+perfectList.length+'개</div></div>';
           h+='<div style="background:var(--state-need-bg);border:1px solid #ffe0b2;border-radius:10px;padding:9px 8px"><div style="font-size:10px;color:var(--state-need);font-weight:700">추가 재료 필요</div><div style="font-size:16px;color:#e65100;font-weight:800">'+partialList.length+'개</div></div>';
-          h+='<div style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:10px;padding:9px 8px"><div style="font-size:10px;color:#666;font-weight:700">가장 효율 재료</div><div style="font-size:13px;color:#333;font-weight:800">'+((topUnlock2&&topUnlock2.unlocks>0)?topUnlock2.name:'-')+'</div></div>';
+          h+='<div style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:10px;padding:9px 8px"><div style="font-size:10px;color:#666;font-weight:700">추가 시 효율적인 재료</div><div style="font-size:13px;color:#333;font-weight:800">'+((topUnlock2&&topUnlock2.unlocks>0)?topUnlock2.name+' ('+topUnlock2.unlocks+'개 요리 가능)':'-')+'</div></div>';
           h+='</div>';
           // 장보기 버튼 (재료 추가 필요 항목이 있을 때)
           if(partialAll.length>0){var topIng=getTopUnlock();h+='<div style="padding:0 16px 8px"><button onclick="openShopList()" style="width:100%;padding:11px;border:none;border-radius:12px;background:#f57c00;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🛒 '+(topIng&&topIng.unlocks>0?topIng.name+'만 사면 +'+topIng.unlocks+'개 추가 가능':'부족 재료 바로 담기')+'</button></div>';}
