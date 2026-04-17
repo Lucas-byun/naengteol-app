@@ -718,7 +718,7 @@ function render(){
         h+='</div></div>';
         h+='<div class="my-ing-summary-actions">';
         h+='<button class="my-ing-action-btn '+(myIngAction==='pick'?'is-selected':'')+'" onclick="setMyIngAction(\'pick\',\'.ing-grid\')">재료 더 고르기</button>';
-        h+='<button class="my-ing-action-btn '+(myIngAction==='result'?'is-selected':'')+'" '+(quickMatchCount===0?'disabled':'')+' onclick="'+(quickMatchCount===0?'':'setMyIngAction(\'result\',\'#resultAnchor\')')+'">'+(quickMatchCount===0?'추천 결과 없음':'추천 보러가기')+'</button>';
+h+='<button class="my-ing-action-btn '+(myIngAction==='result'?'is-selected':'')+'" '+(quickMatchCount===0?'disabled':'')+' onclick="'+(quickMatchCount===0?'':'setMyIngAction(\'result\',\'#resultAnchor\')')+'">'+(quickMatchCount===0?'추천 결과 없음':'추천 보러가기')+'</button>';
         h+='</div>';
       }
       var fl=cat==='전체'?INGS:cat==='자주'?INGS.filter(function(i){return FAV_INGS.indexOf(i.n)!==-1}):INGS.filter(function(i){return i.c===cat});
