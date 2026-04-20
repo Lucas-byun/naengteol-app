@@ -598,7 +598,7 @@ function getFilterAvailability(baseList){
   list.forEach(function(r){
     var m=CAT_LABEL_MAP[r.cat]||'';
     if(m==='한끼'||m==='반찬'||m==='간식')meal[m]=true;
-    if(r.diff===1||r.diff===2||r.diff===3)diff[r.diff]=true;
+    if(r.diff===0||r.diff===1||r.diff===2||r.diff===3)diff[r.diff]=true;
     if(typeof r.time==='number'){
       if(r.time<=15)time.t15=true;
       if(r.time<=30)time.t30=true;
@@ -629,9 +629,9 @@ function renderFilterBar(baseList){
   fh+='</div>';
   fh+='<button onclick="showAdvancedFilters=!showAdvancedFilters;localStorage.setItem(\'nt_adv_filters\',showAdvancedFilters?\'1\':\'0\');render()" style="padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--sub);cursor:pointer;font-family:inherit;margin-bottom:5px">'+(showAdvancedFilters?'상세 필터 닫기 ▲':'상세 필터 열기 ▼')+'</button>';
   if(showAdvancedFilters){
-  // 난이도 (상세: 보통/어려움만)
-  var diffOpts=[{v:2,l:'⭐⭐ 보통'},{v:3,l:'⭐⭐⭐ 어려움'}].filter(function(d){return avail.diff[d.v];});
-  if(diffOpts.length>1){
+  // 난이도 (상세: 아주 쉬움/보통/어려움)
+  var diffOpts=[{v:0,l:'✨ 아주 쉬움'},{v:2,l:'⭐⭐ 보통'},{v:3,l:'⭐⭐⭐ 어려움'}].filter(function(d){return avail.diff[d.v];});
+  if(diffOpts.length>0){
     fh+='<div style="font-size:10px;color:var(--sub);font-weight:700;margin:2px 0 4px">난이도</div>';
     fh+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">';
     diffOpts.forEach(function(d){var act=diffFilter===d.v;fh+='<button onclick="diffFilter='+d.v+';render()" style="padding:3px 11px;border-radius:14px;font-size:11px;font-weight:'+(act?'700':'500')+';border:'+(act?'2px solid var(--primary)':'1px solid var(--border)')+';background:'+(act?'#FEF3EC':'var(--bg)')+';color:'+(act?'var(--primary)':'var(--sub)')+';cursor:pointer;font-family:inherit">'+d.l+'</button>';});
