@@ -40,17 +40,12 @@ INGS=INGS.concat([
   {n:'부침가루',e:'🌾',c:'주재료',ic:'icons/ing_046.png'},{n:'연두부',e:'🥣',c:'주재료',ic:'icons/ing_043.png'},{n:'부추',e:'🌿',c:'채소',ic:'icons/ing_018.png'},{n:'숙주',e:'🌱',c:'채소',ic:'icons/ing_013.png'},{n:'알감자',e:'🥔',c:'채소',ic:'icons/ing_010.png'},
   {n:'멸치',e:'🐟',c:'해산물',ic:'icons/ing_032.png'},{n:'새우',e:'🦐',c:'해산물',ic:'icons/ing_032.png'},{n:'오징어',e:'🦑',c:'해산물',ic:'icons/ing_032.png'},{n:'진미채',e:'🦑',c:'해산물',ic:'icons/ing_033.png'}
 ]);
-var ING_ICON_VERSION='20260420d';
-// 아이콘 검토 결과: 현재 이미지와 재료명이 맞지 않거나(또는 임시 이미지인) 항목은
-// 잘못된 사진 대신 기존 이모지를 보여주도록 제외 처리합니다.
-var ICON_REVIEW_BLOCKLIST=new Set([
-  '참치캔','참기름',
-  '메추리알','간장양념장','맛술','소고기 육수','올리고당',
-  '국거리용소고기','대패삼겹살','돈가스','앞다리살','떡국떡',
-  '부침가루','연두부','부추','숙주','알감자','멸치','새우','오징어','진미채'
-]);
+var ING_ICON_VERSION='20260420e';
+// 현재는 전체 재료 아이콘을 우선 적용합니다.
+// (필요 시 특정 재료만 이름을 추가해 이모지 fallback으로 돌릴 수 있습니다.)
+var ICON_REVIEW_BLOCKLIST=new Set([]);
 INGS=INGS.map(function(i){
-  if(!i.ic||ICON_REVIEW_BLOCKLIST.has(i.n))return {n:i.n,e:i.e,c:i.c,ic:''};
+  if(!i.ic)return {n:i.n,e:i.e,c:i.c,ic:''};
   return {n:i.n,e:i.e,c:i.c,ic:i.ic+'?v='+ING_ICON_VERSION};
 });
 var CATS=['자주','채소','육류','해산물','달걀·유제품','주재료','양념·소스','전체'];
