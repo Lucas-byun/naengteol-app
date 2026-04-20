@@ -461,6 +461,35 @@ function runIngCoverageCheck(){
   return {pct:pct,matched:matched,total:total,unmatched:unmatched};
 }
 
+// === 아이콘 매칭 점검 (관리자/개발자용) ===
+// 사용법: 브라우저 콘솔에서 runIngIconCheck()
+function runIngIconCheck(){
+  var total=(INGS||[]).length;
+  var noIcon=(INGS||[]).filter(function(i){return !i||!i.ic;});
+  var blockedNames=[];
+  if(typeof ICON_REVIEW_BLOCKLIST!=='undefined'&&ICON_REVIEW_BLOCKLIST&&ICON_REVIEW_BLOCKLIST.forEach){
+    ICON_REVIEW_BLOCKLIST.forEach(function(n){blockedNames.push(n);});
+  }
+  console.log('[아이콘 점검] 전체 재료:',total);
+  console.log('[아이콘 점검] 이미지 아이콘 사용:',total-noIcon.length,'/ 이모지 fallback:',noIcon.length);
+  if(blockedNames.length){
+    console.log('[아이콘 점검] 검토 제외 목록('+blockedNames.length+'종):',blockedNames.join(', '));
+  }
+  if(noIcon.length){
+    console.warn('[아이콘 점검] 현재 이미지 미사용 재료('+noIcon.length+'종):',noIcon.map(function(i){return i.n;}).join(', '));
+  }else{
+    console.log('[아이콘 점검] 모든 재료가 이미지 아이콘을 사용합니다 ✅');
+  }
+  return {
+    total:total,
+    iconCount:total-noIcon.length,
+    emojiCount:noIcon.length,
+    blockedCount:blockedNames.length,
+    blockedNames:blockedNames,
+    emojiNames:noIcon.map(function(i){return i.n;})
+  };
+}
+
 // === 선택재료(optIng) 연결 점검 (관리자/개발자용) ===
 // step.optIng 값이 실제 선택재료(ings.type==='opt')와 연결되는지 확인
 function runOptIngLinkCheck(){
@@ -538,7 +567,11 @@ function toggleIngredient(n){
     else window.scrollTo(0,winScroll);
   }
 }
-function ingBtn(n,on){var ig=INGS.find(function(i){return i.n===n});var icon=ig&&ig.ic?'<span class="ing-icon-wrap"><img src="'+ig.ic+'" class="ing-icon" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'block\'"><span style="display:none;font-size:24px;line-height:1">'+(ig?ig.e:'')+'</span></span>':'<span class="em">'+(ig?ig.e:'')+'</span>';return '<button class="ing-btn '+(on?'on':'')+'" data-name="'+esc(n)+'" onclick="toggleIngredient(\''+esc(n)+'\')">'+(on?'<span class="ing-check" style="position:absolute;top:3px;right:5px;font-size:10px;color:#fff;font-weight:700;width:16px;height:16px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;line-height:1">✓</span>':'')+icon+n+'</button>';}
+function ingBtn(n,on){
+  var ig=INGS.find(function(i){return i.n===n});
+  var icon=ig&&ig.ic?'<span class="ing-icon-wrap"><img src="'+ig.ic+'" class="ing-icon" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'block\'"><span style="display:none;font-size:24px;line-height:1">'+(ig?ig.e:'')+'</span></span>':'<span class="em">'+(ig?ig.e:'')+'</span>';
+  return '<button class="ing-btn '+(on?'on':'')+'" data-name="'+esc(n)+'" onclick="toggleIngredient(\''+esc(n)+'\')">'+(on?'<span class="ing-check" style="position:absolute;top:3px;right:5px;font-size:10px;color:#fff;font-weight:700;width:16px;height:16px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;line-height:1">✓</span>':'')+icon+n+'</button>';
+}
 function ingTag(s){var ig=INGS.find(function(i){return i.n===s});var icon=ig&&ig.ic?'<img src="'+ig.ic+'" width="16" height="16" style="vertical-align:middle" onerror="this.outerHTML=\''+ig.e+'\'">':ig?ig.e:'';return '<span class="my-ing-tag">'+icon+' '+s+' <span class="x" onclick="sel.delete(\''+esc(s)+'\');save();render()">✕</span></span>';}
 // 한국어 수사를 숫자로 변환 (스케일링 전처리용)
 var KO_NUM_MAP={'한':1,'두':2,'세':3,'네':4,'다섯':5,'여섯':6,'일곱':7,'여덟':8,'아홉':9,'열':10,'반':0.5};
