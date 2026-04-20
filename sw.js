@@ -1,6 +1,6 @@
 // 냉털 Service Worker v1.2
 // 캐시 버전 — 업데이트 시 이 값을 올리면 기존 캐시가 자동 교체됩니다
-const CACHE_VERSION = 'naengteol-v21';
+const CACHE_VERSION = 'naengteol-v27';
 
 // 앱 셸: 설치 즉시 캐시할 핵심 파일 목록
 const SHELL_ASSETS = [
