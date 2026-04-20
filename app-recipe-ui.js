@@ -33,7 +33,7 @@ function renderDetail(){
   var _detBestPhotoUrl=_detBestPhoto?safeUrl(_detBestPhoto.photo||_detBestPhoto):'';
   var _detBestPhotoBy=_detBestPhoto?ehtml(_detBestPhoto.author||'유저'):'유저';
   h+='<div class="det-hero">'+(getRecipeMedal(r.id)?'<div style="text-align:center;font-size:13px;font-weight:700;color:#ff6f00;margin-bottom:4px">'+getRecipeMedal(r.id)+' 인기 TOP 요리</div>':'')+(_detBestPhotoUrl?'<div style="position:relative;margin-bottom:12px;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:12px"><img src="'+eattr(_detBestPhotoUrl)+'" alt="'+eattr(r.name+' 대표 요리 사진')+'" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentNode.style.display=\'none\'"><div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:3px 8px;border-radius:8px">📸 '+_detBestPhotoBy+'님의 요리</div></div>':'')+'<div class="emoji">'+r.emoji+'</div><h2>'+r.name+'</h2>';
-  h+='<div class="meta"><span>'+(['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움')+'</span><span>⏱'+r.time+'분</span><span>'+r.serving+'인분</span></div>';
+  h+='<div class="meta"><span>'+(['✨ 아주 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움')+'</span><span>⏱'+r.time+'분</span><span>'+r.serving+'인분</span></div>';
   h+='<div class="desc">'+ehtml(r.desc)+'</div>';
   var dTags=RECIPE_TAGS[r.id]||[];if(dTags.length>0){h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;justify-content:center">';var dtC=TAG_COLORS;dTags.forEach(function(t){var c=dtC[t]||['#555','#eee'];h+='<button type="button" aria-label="'+eattr(t)+' 태그 레시피 보기" onclick="closeDetail();activeTag=\''+t+'\';tab=\'cook\';render()" style="font-size:11px;padding:3px 10px;border-radius:12px;background:'+c[1]+';color:'+c[0]+';font-weight:600;cursor:pointer;border:none;font-family:inherit">#'+t+'</button>';});h+='</div>';}
   h+='</div>';
@@ -594,7 +594,7 @@ function toggleFav(id){
 // === RENDER CARD: moved from index.html ===
 function renderCard(r){
   var m=r.match||{pct:0},cl=m.pct>=80?'high':m.pct>=50?'mid':'low';
-  var dfLabel=['⭐ 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움';
+  var dfLabel=['✨ 아주 쉬움','⭐ 쉬움','⭐⭐ 보통','⭐⭐⭐ 어려움'][r.diff]||'⭐ 쉬움';
   var dfColor=['#E8652A','#E8652A','#e07b39','#b85450'][r.diff]||'#E8652A';
   var dfBg=['#FFF0E8','#FFF0E8','#fdf3ec','#fdf5f5'][r.diff]||'#FFF0E8';
   var catLabel=CAT_LABEL_MAP[r.cat]||'';
