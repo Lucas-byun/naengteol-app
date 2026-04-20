@@ -7,7 +7,7 @@ var DESC_FIX={};
 var EXTRA_INGS_STATUS={state:'idle',added:0,rows:0,message:'아직 실행 전',updatedAt:0};
 var INGS_CACHE_KEY='nt_ings_cache_v1';
 var INGS_CACHE_TS_KEY='nt_ings_cache_ts_v1';
-var INGS_CACHE_MAX_AGE_MS=24*60*60*1000; // 24시간
+var INGS_CACHE_MAX_AGE_MS=6*60*60*1000; // 6시간 (출시 초기 신선도 우선)
 
 // === GOOGLE SHEETS CONFIG ===
 var SHEET_ID='13DpBAiqpcdWLgfh-mRE_cBvt-T1jtrhD_hE_KJ9mk4w';
@@ -153,7 +153,7 @@ async function loadData(){
   loadDataStartedAt=Date.now();
   var CACHE_KEY='nt_recipe_cache_v1';
   var CACHE_TS_KEY='nt_recipe_cache_ts_v1';
-  var CACHE_MAX_AGE_MS=6*60*60*1000; // 6시간
+  var CACHE_MAX_AGE_MS=2*60*60*1000; // 2시간 (출시 초기 신선도 우선)
 
   // 0) 재료 캐시가 있으면 먼저 반영 (시트 우선 구조의 체감속도 개선)
   applyCachedIngs();
