@@ -702,9 +702,6 @@ function render(){
       if(sel.size>0){
         var pickedChipHtml=selArr.map(function(s){var ig=INGS.find(function(i){return i.n===s});return '<span class="my-ing-picked-chip">'+(ig?ig.e+' ':'')+s+'</span>';}).join('');
         h+='<div class="my-ing-summary">';
-        h+='<div class="my-ing-summary-main">';
-        h+='<div><div class="my-ing-summary-title">선택한 재료</div><div class="my-ing-summary-count">'+sel.size+'개 선택됨</div></div>';
-        h+='</div>';
         h+='<div class="my-ing-picked-list">'+pickedChipHtml+'</div>';
         if(sel.size>8){
           h+='<div class="my-ing-more-row"><span class="my-ing-more-text">…등 '+sel.size+'개 재료</span><button class="my-ing-action-btn" onclick="openFridge()">더보기</button></div>';
