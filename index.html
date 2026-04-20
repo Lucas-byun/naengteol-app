@@ -699,6 +699,15 @@ function render(){
       h+='<div class="cat-tabs">';
       CATS.forEach(function(c){h+='<button class="cat-tab '+(cat===c?'on':'')+'" onclick="cat=\''+c+'\';render()">'+c+'</button>'});
       h+='</div>';
+      if(sel.size>0){
+        var pickedChipHtml=selArr.map(function(s){var ig=INGS.find(function(i){return i.n===s});return '<span class="my-ing-picked-chip">'+(ig?ig.e+' ':'')+s+'</span>';}).join('');
+        h+='<div class="my-ing-summary">';
+        h+='<div class="my-ing-picked-list">'+pickedChipHtml+'</div>';
+        if(sel.size>8){
+          h+='<div class="my-ing-more-row"><span class="my-ing-more-text">…등 '+sel.size+'개 재료</span><button class="my-ing-action-btn" onclick="openFridge()">더보기</button></div>';
+        }
+        h+='</div>';
+      }
       var fl=cat==='전체'?INGS:cat==='자주'?INGS.filter(function(i){return FAV_INGS.indexOf(i.n)!==-1}):INGS.filter(function(i){return i.c===cat});
       if(searchQ){var ql=searchQ.toLowerCase();fl=fl.filter(function(i){return i.n.toLowerCase().includes(ql)});}
       h+='<div class="ing-grid">';fl.forEach(function(i){h+=ingBtn(i.n,sel.has(i.n))});h+='</div>';
