@@ -1,4 +1,89 @@
 // Community UI / moderation module
+// 커뮤니티 기본 썸네일(사진 없을 때) 생성
+var _commFallbackCache={};
+function _commHash(str){
+  var s=String(str||'');
+  var h=0;
+  for(var i=0;i<s.length;i++)h=((h<<5)-h)+s.charCodeAt(i);
+  return Math.abs(h||1);
+}
+function getCommunityBrandColor(){
+  try{
+    var c=getComputedStyle(document.documentElement).getPropertyValue('--primary');
+    c=(c||'').trim();
+    if(c)return c;
+  }catch(e){}
+  return '#ff7043';
+}
+function getCommunityTypeIcon(recipeName,text){
+  var src=((recipeName||'')+' '+(text||'')).toLowerCase();
+  if(src.includes('탕')||src.includes('찌개')||src.includes('국')||src.includes('전골'))return '🍲';
+  if(src.includes('볶')||src.includes('구이')||src.includes('불고기'))return '🔥';
+  if(src.includes('면')||src.includes('파스타')||src.includes('라면'))return '🍜';
+  if(src.includes('밥')||src.includes('덮밥')||src.includes('김밥'))return '🍚';
+  if(src.includes('샐러드')||src.includes('야채')||src.includes('채소'))return '🥗';
+  if(src.includes('빵')||src.includes('토스트')||src.includes('샌드'))return '🥪';
+  return '🍽️';
+}
+function getCommunityThumbAlt(post){
+  var p=post||{};
+  var name=(p.recipe||'요리').trim()||'요리';
+  return name+' 기본 썸네일';
+}
+function getCommunityTitleLines(title){
+  var t=String(title||'').trim();
+  if(!t)t='집밥 후기';
+  var maxPerLine=8;
+  var maxTotal=maxPerLine*2;
+  var clipped=t.length>maxTotal?t.slice(0,maxTotal-1)+'…':t;
+  var line1=clipped.slice(0,maxPerLine);
+  var line2=clipped.slice(maxPerLine);
+  return [line1,line2];
+}
+function getCommunityFallbackThumb(post,mode){
+  var p=post||{};
+  var brand=getCommunityBrandColor();
+  var cacheKey=[mode||'grid',p.recipe||'',p.emoji||'',p.user||'',p.text||'',brand].join('|');
+  if(_commFallbackCache[cacheKey])return _commFallbackCache[cacheKey];
+  var seed=_commHash((p.recipe||'')+'|'+(p.emoji||'🍳')+'|'+(p.user||''));
+  var palettes=[
+    ['#FFE082','#FFB300','#6D4C41'],
+    ['#B3E5FC','#29B6F6','#0D47A1'],
+    ['#C8E6C9','#66BB6A','#1B5E20'],
+    ['#F8BBD0','#EC407A','#880E4F'],
+    ['#D1C4E9','#7E57C2','#311B92']
+  ];
+  var colors=palettes[seed%palettes.length];
+  var emoji=(p.emoji||'🍳').slice(0,2);
+  var typeIcon=getCommunityTypeIcon(p.recipe,p.text);
+  var title=(p.recipe||'집밥 후기').trim();
+  var titleLines=getCommunityTitleLines(title);
+  var size=mode==='detail'?900:600;
+  var subtitle=mode==='detail'?'사진이 없어도 멋진 요리!':'사진 없음';
+  var svg='';
+  svg+='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 600 600">';
+  svg+='<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="'+colors[0]+'"/><stop offset="100%" stop-color="'+colors[1]+'"/></linearGradient></defs>';
+  svg+='<rect width="600" height="600" fill="url(#g)"/>';
+  svg+='<rect x="0" y="0" width="600" height="600" fill="none" stroke="'+brand+'" stroke-width="10" opacity=".45"/>';
+  svg+='<circle cx="520" cy="80" r="120" fill="rgba(255,255,255,.23)"/>';
+  svg+='<circle cx="80" cy="520" r="140" fill="rgba(255,255,255,.18)"/>';
+  svg+='<circle cx="90" cy="90" r="48" fill="rgba(255,255,255,.92)"/>';
+  svg+='<text x="90" y="108" text-anchor="middle" font-size="42">'+typeIcon+'</text>';
+  svg+='<rect x="36" y="390" width="528" height="160" rx="24" fill="rgba(255,255,255,.84)"/>';
+  svg+='<text x="300" y="210" text-anchor="middle" font-size="120">'+emoji+'</text>';
+  var _line1=titleLines[0].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var _line2=titleLines[1].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  svg+='<text x="300" y="445" text-anchor="middle" font-size="36" font-weight="700" fill="'+colors[2]+'">'+_line1+'</text>';
+  if(_line2)svg+='<text x="300" y="490" text-anchor="middle" font-size="36" font-weight="700" fill="'+colors[2]+'">'+_line2+'</text>';
+  svg+='<text x="300" y="540" text-anchor="middle" font-size="24" fill="'+colors[2]+'" opacity=".85">'+subtitle+'</text>';
+  svg+='</svg>';
+  var data='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+  _commFallbackCache[cacheKey]=data;
+  var cacheSize=Object.keys(_commFallbackCache).length;
+  if(cacheSize>300)_commFallbackCache={};
+  return data;
+}
+
 // 커뮤니티 검색 자동완성
 function updateCommAC(val){
   var ac=document.getElementById('commAcList');
@@ -129,9 +214,16 @@ function renderCommunity(){
       h+='<div role="button" tabindex="0" aria-label="'+eattr((c.recipe||'요리')+' 후기 상세 보기')+'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openCommDetail('+idx+')}" onclick="openCommDetail('+idx+')" style="position:relative;cursor:pointer;background:#f5f5f5;aspect-ratio:1/1;overflow:hidden;border-radius:4px">';
       if(c.photo){
         var _thumb=safeUrl(c.photo);
-        if(_thumb)h+='<img src="'+eattr(_thumb)+'" alt="'+eattr((c.recipe||'요리')+' 후기 썸네일')+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.style.background=\'#eee\';this.style.display=\'none\'">';
+        if(_thumb){
+          var _fbThumb=getCommunityFallbackThumb(c,'grid');
+          h+='<img src="'+eattr(_thumb)+'" alt="'+eattr((c.recipe||'요리')+' 후기 썸네일')+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.onerror=null;this.src=\''+eattr(_fbThumb)+'\'">';
+        }else{
+          var _fallbackThumbWhenInvalid=getCommunityFallbackThumb(c,'grid');
+          h+='<img src="'+eattr(_fallbackThumbWhenInvalid)+'" alt="'+eattr(getCommunityThumbAlt(c))+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block">';
+        }
       } else {
-        h+='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px">'+ehtml(c.emoji||'🍳')+'</div>';
+        var _fallbackThumb=getCommunityFallbackThumb(c,'grid');
+        h+='<img src="'+eattr(_fallbackThumb)+'" alt="'+eattr(getCommunityThumbAlt(c))+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block">';
       }
       // 좋아요 수 오버레이
       if((c.likes||0)>0){
@@ -269,8 +361,14 @@ function openCommDetail(idx){
       var img=document.createElement('img');
       img.src=_detailPhoto;
       img.style.cssText='width:100%;max-height:360px;object-fit:contain;background:#111;display:block';
-      img.onerror=function(){this.style.display='none';};
+      img.onerror=function(){this.onerror=null;this.src=getCommunityFallbackThumb(c,'detail');this.style.objectFit='cover';this.style.background='transparent';};
       photoWrap.appendChild(img);
+    }else{
+      var detailFallback=document.createElement('img');
+      detailFallback.src=getCommunityFallbackThumb(c,'detail');
+      detailFallback.style.cssText='width:100%;max-height:360px;object-fit:cover;display:block';
+      detailFallback.alt=getCommunityThumbAlt(c);
+      photoWrap.appendChild(detailFallback);
     }
     if(_isBest){
       var bestBadge=document.createElement('div');
@@ -279,6 +377,15 @@ function openCommDetail(idx){
       photoWrap.appendChild(bestBadge);
     }
     panel.appendChild(photoWrap);
+  } else {
+    var fallbackWrap=document.createElement('div');
+    fallbackWrap.style.cssText='position:relative';
+    var fallbackImg=document.createElement('img');
+    fallbackImg.src=getCommunityFallbackThumb(c,'detail');
+    fallbackImg.style.cssText='width:100%;max-height:360px;object-fit:cover;display:block';
+    fallbackImg.alt=getCommunityThumbAlt(c);
+    fallbackWrap.appendChild(fallbackImg);
+    panel.appendChild(fallbackWrap);
   }
 
   if(c.text){
