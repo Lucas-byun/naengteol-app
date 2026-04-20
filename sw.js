@@ -75,7 +75,6 @@ self.addEventListener('fetch', function(event) {
     url.hostname.includes('firebase') ||
     url.hostname.includes('firebaseio') ||
     url.hostname.includes('googleapis') ||
-    url.hostname.includes('google.com') ||
     url.hostname.includes('script.google') ||
     url.hostname.includes('gstatic')
   ) {

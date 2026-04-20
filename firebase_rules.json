@@ -1,6 +1,6 @@
 {
   "rules": {
-    ".read": true,
+    ".read": "auth != null",
     "recipes": {
       "$recipeId": {
         "count": { ".write": "auth != null", ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000" },
