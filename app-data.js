@@ -153,7 +153,9 @@ function sheetRowToRecipe(r) {
 }
 
 // === LOAD ===
-async function loadData(){
+async function loadData(opts){
+  opts=opts||{};
+  var forceRefresh=opts.forceRefresh===true;
   loadDataStartedAt=Date.now();
   var CACHE_KEY='nt_recipe_cache_v1';
   var CACHE_TS_KEY='nt_recipe_cache_ts_v1';
@@ -176,8 +178,8 @@ async function loadData(){
         dataSource='cache';
         dataLoaded=true;
         updateBestPhotos(); initTags(); render();
-        // 캐시가 신선하면 네트워크 재요청 생략
-        if(Date.now()-cachedTs<CACHE_MAX_AGE_MS){
+        // 강제 새로고침이 아니고 캐시가 신선하면 네트워크 재요청 생략
+        if(!forceRefresh&&Date.now()-cachedTs<CACHE_MAX_AGE_MS){
           console.log('⚡ 캐시 레시피 사용: '+RECIPES.length+'개');
           return;
         }
