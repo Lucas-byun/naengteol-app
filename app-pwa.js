@@ -88,8 +88,11 @@ function toggleSearchBar(){
     }, 100);
   }
 }
-function goHome(){
+function goHome(forceRefresh){
   tab='cook';mode='ing';showSearch=false;searchQ='';
   window.scrollTo(0,0);
   render();
+  if(forceRefresh&&typeof loadData==='function'){
+    loadData({forceRefresh:true});
+  }
 }
